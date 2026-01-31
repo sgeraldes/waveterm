@@ -28,6 +28,10 @@
     }
 
     // Status text colors (VS Code style)
+    // NOTE: These colors are intentionally hardcoded with !important to ensure
+    // consistent status indication across all themes. Status colors must remain
+    // recognizable regardless of the selected accent or mode, similar to how
+    // VS Code uses fixed colors for git status indicators in tabs.
     &.status-running .name {
         color: #3b82f6 !important;
         animation: text-pulse 1.5s ease-in-out infinite;
@@ -51,8 +55,9 @@
         content: "";
         position: absolute;
         left: 0;
+        top: 0;
+        bottom: 0;
         width: 1px;
-        height: 14px;
         border-right: 1px solid rgb(from var(--main-text-color) r g b / 0.2);
     }
 
@@ -73,6 +78,11 @@
     &.active {
         // Active tab: 75% white overlay on tab bar background (brightest)
         background: rgb(255 255 255 / 0.12);
+        // Drop shadow and side shadows to distinguish active tab
+        box-shadow:
+            0 2px 4px rgb(0 0 0 / 0.3),
+            inset 1px 0 0 rgb(255 255 255 / 0.06),
+            inset -1px 0 0 rgb(255 255 255 / 0.06);
 
         .tab-inner {
             border-color: transparent;
@@ -221,39 +231,39 @@ body.nohover .tab.active .close {
     }
     10% {
         transform: rotate(-30deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     20% {
         transform: rotate(30deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     30% {
         transform: rotate(-30deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     40% {
         transform: rotate(30deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     50% {
         transform: rotate(-15deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     60% {
         transform: rotate(15deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     70% {
         transform: rotate(-15deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     80% {
         transform: rotate(15deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     90% {
         transform: rotate(0deg);
-        color: rgb(255, 193, 7);
+        color: var(--warning-color);
     }
     100% {
         transform: rotate(0deg);

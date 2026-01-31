@@ -1159,13 +1159,6 @@ declare global {
         newline?: boolean;
     };
 
-    // iochantypes.Packet
-    type Packet = {
-        Data: string;
-        Checksum: string;
-    };
-
-
     // wshrpc.PathCommandData
     type PathCommandData = {
         pathtype: string;

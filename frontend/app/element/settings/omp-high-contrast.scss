@@ -10,7 +10,7 @@
     flex-direction: column;
     gap: 12px;
     padding: 12px;
-    background: var(--form-element-bg-color);
+    background: var(--card-bg-color);
     border-radius: 8px;
     border: 1px solid var(--form-element-border-color);
 }
@@ -36,7 +36,7 @@
     flex-wrap: wrap;
     gap: 10px;
     padding: 8px 0;
-    color: var(--error-color, #ff6b6b);
+    color: var(--error-color);
     font-size: 13px;
 
     i {
@@ -69,7 +69,7 @@
     align-items: center;
     gap: 10px;
     padding: 8px 0;
-    color: var(--success-color, #4caf50);
+    color: var(--success-color);
     font-size: 13px;
 
     i {
@@ -87,12 +87,12 @@
     align-items: flex-start;
     gap: 12px;
     padding: 12px;
-    background: rgba(255, 193, 7, 0.1);
-    border: 1px solid rgba(255, 193, 7, 0.3);
+    background: rgb(from var(--warning-color) r g b / 0.1);
+    border: 1px solid rgb(from var(--warning-color) r g b / 0.3);
     border-radius: 6px;
 
     i {
-        color: #ffc107;
+        color: var(--warning-color);
         font-size: 18px;
         margin-top: 2px;
         flex-shrink: 0;
@@ -132,7 +132,7 @@
     background: var(--accent-color);
     border: none;
     border-radius: 6px;
-    color: white;
+    color: var(--button-text-color);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -153,7 +153,7 @@
     }
 
     &.success {
-        background: var(--success-color, #4caf50);
+        background: var(--success-color);
     }
 
     i {
@@ -200,10 +200,10 @@
     align-items: center;
     gap: 8px;
     padding: 8px 12px;
-    background: rgba(255, 107, 107, 0.1);
-    border: 1px solid rgba(255, 107, 107, 0.3);
+    background: rgb(from var(--error-color) r g b / 0.1);
+    border: 1px solid rgb(from var(--error-color) r g b / 0.3);
     border-radius: 4px;
-    color: var(--error-color, #ff6b6b);
+    color: var(--error-color);
     font-size: 12px;
 }
 

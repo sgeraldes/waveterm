@@ -73,7 +73,7 @@ declare global {
         /** The GUI control type to render */
         controlType: SettingControlType;
         /** Default value when not set by user */
-        defaultValue: boolean | number | string | string[] | object | null;
+        defaultValue: boolean | number | string | string[] | Record<string, unknown> | null;
         /** The JavaScript type of the value */
         type: SettingValueType;
         /** Optional validation rules */

@@ -68,7 +68,7 @@
 
         .path-source {
             background: var(--accent-color);
-            color: white;
+            color: var(--button-text-color);
             padding: 2px 6px;
             border-radius: 3px;
             font-size: 10px;
@@ -107,7 +107,7 @@
 
     i {
         font-size: 32px;
-        color: var(--error-color, #e53935);
+        color: var(--error-color);
     }
 
     .error-title {
@@ -168,7 +168,7 @@
 
     > i {
         font-size: 32px;
-        color: var(--warning-color, #ffa726);
+        color: var(--warning-color);
     }
 
     .warning-title {
@@ -213,10 +213,10 @@
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(229, 57, 53, 0.1);
-    border: 1px solid rgba(229, 57, 53, 0.3);
+    background: rgb(from var(--error-color) r g b / 0.1);
+    border: 1px solid rgb(from var(--error-color) r g b / 0.3);
     border-radius: 6px;
-    color: var(--error-color, #e53935);
+    color: var(--error-color);
 
     > i {
         flex-shrink: 0;
@@ -247,10 +247,10 @@
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(255, 167, 38, 0.1);
-    border: 1px solid rgba(255, 167, 38, 0.3);
+    background: rgb(from var(--warning-color) r g b / 0.1);
+    border: 1px solid rgb(from var(--warning-color) r g b / 0.3);
     border-radius: 6px;
-    color: var(--warning-color, #ffa726);
+    color: var(--warning-color);
     font-size: 13px;
 
     i {
@@ -259,6 +259,10 @@
 }
 
 // Config preview
+// NOTE: The dark-bg, light-bg, and split-bg backgrounds are intentionally hardcoded.
+// These preview modes show how the OMP theme will appear on fixed dark/light backgrounds,
+// regardless of the current app theme, so users can verify their theme looks correct
+// in both terminal color schemes.
 .omp-config-preview {
     background: var(--block-bg-color);
     border: 1px solid var(--border-color);
@@ -418,7 +422,7 @@
 }
 
 .omp-block-item {
-    background: var(--form-element-bg-color);
+    background: var(--card-bg-color);
     border: 1px solid var(--form-element-border-color);
     border-radius: 6px;
     padding: 12px;
@@ -431,7 +435,7 @@
 
     &.selected {
         border-color: var(--accent-color);
-        box-shadow: 0 0 0 2px rgba(88, 193, 66, 0.2);
+        box-shadow: 0 0 0 2px rgb(from var(--accent-color) r g b / 0.2);
     }
 
     .block-header {
@@ -503,7 +507,7 @@
 
     &.selected {
         background: var(--accent-color);
-        color: white;
+        color: var(--button-text-color);
     }
 
     &:focus-visible {
@@ -519,7 +523,7 @@
         width: 12px;
         height: 12px;
         border-radius: 2px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgb(from var(--main-text-color) r g b / 0.2);
     }
 }
 
@@ -684,7 +688,7 @@
 
     .btn-primary {
         background: var(--accent-color);
-        color: var(--button-text-color, white);
+        color: var(--button-text-color);
         border: none;
 
         &:hover:not(:disabled) {
@@ -703,8 +707,8 @@
     }
 
     .btn-danger {
-        background: var(--error-color, #e53935);
-        color: white;
+        background: var(--error-color);
+        color: var(--button-text-color);
         border: none;
 
         &:hover:not(:disabled) {
@@ -746,7 +750,7 @@
         margin-bottom: 12px;
 
         i {
-            color: var(--warning-color, #ffa726);
+            color: var(--warning-color);
         }
     }
 
@@ -831,7 +835,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px;
-    background: var(--form-element-bg-color);
+    background: var(--card-bg-color);
     border: 1px solid var(--form-element-border-color);
     border-radius: 6px;
     cursor: pointer;

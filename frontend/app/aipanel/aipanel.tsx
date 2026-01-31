@@ -71,7 +71,7 @@ const KeyCap = memo(({ children, className }: { children: React.ReactNode; class
     return (
         <kbd
             className={cn(
-                "px-1.5 py-0.5 text-xs bg-zinc-700 border border-zinc-600 rounded-sm shadow-sm font-mono",
+                "px-1.5 py-0.5 text-xs bg-hover border border-border rounded-sm shadow-sm font-mono",
                 className
             )}
         >
@@ -188,10 +188,10 @@ const AIErrorMessage = memo(() => {
     }
 
     return (
-        <div className="px-4 py-2 text-red-400 bg-red-900/20 border-l-4 border-red-500 mx-2 mb-2 relative">
+        <div className="px-4 py-2 text-error bg-error/10 border-l-4 border-error mx-2 mb-2 relative">
             <button
                 onClick={() => model.clearError()}
-                className="absolute top-2 right-2 text-red-400 hover:text-red-300 cursor-pointer z-10"
+                className="absolute top-2 right-2 text-error hover:text-error/80 cursor-pointer z-10"
                 aria-label="Close error"
             >
                 <i className="fa fa-times text-sm"></i>
@@ -200,7 +200,7 @@ const AIErrorMessage = memo(() => {
                 {errorMessage}
                 <button
                     onClick={() => model.clearChat()}
-                    className="ml-2 text-xs text-red-300 hover:text-red-200 cursor-pointer underline"
+                    className="ml-2 text-xs text-error/80 hover:text-error cursor-pointer underline"
                 >
                     New Chat
                 </button>
@@ -484,8 +484,8 @@ const AIPanelComponentInner = memo(() => {
             ref={containerRef}
             data-waveai-panel="true"
             className={cn(
-                "@container bg-zinc-900/70 flex flex-col relative mt-1 h-[calc(100%-4px)]",
-                (isDragOver || isReactDndDragOver) && "bg-zinc-800 border-accent",
+                "@container bg-panel flex flex-col relative mt-1 h-[calc(100%-4px)]",
+                (isDragOver || isReactDndDragOver) && "bg-background border-accent",
                 isFocused ? "border-2 border-accent" : "border-2 border-transparent"
             )}
             style={{

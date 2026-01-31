@@ -4,56 +4,35 @@
 /**
  * Display Settings
  *
- * Compact inline controls for visual/display settings,
- * embedded in the Appearance panel's "Display Settings" collapsible section.
+ * Visual/display settings for the Appearance panel's "Display Settings" collapsible section.
+ * Reuses the same SettingControl component as the General tab for consistent UI
+ * (modified indicator, reset button, same row layout).
  */
 
+import { SettingControl } from "@/app/element/settings/setting-control";
 import { ColorControl } from "@/app/element/settings/color-control";
 import { FontControl } from "@/app/element/settings/font-control";
 import { SliderControl } from "@/app/element/settings/slider-control";
 import { ToggleControl } from "@/app/element/settings/toggle-control";
 import { getSettingsKeyAtom } from "@/app/store/global";
+import { getDefaultValue } from "@/app/store/settings-registry";
 import { settingsService } from "@/app/store/settings-service";
 import { useAtomValue } from "jotai";
 import { memo, useCallback } from "react";
 
 import "./display-settings.scss";
 
-interface DisplaySettingRowProps {
-    label: string;
-    description?: string;
-    requiresRestart?: boolean;
-    children: React.ReactNode;
-}
-
-const DisplaySettingRow = memo(({ label, description, requiresRestart, children }: DisplaySettingRowProps) => {
-    return (
-        <div className="display-setting-row">
-            <div className="display-setting-info">
-                <span className="display-setting-label">{label}</span>
-                {requiresRestart && <span className="display-setting-restart">Restart required</span>}
-                {description && <span className="display-setting-description">{description}</span>}
-            </div>
-            <div className="display-setting-control">{children}</div>
-        </div>
-    );
-});
-
-DisplaySettingRow.displayName = "DisplaySettingRow";
-
 interface SubSectionProps {
     title: string;
     children: React.ReactNode;
 }
 
-const SubSection = memo(({ title, children }: SubSectionProps) => {
-    return (
-        <div className="display-subsection">
-            <div className="display-subsection-title">{title}</div>
-            <div className="display-subsection-content">{children}</div>
-        </div>
-    );
-});
+const SubSection = memo(({ title, children }: SubSectionProps) => (
+    <div className="display-subsection">
+        <div className="display-subsection-title">{title}</div>
+        <div className="display-subsection-content">{children}</div>
+    </div>
+));
 
 SubSection.displayName = "SubSection";
 
@@ -79,7 +58,6 @@ export const DisplaySettings = memo(() => {
     const aiFontsize = useAtomValue(getSettingsKeyAtom("ai:fontsize")) ?? 14;
     const aiFixedFontsize = useAtomValue(getSettingsKeyAtom("ai:fixedfontsize")) ?? 12;
 
-    // Generic change handler factory
     const makeSetter = useCallback(
         (key: string) => (value: unknown) => {
             settingsService.setSetting(key, value);
@@ -87,22 +65,53 @@ export const DisplaySettings = memo(() => {
         []
     );
 
+    // Cast makeSetter result for SettingControl's onChange prop type
+    const makeOnChange = useCallback(
+        (key: string) => makeSetter(key) as (value: boolean | number | string | string[] | Record<string, unknown> | null) => void,
+        [makeSetter]
+    );
+
     return (
         <div className="display-settings">
             <SubSection title="Window">
-                <DisplaySettingRow label="Transparent Window" requiresRestart>
+                <SettingControl
+                    settingKey="window:transparent"
+                    label="Transparent Window"
+                    description=""
+                    value={windowTransparent as boolean}
+                    defaultValue={getDefaultValue("window:transparent")}
+                    onChange={makeOnChange("window:transparent")}
+                    isModified={settingsService.isModified("window:transparent")}
+                    requiresRestart
+                >
                     <ToggleControl
                         value={Boolean(windowTransparent)}
                         onChange={makeSetter("window:transparent") as (v: boolean) => void}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Background Blur">
+                </SettingControl>
+                <SettingControl
+                    settingKey="window:blur"
+                    label="Background Blur"
+                    description=""
+                    value={windowBlur as boolean}
+                    defaultValue={getDefaultValue("window:blur")}
+                    onChange={makeOnChange("window:blur")}
+                    isModified={settingsService.isModified("window:blur")}
+                >
                     <ToggleControl
                         value={Boolean(windowBlur)}
                         onChange={makeSetter("window:blur") as (v: boolean) => void}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Window Opacity">
+                </SettingControl>
+                <SettingControl
+                    settingKey="window:opacity"
+                    label="Window Opacity"
+                    description=""
+                    value={windowOpacity as number}
+                    defaultValue={getDefaultValue("window:opacity")}
+                    onChange={makeOnChange("window:opacity")}
+                    isModified={settingsService.isModified("window:opacity")}
+                >
                     <SliderControl
                         value={Number(windowOpacity)}
                         onChange={makeSetter("window:opacity") as (v: number) => void}
@@ -110,14 +119,30 @@ export const DisplaySettings = memo(() => {
                         max={1}
                         step={0.05}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Background Color">
+                </SettingControl>
+                <SettingControl
+                    settingKey="window:bgcolor"
+                    label="Background Color"
+                    description=""
+                    value={windowBgcolor as string}
+                    defaultValue={getDefaultValue("window:bgcolor")}
+                    onChange={makeOnChange("window:bgcolor")}
+                    isModified={settingsService.isModified("window:bgcolor")}
+                >
                     <ColorControl
                         value={String(windowBgcolor)}
                         onChange={makeSetter("window:bgcolor") as (v: string) => void}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Interface Zoom">
+                </SettingControl>
+                <SettingControl
+                    settingKey="window:zoom"
+                    label="Interface Zoom"
+                    description=""
+                    value={windowZoom as number}
+                    defaultValue={getDefaultValue("window:zoom")}
+                    onChange={makeOnChange("window:zoom")}
+                    isModified={settingsService.isModified("window:zoom")}
+                >
                     <SliderControl
                         value={Number(windowZoom)}
                         onChange={makeSetter("window:zoom") as (v: number) => void}
@@ -125,11 +150,19 @@ export const DisplaySettings = memo(() => {
                         max={2}
                         step={0.1}
                     />
-                </DisplaySettingRow>
+                </SettingControl>
             </SubSection>
 
             <SubSection title="Terminal">
-                <DisplaySettingRow label="Font Size">
+                <SettingControl
+                    settingKey="term:fontsize"
+                    label="Font Size"
+                    description=""
+                    value={termFontsize as number}
+                    defaultValue={getDefaultValue("term:fontsize")}
+                    onChange={makeOnChange("term:fontsize")}
+                    isModified={settingsService.isModified("term:fontsize")}
+                >
                     <SliderControl
                         value={Number(termFontsize)}
                         onChange={makeSetter("term:fontsize") as (v: number) => void}
@@ -137,21 +170,45 @@ export const DisplaySettings = memo(() => {
                         max={24}
                         step={1}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Font Family">
+                </SettingControl>
+                <SettingControl
+                    settingKey="term:fontfamily"
+                    label="Font Family"
+                    description=""
+                    value={termFontfamily as string}
+                    defaultValue={getDefaultValue("term:fontfamily")}
+                    onChange={makeOnChange("term:fontfamily")}
+                    isModified={settingsService.isModified("term:fontfamily")}
+                >
                     <FontControl
                         value={String(termFontfamily)}
                         onChange={makeSetter("term:fontfamily") as (v: string) => void}
                         showPreview={false}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Font Ligatures">
+                </SettingControl>
+                <SettingControl
+                    settingKey="term:ligatures"
+                    label="Font Ligatures"
+                    description=""
+                    value={termLigatures as boolean}
+                    defaultValue={getDefaultValue("term:ligatures")}
+                    onChange={makeOnChange("term:ligatures")}
+                    isModified={settingsService.isModified("term:ligatures")}
+                >
                     <ToggleControl
                         value={Boolean(termLigatures)}
                         onChange={makeSetter("term:ligatures") as (v: boolean) => void}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Transparency">
+                </SettingControl>
+                <SettingControl
+                    settingKey="term:transparency"
+                    label="Transparency"
+                    description=""
+                    value={termTransparency as number}
+                    defaultValue={getDefaultValue("term:transparency")}
+                    onChange={makeOnChange("term:transparency")}
+                    isModified={settingsService.isModified("term:transparency")}
+                >
                     <SliderControl
                         value={Number(termTransparency)}
                         onChange={makeSetter("term:transparency") as (v: number) => void}
@@ -159,11 +216,19 @@ export const DisplaySettings = memo(() => {
                         max={1}
                         step={0.1}
                     />
-                </DisplaySettingRow>
+                </SettingControl>
             </SubSection>
 
             <SubSection title="Editor">
-                <DisplaySettingRow label="Font Size">
+                <SettingControl
+                    settingKey="editor:fontsize"
+                    label="Font Size"
+                    description=""
+                    value={editorFontsize as number}
+                    defaultValue={getDefaultValue("editor:fontsize")}
+                    onChange={makeOnChange("editor:fontsize")}
+                    isModified={settingsService.isModified("editor:fontsize")}
+                >
                     <SliderControl
                         value={Number(editorFontsize)}
                         onChange={makeSetter("editor:fontsize") as (v: number) => void}
@@ -171,17 +236,33 @@ export const DisplaySettings = memo(() => {
                         max={24}
                         step={1}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Show Minimap">
+                </SettingControl>
+                <SettingControl
+                    settingKey="editor:minimapenabled"
+                    label="Show Minimap"
+                    description=""
+                    value={editorMinimap as boolean}
+                    defaultValue={getDefaultValue("editor:minimapenabled")}
+                    onChange={makeOnChange("editor:minimapenabled")}
+                    isModified={settingsService.isModified("editor:minimapenabled")}
+                >
                     <ToggleControl
                         value={Boolean(editorMinimap)}
                         onChange={makeSetter("editor:minimapenabled") as (v: boolean) => void}
                     />
-                </DisplaySettingRow>
+                </SettingControl>
             </SubSection>
 
             <SubSection title="AI Panel">
-                <DisplaySettingRow label="Text Font Size">
+                <SettingControl
+                    settingKey="ai:fontsize"
+                    label="Text Font Size"
+                    description=""
+                    value={aiFontsize as number}
+                    defaultValue={getDefaultValue("ai:fontsize")}
+                    onChange={makeOnChange("ai:fontsize")}
+                    isModified={settingsService.isModified("ai:fontsize")}
+                >
                     <SliderControl
                         value={Number(aiFontsize)}
                         onChange={makeSetter("ai:fontsize") as (v: number) => void}
@@ -189,8 +270,16 @@ export const DisplaySettings = memo(() => {
                         max={24}
                         step={1}
                     />
-                </DisplaySettingRow>
-                <DisplaySettingRow label="Code Font Size">
+                </SettingControl>
+                <SettingControl
+                    settingKey="ai:fixedfontsize"
+                    label="Code Font Size"
+                    description=""
+                    value={aiFixedFontsize as number}
+                    defaultValue={getDefaultValue("ai:fixedfontsize")}
+                    onChange={makeOnChange("ai:fixedfontsize")}
+                    isModified={settingsService.isModified("ai:fixedfontsize")}
+                >
                     <SliderControl
                         value={Number(aiFixedFontsize)}
                         onChange={makeSetter("ai:fixedfontsize") as (v: number) => void}
@@ -198,7 +287,7 @@ export const DisplaySettings = memo(() => {
                         max={20}
                         step={1}
                     />
-                </DisplaySettingRow>
+                </SettingControl>
             </SubSection>
         </div>
     );
