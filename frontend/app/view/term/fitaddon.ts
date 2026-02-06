@@ -70,7 +70,7 @@ export class FitAddon implements ITerminalAddon, IFitApi {
 
         let scrollbarWidth = 0;
         if (!this.noScrollbar && this._terminal.options.scrollback !== 0) {
-            const configWidth = this._terminal.options.overviewRuler?.width ?? DEFAULT_SCROLLBAR_WIDTH;
+            const configWidth = (this._terminal.options as any).overviewRuler?.width ?? DEFAULT_SCROLLBAR_WIDTH;
             // Validate scrollbar width to prevent invalid dimension calculations
             scrollbarWidth = isNaN(configWidth) || configWidth < 0 || configWidth > 100
                 ? DEFAULT_SCROLLBAR_WIDTH

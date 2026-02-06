@@ -10,47 +10,11 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
+	"path/filepath"
 	"syscall"
 
 	"golang.org/x/sys/unix"
 )
-
-func getProcessGroupId(pid int) (int, error) {
-	pgid, err := syscall.Getpgid(pid)
-	if err != nil {
-		return 0, err
-	}
-	return pgid, nil
-}
-
-func normalizeSignal(sigName string) os.Signal {
-	sigName = strings.ToUpper(sigName)
-	sigName = strings.TrimPrefix(sigName, "SIG")
-
-	switch sigName {
-	case "HUP":
-		return syscall.SIGHUP
-	case "INT":
-		return syscall.SIGINT
-	case "QUIT":
-		return syscall.SIGQUIT
-	case "KILL":
-		return syscall.SIGKILL
-	case "TERM":
-		return syscall.SIGTERM
-	case "USR1":
-		return syscall.SIGUSR1
-	case "USR2":
-		return syscall.SIGUSR2
-	case "STOP":
-		return syscall.SIGSTOP
-	case "CONT":
-		return syscall.SIGCONT
-	default:
-		return nil
-	}
-}
 
 func daemonize(clientId string, jobId string) error {
 	_, err := unix.Setsid()
@@ -69,6 +33,12 @@ func daemonize(clientId string, jobId string) error {
 	devNull.Close()
 
 	logPath := GetJobFilePath(clientId, jobId, "log")
+	logDir := filepath.Dir(logPath)
+	err = os.MkdirAll(logDir, 0700)
+	if err != nil {
+		return fmt.Errorf("failed to create log directory: %w", err)
+	}
+
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to open log file: %w", err)
@@ -88,8 +58,4 @@ func daemonize(clientId string, jobId string) error {
 	signal.Ignore(syscall.SIGHUP)
 
 	return nil
-}
-
-func setCloseOnExec(fd int) {
-	unix.CloseOnExec(fd)
 }

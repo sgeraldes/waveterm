@@ -275,7 +275,7 @@ func (ws *WshServer) CreateSubBlockCommand(ctx context.Context, data wshrpc.Comm
 	return blockRef, nil
 }
 
-func (ws *WshServer) ControllerStopCommand(ctx context.Context, blockId string) error {
+func (ws *WshServer) ControllerDestroyCommand(ctx context.Context, blockId string) error {
 	blockcontroller.DestroyBlockController(blockId)
 	return nil
 }
@@ -287,21 +287,6 @@ func (ws *WshServer) ControllerResyncCommand(ctx context.Context, data wshrpc.Co
 }
 
 func (ws *WshServer) ControllerInputCommand(ctx context.Context, data wshrpc.CommandBlockInputData) error {
-	block, err := wstore.DBMustGet[*waveobj.Block](ctx, data.BlockId)
-	if err != nil {
-		return fmt.Errorf("error getting block: %w", err)
-	}
-
-	if block.JobId != "" {
-		jobInputData := wshrpc.CommandJobInputData{
-			JobId:       block.JobId,
-			InputData64: data.InputData64,
-			SigName:     data.SigName,
-			TermSize:    data.TermSize,
-		}
-		return jobcontroller.SendInput(ctx, jobInputData)
-	}
-
 	inputUnion := &blockcontroller.BlockInputUnion{
 		SigName:  data.SigName,
 		TermSize: data.TermSize,
@@ -852,13 +837,9 @@ func (ws *WshServer) BlockInfoCommand(ctx context.Context, blockId string) (*wsh
 }
 
 func (ws *WshServer) WaveInfoCommand(ctx context.Context) (*wshrpc.WaveInfoData, error) {
-	client, err := wstore.DBGetSingleton[*waveobj.Client](ctx)
-	if err != nil {
-		return nil, fmt.Errorf("error getting client: %w", err)
-	}
 	return &wshrpc.WaveInfoData{
 		Version:   wavebase.WaveVersion,
-		ClientId:  client.OID,
+		ClientId:  wstore.GetClientId(),
 		BuildTime: wavebase.BuildTime,
 		ConfigDir: wavebase.GetWaveConfigDir(),
 		DataDir:   wavebase.GetWaveDataDir(),
@@ -1250,7 +1231,7 @@ func (ws *WshServer) JobControllerReconnectJobCommand(ctx context.Context, jobId
 }
 
 func (ws *WshServer) JobControllerReconnectJobsForConnCommand(ctx context.Context, connName string) error {
-	return jobcontroller.ReconnectJobsForConn(ctx, connName, nil)
+	return jobcontroller.ReconnectJobsForConn(ctx, connName)
 }
 
 func (ws *WshServer) JobControllerConnectedJobsCommand(ctx context.Context) ([]string, error) {
@@ -1626,4 +1607,8 @@ func (ws *WshServer) OmpReinitCommand(ctx context.Context, data wshrpc.CommandOm
 	}
 
 	return nil
+}
+
+func (ws *WshServer) BlockJobStatusCommand(ctx context.Context, blockId string) (*wshrpc.BlockJobStatusData, error) {
+	return jobcontroller.GetBlockJobStatus(ctx, blockId)
 }

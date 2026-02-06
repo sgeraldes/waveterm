@@ -4,7 +4,6 @@
 package blockcontroller
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -56,6 +55,7 @@ type ShellController struct {
 	ControllerType string
 	TabId          string
 	BlockId        string
+	ConnName       string
 	BlockDef       *waveobj.BlockDef
 	RunLock        *atomic.Bool
 	ProcStatus     string
@@ -68,12 +68,13 @@ type ShellController struct {
 }
 
 // Constructor that returns the Controller interface
-func MakeShellController(tabId string, blockId string, controllerType string) Controller {
+func MakeShellController(tabId string, blockId string, controllerType string, connName string) Controller {
 	return &ShellController{
 		Lock:           &sync.Mutex{},
 		ControllerType: controllerType,
 		TabId:          tabId,
 		BlockId:        blockId,
+		ConnName:       connName,
 		ProcStatus:     Status_Init,
 		RunLock:        &atomic.Bool{},
 	}
@@ -123,9 +124,7 @@ func (sc *ShellController) getRuntimeStatus_nolock() BlockControllerRuntimeStatu
 	rtn.Version = sc.VersionTs.GetVersionTs()
 	rtn.BlockId = sc.BlockId
 	rtn.ShellProcStatus = sc.ProcStatus
-	if sc.ShellProc != nil {
-		rtn.ShellProcConnName = sc.ShellProc.ConnName
-	}
+	rtn.ShellProcConnName = sc.ConnName
 	rtn.ShellProcExitCode = sc.ProcExitCode
 	return rtn
 }
@@ -136,6 +135,10 @@ func (sc *ShellController) GetRuntimeStatus() *BlockControllerRuntimeStatus {
 		rtn = sc.getRuntimeStatus_nolock()
 	})
 	return &rtn
+}
+
+func (sc *ShellController) GetConnName() string {
+	return sc.ConnName
 }
 
 func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) error {
@@ -208,18 +211,22 @@ func (sc *ShellController) resetTerminalState(logCtx context.Context) {
 		return
 	}
 	blocklogger.Debugf(logCtx, "[conndebug] resetTerminalState: resetting terminal state\n")
-	// controller type = "shell"
-	var buf bytes.Buffer
-	buf.WriteString("\x1b[0m")                       // reset attributes
-	buf.WriteString("\x1b[?25h")                     // show cursor
-	buf.WriteString("\x1b[?1000l")                   // disable mouse tracking
-	buf.WriteString("\x1b[?1007l")                   // disable alternate scroll mode
-	buf.WriteString("\x1b[?2004l")                   // disable bracketed paste mode
-	buf.WriteString(shellutil.FormatOSC(16162, "R")) // OSC 16162 "R" - disable alternate screen mode (only if active), reset "shell integration" status.
-	buf.WriteString("\r\n\r\n")
-	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, buf.Bytes())
+	resetSeq := shellutil.GetTerminalResetSeq()
+	resetSeq += "\r\n"
+	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(resetSeq))
 	if err != nil {
 		log.Printf("error appending to blockfile (terminal reset): %v\n", err)
+	}
+}
+
+func (sc *ShellController) writeMutedMessageToTerminal(msg string) {
+	if sc.BlockId == "" {
+		return
+	}
+	fullMsg := "\x1b[90m" + msg + "\x1b[0m\r\n"
+	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(fullMsg))
+	if err != nil {
+		log.Printf("error writing muted message to terminal (blockid=%s): %v", sc.BlockId, err)
 	}
 }
 
@@ -594,6 +601,21 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 		waitErr := shellProc.Cmd.Wait()
 		exitCode = shellProc.Cmd.ExitCode()
 		shellProc.SetWaitErrorAndSignalDone(waitErr)
+		bc.resetTerminalState(context.Background())
+		exitSignal := shellProc.Cmd.ExitSignal()
+		var baseMsg string
+		if bc.ControllerType == BlockController_Shell {
+			baseMsg = "shell terminated"
+		} else {
+			baseMsg = "command exited"
+		}
+		msg := baseMsg
+		if exitSignal != "" {
+			msg = fmt.Sprintf("%s (signal %s)", baseMsg, exitSignal)
+		} else if exitCode != 0 {
+			msg = fmt.Sprintf("%s (exit code %d)", baseMsg, exitCode)
+		}
+		bc.writeMutedMessageToTerminal("[" + msg + "]")
 		go checkCloseOnExit(bc.BlockId, exitCode)
 	}()
 	return nil

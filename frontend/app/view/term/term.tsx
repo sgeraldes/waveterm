@@ -184,7 +184,6 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
                 useLigatures: termSettings?.["term:ligatures"],
                 sendDataHandler: model.sendDataToController.bind(model),
                 nodeModel: model.nodeModel,
-                jobId: blockData?.jobid,
             }
         );
         (window as any).term = termWrap;

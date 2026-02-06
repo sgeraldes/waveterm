@@ -57,6 +57,16 @@ func MakeShellJobController(tabId string, blockId string, controllerType string)
 	}
 }
 
+func (sjc *ShellJobController) GetConnName() string {
+	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
+	defer cancelFn()
+	blockData, err := wstore.DBMustGet[*waveobj.Block](ctx, sjc.BlockId)
+	if err != nil {
+		return ""
+	}
+	return blockData.Meta.GetString(waveobj.MetaKey_Connection, "")
+}
+
 func (sjc *ShellJobController) WithLock(f func()) {
 	sjc.Lock.Lock()
 	defer sjc.Lock.Unlock()
@@ -145,7 +155,7 @@ func (sjc *ShellJobController) Start(ctx context.Context, blockMeta waveobj.Meta
 		if err != nil {
 			return fmt.Errorf("error getting job manager status: %w", err)
 		}
-		if status != jobcontroller.JobStatus_Running {
+		if status != jobcontroller.JobManagerStatus_Running {
 			if force {
 				log.Printf("block %q has jobId %s but manager is not running (status: %s), detaching (force=true)\n", sjc.BlockId, blockData.JobId, status)
 				jobcontroller.DetachJobFromBlock(ctx, blockData.JobId, false)
@@ -273,7 +283,7 @@ func (sjc *ShellJobController) startNewJob(ctx context.Context, blockMeta waveob
 		SwapToken:   swapToken,
 		ForceJwt:    blockMeta.GetBool(waveobj.MetaKey_CmdJwt, false),
 	}
-	jobId, err := shellexec.StartRemoteShellJob(ctx, ctx, termSize, cmdStr, cmdOpts, conn)
+	jobId, err := shellexec.StartRemoteShellJob(ctx, ctx, termSize, cmdStr, cmdOpts, conn, sjc.BlockId)
 	if err != nil {
 		return "", fmt.Errorf("failed to start remote shell job: %w", err)
 	}

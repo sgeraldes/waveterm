@@ -143,6 +143,9 @@
         "term:bellindicator": {
           "type": "boolean"
         },
+        "term:durable": {
+          "type": "boolean"
+        },
         "editor:minimapenabled": {
           "type": "boolean"
         },
@@ -169,12 +172,6 @@
         },
         "web:defaultsearch": {
           "type": "string"
-        },
-        "blockheader:*": {
-          "type": "boolean"
-        },
-        "blockheader:showblockids": {
-          "type": "boolean"
         },
         "autoupdate:*": {
           "type": "boolean"
@@ -283,6 +280,9 @@
         },
         "conn:wshenabled": {
           "type": "boolean"
+        },
+        "conn:localhostdisplayname": {
+          "type": "string"
         },
         "debug:*": {
           "type": "boolean"

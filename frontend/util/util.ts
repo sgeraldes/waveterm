@@ -70,6 +70,10 @@ function isLocalConnection(connName: string, connectionsConfig?: Record<string, 
     return isLocalShellProfile(connName, connectionsConfig);
 }
 
+function isWslConnName(connName: string): boolean {
+    return connName != null && connName.startsWith("wsl://");
+}
+
 function base64ToString(b64: string): string {
     if (b64 == null) {
         return null;
@@ -570,6 +574,7 @@ export {
     isLocalConnName,
     isLocalConnection,
     isLocalShellProfile,
+    isWslConnName,
     jotaiLoadableValue,
     jsonDeepEqual,
     lazy,

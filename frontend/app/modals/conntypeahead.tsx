@@ -4,7 +4,14 @@
 import { computeConnColorNum } from "@/app/block/blockutil";
 import { TypeAheadModal } from "@/app/modals/typeaheadmodal";
 import { ConnectionsModel } from "@/app/store/connections-model";
-import { atoms, createBlock, getConnStatusAtom, getHostName, getUserName, globalStore, WOS } from "@/app/store/global";
+import {
+    atoms,
+    createBlock,
+    getConnStatusAtom,
+    getLocalHostDisplayNameAtom,
+    globalStore,
+    WOS,
+} from "@/app/store/global";
 import { globalRefocusWithTimeout } from "@/app/store/keymodel";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
@@ -178,7 +185,8 @@ function createLocalShellProfileItems(
 function getReconnectItem(
     connStatus: ConnStatus,
     connSelected: string,
-    blockId: string
+    blockId: string,
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
 ): SuggestionConnectionItem | null {
     if (connSelected != "" || (connStatus.status != "disconnected" && connStatus.status != "error")) {
         return null;
@@ -190,6 +198,7 @@ function getReconnectItem(
         label: `Reconnect to ${connStatus.connection}`,
         value: "",
         onSelect: async (_: string) => {
+            globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnConnectCommand(
                 TabRpcClient,
                 { host: connStatus.connection, logblockid: blockId },
@@ -291,7 +300,8 @@ function getRemoteSuggestions(
 function getDisconnectItem(
     connection: string,
     connStatusMap: Map<string, ConnStatus>,
-    fullConfig: FullConfigType
+    fullConfig: FullConfigType,
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
 ): SuggestionConnectionItem | null {
     // Don't show disconnect for local connections (including local shell profiles)
     if (util.isLocalConnection(connection, fullConfig.connections)) {
@@ -308,6 +318,7 @@ function getDisconnectItem(
         label: `Disconnect ${connStatus.connection}`,
         value: "",
         onSelect: async (_: string) => {
+            globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnDisconnectCommand(TabRpcClient, connection, { timeout: 60000 });
             prtn.catch((e) => console.log("error disconnecting", connStatus.connection, e));
         },
@@ -403,6 +414,7 @@ const ChangeConnectionBlockModal = React.memo(
         const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
         let filterOutNowsh = util.useAtomValueSafe(viewModel.filterOutNowsh) ?? true;
         const hasGitBash = jotai.useAtomValue(ConnectionsModel.getInstance().hasGitBashAtom);
+        const localName = jotai.useAtomValue(getLocalHostDisplayNameAtom());
 
         let maxActiveConnNum = 1;
         for (const conn of allConnStatus) {
@@ -462,8 +474,7 @@ const ChangeConnectionBlockModal = React.memo(
             [blockId, blockData]
         );
 
-        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId);
-        const localName = getUserName() + "@" + getHostName();
+        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom);
 
         // Split connList into local shell profiles and remote connections
         const localShellProfiles: Array<string> = [];
@@ -496,7 +507,7 @@ const ChangeConnectionBlockModal = React.memo(
             filterOutNowsh
         );
         const connectionsEditItem = getConnectionsEditItem(changeConnModalAtom, connSelected);
-        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig);
+        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig, changeConnModalAtom);
         const newConnectionSuggestionItem = getNewConnectionSuggestionItem(
             connSelected,
             localName,

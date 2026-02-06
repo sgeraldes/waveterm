@@ -82,7 +82,6 @@ type TermWrapOptions = {
     useLigatures?: boolean;
     sendDataHandler?: (data: string) => void;
     nodeModel?: BlockNodeModel;
-    jobId?: string;
 };
 
 // for xterm OSC handlers, we return true always because we "own" the OSC number.
@@ -515,7 +514,6 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
 export class TermWrap {
     tabId: string;
     blockId: string;
-    jobId: string;
     ptyOffset: number;
     dataBytesProcessed: number;
     terminal: Terminal;
@@ -564,7 +562,6 @@ export class TermWrap {
         this.loaded = false;
         this.tabId = tabId;
         this.blockId = blockId;
-        this.jobId = waveOptions.jobId;
         this.sendDataHandler = waveOptions.sendDataHandler;
         this.nodeModel = waveOptions.nodeModel;
         this.ptyOffset = 0;
@@ -663,7 +660,7 @@ export class TermWrap {
     }
 
     getZoneId(): string {
-        return this.jobId ?? this.blockId;
+        return this.blockId;
     }
 
     resetCompositionState() {

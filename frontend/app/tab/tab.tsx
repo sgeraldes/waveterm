@@ -298,8 +298,6 @@ const Tab = memo(
                     const isLocked = tabData?.meta?.["tab:basedirlock"] || false;
 
                     let menu: ContextMenuItem[] = [];
-
-                    // Tab indicator menu items (upstream feature)
                     const currentIndicator = globalStore.get(getTabIndicatorAtom(id));
                     if (currentIndicator) {
                         menu.push(

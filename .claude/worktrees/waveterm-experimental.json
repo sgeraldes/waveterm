@@ -1,6 +1,14 @@
 {
-  "lastUpdated": "2026-01-23T12:18:55.2633571-03:00",
+  "lastUpdated": "2026-01-31T00:09:07.6489174-03:00",
   "sessions": [
+    {
+      "sessionId": "add8cf95-5efc-498d-80c6-08417c8782ab",
+      "ended": "2026-01-31T00:09:07.6551328-03:00"
+    },
+    {
+      "ended": "2026-01-30T22:48:26.3494341-03:00",
+      "sessionId": "47c80ab5-5145-499a-a367-b974eb220576"
+    },
     {
       "sessionId": "aa5892ec-e359-44df-874e-b2d74860fcb7",
       "ended": "2026-01-23T12:18:55.2697385-03:00"
@@ -12,7 +20,7 @@
   ],
   "created": "2026-01-23T00:59:12.2084213-03:00",
   "path": "G:\\Code\\waveterm-experimental",
-  "branch": "feat/experimental-upstream-fixes",
+  "branch": "feat/shell-selector",
   "name": "waveterm-experimental",
   "parentRepo": "G:\\Code\\waveterm",
   "context": {
