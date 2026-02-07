@@ -38,11 +38,6 @@ function getConnectionDisplayName(
     // Other local:* patterns
     if (connection.startsWith("local:")) {
         const profileName = connection.substring(6); // Remove "local:"
-        // Check if there's a display name in config
-        if (connectionsConfig?.[connection]?.["display:name"]) {
-            return { displayName: connectionsConfig[connection]["display:name"], icon: "terminal", isWsl: false };
-        }
-        // Format the profile name nicely
         return { displayName: formatShellName(profileName), icon: "terminal", isWsl: false };
     }
 
@@ -60,9 +55,6 @@ function getConnectionDisplayName(
             (connSettings["conn:shellpath"] && !connSettings["ssh:hostname"]);
 
         if (isLocalProfile) {
-            if (connSettings["display:name"]) {
-                return { displayName: connSettings["display:name"], icon: "terminal", isWsl: false };
-            }
             return { displayName: formatShellName(connection), icon: "terminal", isWsl: false };
         }
     }
@@ -266,7 +258,7 @@ export const ConnectionButton = React.memo(
 
             // Check if this is a local connection (includes WSL and local shell profiles)
             const isLocal = util.isLocalConnection(connection, connectionsConfig);
-            const { displayName, icon, isWsl } = getConnectionDisplayName(connection, connectionsConfig);
+            const { displayName, icon } = getConnectionDisplayName(connection, connectionsConfig);
 
             const connStatusAtom = getConnStatusAtom(connection);
             const connStatus = jotai.useAtomValue(connStatusAtom);

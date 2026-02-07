@@ -15,6 +15,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
@@ -1031,25 +1032,38 @@ func GetShellProfiles() map[string]ShellProfileType {
 // Only adds new shells; doesn't overwrite user-modified profiles
 func MergeDetectedShellProfiles(detectedShells []ShellProfileType) (added int, err error) {
 	existingProfiles := GetShellProfiles()
+	// Track IDs assigned in this merge to detect collisions between detected shells
+	assignedIds := make(map[string]bool)
+	for id := range existingProfiles {
+		assignedIds[id] = true
+	}
 
 	for _, shell := range detectedShells {
 		// Generate profile ID from shell type and path
 		profileId := generateShellProfileId(shell)
 
-		existing, exists := existingProfiles[profileId]
-		if exists {
-			// Don't overwrite if user has modified it
-			if existing.UserModified {
-				continue
-			}
-			// Don't overwrite existing autodetected shells that haven't changed
-			if existing.ShellPath == shell.ShellPath {
-				continue
+		// Resolve collisions: if this ID was already assigned to a different shell
+		// in this batch, append a unique suffix
+		if assignedIds[profileId] {
+			existing, exists := existingProfiles[profileId]
+			if exists {
+				// Don't overwrite if user has modified it
+				if existing.UserModified {
+					continue
+				}
+				// Don't overwrite existing autodetected shells that haven't changed
+				if existing.ShellPath == shell.ShellPath {
+					continue
+				}
+			} else {
+				// Collision with another shell added in this merge batch
+				profileId = profileId + "-" + uuid.New().String()[:8]
 			}
 		}
 
 		// Mark as autodetected
 		shell.Autodetected = true
+		assignedIds[profileId] = true
 
 		if err := SetShellProfile(profileId, shell); err != nil {
 			return added, err
@@ -1080,6 +1094,7 @@ func generateShellProfileId(profile ShellProfileType) string {
 
 // sanitizeProfileId converts a name to a valid profile ID
 // Lowercase, replace spaces/dots with hyphens, remove special characters
+// Falls back to a UUID-based ID if sanitization produces an empty string
 func sanitizeProfileId(name string) string {
 	name = strings.ToLower(name)
 	name = strings.ReplaceAll(name, " ", "-")
@@ -1091,7 +1106,11 @@ func sanitizeProfileId(name string) string {
 			result.WriteRune(r)
 		}
 	}
-	return result.String()
+	id := result.String()
+	if id == "" {
+		id = "shell-" + uuid.New().String()[:8]
+	}
+	return id
 }
 
 type WidgetConfigType struct {

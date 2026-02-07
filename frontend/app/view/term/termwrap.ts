@@ -631,14 +631,25 @@ export class TermWrap {
             const reportFocusEnabled =
                 globalStore.get(getOverrideConfigAtom(this.blockId, "term:reportfocus")) ?? false;
             if (!reportFocusEnabled) {
-                // Check if this is mode 1004 (send focus events)
+                // Check if any param is mode 1004 (send focus events)
+                let has1004 = false;
                 for (const param of params) {
                     if (param === 1004 || (Array.isArray(param) && param.includes(1004))) {
-                        dlog("Blocking DEC mode 1004 (focus reporting) - term:reportfocus is disabled");
-                        // Return true to indicate we handled it (by ignoring it)
-                        // This prevents the default handler from enabling focus reporting
-                        return true;
+                        has1004 = true;
+                        break;
                     }
+                }
+                if (has1004) {
+                    dlog("Blocking DEC mode 1004 (focus reporting) - term:reportfocus is disabled");
+                    // Filter out mode 1004 and let other modes through
+                    const remainingModes = (params as number[]).filter((p) => p !== 1004);
+                    if (remainingModes.length > 0) {
+                        // Re-emit the CSI sequence without mode 1004
+                        const seq = `\x1b[?${remainingModes.join(";")}h`;
+                        this.terminal.write(seq);
+                    }
+                    // Return true to prevent the original (full) sequence from being processed
+                    return true;
                 }
             }
             // Return false to let the default handler process this CSI sequence

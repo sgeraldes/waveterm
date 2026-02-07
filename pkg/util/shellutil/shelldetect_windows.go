@@ -120,6 +120,12 @@ func detectPowerShellCore() []DetectedShell {
 			continue
 		}
 
+		// Filter out Visual Studio and other invalid shell paths
+		if isInvalidShellPath(checkPath) {
+			log.Printf("debug: skipping invalid shell path: %s", checkPath)
+			continue
+		}
+
 		// Detect version
 		version := getShellVersionSafe(checkPath, ShellType_pwsh)
 		name := "PowerShell"

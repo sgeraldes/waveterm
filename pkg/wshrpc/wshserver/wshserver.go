@@ -810,6 +810,9 @@ func (ws *WshServer) DetectAvailableShellsCommand(ctx context.Context, data wshr
 }
 
 func (ws *WshServer) SetShellProfileCommand(ctx context.Context, data wshrpc.SetShellProfileRequest) error {
+	if data.ProfileID == "" {
+		return fmt.Errorf("ProfileID must not be empty")
+	}
 	profile := wconfig.ShellProfileType{
 		DisplayName:  data.Profile.DisplayName,
 		DisplayIcon:  data.Profile.DisplayIcon,
@@ -828,6 +831,9 @@ func (ws *WshServer) SetShellProfileCommand(ctx context.Context, data wshrpc.Set
 }
 
 func (ws *WshServer) DeleteShellProfileCommand(ctx context.Context, data wshrpc.DeleteShellProfileRequest) error {
+	if data.ProfileID == "" {
+		return fmt.Errorf("ProfileID must not be empty")
+	}
 	return wconfig.DeleteShellProfile(data.ProfileID)
 }
 

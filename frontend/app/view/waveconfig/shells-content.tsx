@@ -456,7 +456,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                 // Success - shells were added
             }
         } catch (err) {
-            setError(`Detection failed: ${err.message || String(err)}`);
+            setError(`Detection failed: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsDetecting(false);
         }
