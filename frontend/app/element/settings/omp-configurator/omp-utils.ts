@@ -14,6 +14,52 @@ import { TabRpcClient } from "@/app/store/wshrpcutil";
  * Reinitialize OMP in all active terminal blocks
  * This sends the appropriate reinit command to each terminal
  */
+/**
+ * Get segment type icon class string (includes fa-solid or fa-brands prefix)
+ */
+export function getSegmentIconClass(type: string): string {
+    const brandIcons: Record<string, string> = {
+        node: "fa-node-js",
+        python: "fa-python",
+        go: "fa-golang",
+        rust: "fa-rust",
+        java: "fa-java",
+        php: "fa-php",
+        dotnet: "fa-microsoft",
+        aws: "fa-aws",
+        az: "fa-microsoft",
+        gcp: "fa-google",
+        docker: "fa-docker",
+    };
+
+    const solidIcons: Record<string, string> = {
+        os: "fa-desktop",
+        path: "fa-folder",
+        git: "fa-code-branch",
+        session: "fa-user",
+        time: "fa-clock",
+        battery: "fa-battery-full",
+        shell: "fa-terminal",
+        text: "fa-font",
+        exit: "fa-circle-xmark",
+        root: "fa-hashtag",
+        ruby: "fa-gem",
+        kubectl: "fa-cloud",
+        terraform: "fa-cubes",
+        executiontime: "fa-stopwatch",
+        status: "fa-circle-check",
+        cmake: "fa-gears",
+    };
+
+    if (brandIcons[type]) {
+        return `fa-brands ${brandIcons[type]}`;
+    }
+    if (solidIcons[type]) {
+        return `fa-solid ${solidIcons[type]}`;
+    }
+    return "fa-solid fa-puzzle-piece";
+}
+
 export async function reinitOmpInAllTerminals(): Promise<void> {
     try {
         // Get all blocks in the current workspace

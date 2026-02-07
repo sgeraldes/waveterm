@@ -11,6 +11,7 @@ import { cn } from "@/util/util";
 import { memo, useCallback } from "react";
 
 import { NerdFontPicker, SymbolStrip } from "./omp-symbol-picker";
+import { getSegmentIconClass } from "./omp-utils";
 
 interface OmpBlockEditorProps {
     config: OmpConfigData | null;
@@ -54,54 +55,6 @@ function getSegmentDisplayName(type: string): string {
         status: "Status",
     };
     return displayNames[type] || type;
-}
-
-/**
- * Get segment type icon class string (includes fa-solid or fa-brands prefix)
- */
-function getSegmentIconClass(type: string): string {
-    // Brand icons require fa-brands instead of fa-solid
-    const brandIcons: Record<string, string> = {
-        node: "fa-node-js",
-        python: "fa-python",
-        go: "fa-golang",
-        rust: "fa-rust",
-        java: "fa-java",
-        php: "fa-php",
-        dotnet: "fa-microsoft",
-        aws: "fa-aws",
-        az: "fa-microsoft",
-        gcp: "fa-google",
-        docker: "fa-docker",
-    };
-
-    // Solid icons use fa-solid
-    const solidIcons: Record<string, string> = {
-        os: "fa-desktop",
-        path: "fa-folder",
-        git: "fa-code-branch",
-        session: "fa-user",
-        time: "fa-clock",
-        battery: "fa-battery-full",
-        shell: "fa-terminal",
-        text: "fa-font",
-        exit: "fa-circle-xmark",
-        root: "fa-hashtag",
-        ruby: "fa-gem",
-        kubectl: "fa-cloud",
-        terraform: "fa-cubes",
-        executiontime: "fa-stopwatch",
-        status: "fa-circle-check",
-        cmake: "fa-gears",
-    };
-
-    if (brandIcons[type]) {
-        return `fa-brands ${brandIcons[type]}`;
-    }
-    if (solidIcons[type]) {
-        return `fa-solid ${solidIcons[type]}`;
-    }
-    return "fa-solid fa-puzzle-piece";
 }
 
 /**
