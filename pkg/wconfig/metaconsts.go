@@ -54,6 +54,7 @@ const (
 	ConfigKey_TermOmpTheme                   = "term:omptheme"
 	ConfigKey_TermBellSound                  = "term:bellsound"
 	ConfigKey_TermBellIndicator              = "term:bellindicator"
+	ConfigKey_TermReportFocus                = "term:reportfocus"
 
 	ConfigKey_EditorMinimapEnabled           = "editor:minimapenabled"
 	ConfigKey_EditorStickyScrollEnabled      = "editor:stickyscrollenabled"

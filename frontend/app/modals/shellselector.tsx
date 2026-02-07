@@ -222,7 +222,7 @@ const ShellSelectorModal = React.memo(
         const [wslList, setWslList] = React.useState<Array<string>>([]);
         const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
         const shellProfiles = fullConfig?.settings?.["shell:profiles"];
-        const defaultShell = fullConfig?.settings?.["shell:default"] || "pwsh";
+        const defaultShell = fullConfig?.settings?.["shell:default"] || "";
 
         // Load WSL distributions when modal opens
         React.useEffect(() => {
@@ -261,7 +261,7 @@ const ShellSelectorModal = React.memo(
         const suggestions: Array<SuggestionsType> = [];
 
         // Determine effective current shell (empty means using default)
-        const effectiveCurrentShell = currentShell || defaultShell || "pwsh";
+        const effectiveCurrentShell = currentShell || defaultShell || "";
 
         // Check if we have shell profiles configured
         const hasProfiles = shellProfiles && Object.keys(shellProfiles).length > 0;
@@ -313,7 +313,7 @@ const ShellSelectorModal = React.memo(
 
             if (localShells.length > 0) {
                 suggestions.push({
-                    headerText: "Windows Shells",
+                    headerText: "Shells",
                     items: localShells,
                 });
             }

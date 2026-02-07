@@ -354,7 +354,12 @@ func main() {
 		defer func() {
 			panichandler.PanicHandler("AutoDetectShells", recover())
 		}()
-		fullConfig := wconfig.GetWatcher().GetFullConfig()
+		w := wconfig.GetWatcher()
+		if w == nil {
+			log.Printf("warning: config watcher not available, skipping shell auto-detection")
+			return
+		}
+		fullConfig := w.GetFullConfig()
 		detectedShells, err := shellutil.DetectAllShells(&fullConfig, false)
 		if err != nil {
 			log.Printf("error detecting shells: %v\n", err)

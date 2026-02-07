@@ -436,7 +436,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
         return sortShells(entries);
     }, [fullConfig]);
 
-    const defaultShellId = fullConfig?.settings?.["shell:default"] || "pwsh";
+    const defaultShellId = fullConfig?.settings?.["shell:default"] || "";
 
     const selectedShell = useMemo(() => {
         if (!selectedId) return null;
@@ -489,7 +489,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
             setSelectedId(id);
             setIsAddingNew(false);
         } catch (err) {
-            setError(`Failed to save: ${err.message || String(err)}`);
+            setError(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
         }
@@ -508,7 +508,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
             });
             setSelectedId(null);
         } catch (err) {
-            setError(`Failed to delete: ${err.message || String(err)}`);
+            setError(`Failed to delete: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
         }
@@ -541,7 +541,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                 "shell:default": selectedShell.id,
             });
         } catch (err) {
-            setError(`Failed to set default: ${err.message || String(err)}`);
+            setError(`Failed to set default: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
         }

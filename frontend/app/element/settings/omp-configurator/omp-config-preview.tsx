@@ -252,6 +252,15 @@ const BlockSegments = memo(
                                     {segment.trailing_diamond}
                                 </span>
                             )}
+                            {isLast && segment.style === "powerline" && (
+                                <span
+                                    className="powerline-separator"
+                                    style={{ color: resolveColor(segment.background, palette) }}
+                                    title="Powerline separator"
+                                >
+                                    {segment.powerline_symbol || "\ue0b0"}
+                                </span>
+                            )}
                         </React.Fragment>
                     );
                 })}

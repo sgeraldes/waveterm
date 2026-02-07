@@ -88,7 +88,7 @@ export class TermViewModel implements ViewModel {
             const blockData = get(this.blockAtom);
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
-            const defaultShell = fullConfig?.settings?.["shell:default"] || "pwsh";
+            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
             const effectiveShell = shellProfile || defaultShell;
 
             // Return appropriate icon for the shell
@@ -106,7 +106,7 @@ export class TermViewModel implements ViewModel {
             }
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
-            const defaultShell = fullConfig?.settings?.["shell:default"] || "pwsh";
+            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
             const effectiveShell = shellProfile || defaultShell;
             const isDefault = !shellProfile || effectiveShell === defaultShell;
 

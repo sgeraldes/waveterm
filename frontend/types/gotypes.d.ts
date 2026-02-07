@@ -1036,6 +1036,7 @@ declare global {
         "term:conndebug"?: string;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:reportfocus"?: boolean;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
         "web:partition"?: string;
@@ -1295,6 +1296,7 @@ declare global {
         "term:omptheme"?: string;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:reportfocus"?: boolean;
         "editor:minimapenabled"?: boolean;
         "editor:stickyscrollenabled"?: boolean;
         "editor:wordwrap"?: boolean;
