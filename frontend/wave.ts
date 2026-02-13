@@ -68,6 +68,7 @@ async function initBare() {
     document.body.style.opacity = "0";
     document.body.classList.add("is-transparent");
     getApi().onWaveInit(initWaveWrap);
+    getApi().onWaveActivate(activateWave);
     setKeyUtilPlatform(platform);
     loadFonts();
     updateZoomFactor(getApi().getZoomFactor());
@@ -100,6 +101,8 @@ async function initWaveWrap(initOpts: WaveInitOpts) {
     }
 }
 
+// Fallback full reinit: only reached if wave-init is received on an already-initialized tab.
+// Normal tab switches use activateWave() via wave-activate instead (no database reloads).
 async function reinitWave() {
     dlog("Reinit Wave");
     getApi().sendLog("Reinit Wave");
@@ -120,6 +123,33 @@ async function reinitWave() {
     reloadAllWorkspaceTabs(ws);
     document.title = `Wave Terminal - ${initialTab.name}`; // TODO update with tab name change
     getApi().setWindowInitStatus("wave-ready");
+    globalStore.set(atoms.reinitVersion, globalStore.get(atoms.reinitVersion) + 1);
+    globalStore.set(atoms.updaterStatusAtom, getApi().getUpdaterStatus());
+    setTimeout(() => {
+        globalRefocus();
+    }, 50);
+}
+
+function activateWave() {
+    dlog("Activate Wave");
+    getApi().sendLog("Activate Wave");
+
+    // Prevent hover flicker from previously-hovered elements
+    document.body.classList.add("nohover");
+    requestAnimationFrame(() =>
+        setTimeout(() => {
+            document.body.classList.remove("nohover");
+        }, 100)
+    );
+
+    // Update title from cached tab data
+    if (savedInitOpts) {
+        const tab = globalStore.get(WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", savedInitOpts.tabId)));
+        if (tab) {
+            document.title = `Wave Terminal - ${tab.name}`;
+        }
+    }
+
     globalStore.set(atoms.reinitVersion, globalStore.get(atoms.reinitVersion) + 1);
     globalStore.set(atoms.updaterStatusAtom, getApi().getUpdaterStatus());
     setTimeout(() => {
