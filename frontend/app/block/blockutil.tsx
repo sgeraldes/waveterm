@@ -38,6 +38,10 @@ function getConnectionDisplayName(
     // Other local:* patterns
     if (connection.startsWith("local:")) {
         const profileName = connection.substring(6); // Remove "local:"
+        // Check if there's a display name in config
+        if (connectionsConfig?.[connection]?.["display:name"]) {
+            return { displayName: connectionsConfig[connection]["display:name"], icon: "terminal", isWsl: false };
+        }
         return { displayName: formatShellName(profileName), icon: "terminal", isWsl: false };
     }
 
@@ -55,6 +59,9 @@ function getConnectionDisplayName(
             (connSettings["conn:shellpath"] && !connSettings["ssh:hostname"]);
 
         if (isLocalProfile) {
+            if (connSettings["display:name"]) {
+                return { displayName: connSettings["display:name"], icon: "terminal", isWsl: false };
+            }
             return { displayName: formatShellName(connection), icon: "terminal", isWsl: false };
         }
     }
