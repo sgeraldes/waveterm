@@ -378,11 +378,7 @@ func main() {
 			}
 			if shell.Source == shellutil.ShellSource_Wsl {
 				profiles[i].IsWsl = true
-				distro := shell.Name
-				if len(distro) > 5 && distro[:5] == "WSL: " {
-					distro = distro[5:]
-				}
-				profiles[i].WslDistro = distro
+				profiles[i].WslDistro = shell.WslDistro
 			}
 		}
 		added, err := wconfig.MergeDetectedShellProfiles(profiles)

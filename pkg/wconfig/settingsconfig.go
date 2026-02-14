@@ -832,7 +832,16 @@ func SetBaseConfigValue(toMerge waveobj.MetaMapType) error {
 				if ctype == reflect.PointerTo(rtype) {
 					m[configKey] = &val
 				} else {
-					return fmt.Errorf("invalid value type for %s: %T", configKey, val)
+					// Try JSON re-marshal for complex types (maps, structs)
+					jsonBytes, err := json.Marshal(val)
+					if err != nil {
+						return fmt.Errorf("invalid value type for %s: %T", configKey, val)
+					}
+					converted := reflect.New(ctype).Interface()
+					if err := json.Unmarshal(jsonBytes, converted); err != nil {
+						return fmt.Errorf("invalid value type for %s: %T", configKey, val)
+					}
+					val = reflect.ValueOf(converted).Elem().Interface()
 				}
 			}
 			m[configKey] = val
@@ -1042,6 +1051,20 @@ func MergeDetectedShellProfiles(detectedShells []ShellProfileType) (added int, e
 	for _, shell := range detectedShells {
 		// Generate profile ID from shell type and path
 		profileId := generateShellProfileId(shell)
+
+		// Migrate old WSL profiles that had "(default)" baked into the key.
+		// Old code extracted distro from display name "WSL: Ubuntu (default)" → "Ubuntu (default)"
+		// which sanitized to "wsl:ubuntu-default". The fix uses raw distro name → "wsl:ubuntu".
+		if shell.IsWsl && shell.WslDistro != "" {
+			oldKey := "wsl:" + sanitizeProfileId(shell.WslDistro+"-default")
+			if oldKey != profileId {
+				if oldProfile, exists := existingProfiles[oldKey]; exists && !oldProfile.UserModified {
+					_ = DeleteShellProfile(oldKey)
+					delete(existingProfiles, oldKey)
+					delete(assignedIds, oldKey)
+				}
+			}
+		}
 
 		// Resolve collisions: if this ID was already assigned to a different shell
 		// in this batch, append a unique suffix

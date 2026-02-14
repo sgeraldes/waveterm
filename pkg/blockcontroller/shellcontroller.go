@@ -389,6 +389,34 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 	}
 	// TODO better sync here (don't let two starts happen at the same times)
 	remoteName := blockMeta.GetString(waveobj.MetaKey_Connection, "")
+
+	// Resolve shell:profile to determine actual connection type
+	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
+	if shellProfileId != "" {
+		config := wconfig.GetWatcher().GetFullConfig()
+		if profile, ok := config.Settings.ShellProfiles[shellProfileId]; ok {
+			if profile.IsWsl && profile.WslDistro != "" {
+				remoteName = "wsl://" + profile.WslDistro
+			} else if !profile.IsWsl {
+				remoteName = ""
+			}
+		}
+	}
+
+	// Self-heal: migrate stale connection field (old shell profile names) to shell:profile
+	origConnection := blockMeta.GetString(waveobj.MetaKey_Connection, "")
+	if origConnection != "" && conncontroller.IsLocalShellProfileId(origConnection) {
+		metaUpdate := map[string]any{
+			waveobj.MetaKey_Connection: nil,
+		}
+		if shellProfileId == "" {
+			metaUpdate[waveobj.MetaKey_ShellProfile] = origConnection
+		}
+		healCtx, healCancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer healCancel()
+		wstore.UpdateObjectMeta(healCtx, waveobj.MakeORef(waveobj.OType_Block, bc.BlockId), metaUpdate, false)
+	}
+
 	connUnion, err := bc.getConnUnion(logCtx, remoteName, blockMeta)
 	if err != nil {
 		return nil, err
@@ -654,13 +682,63 @@ func checkCloseOnExit(blockId string, exitCode int) {
 	}
 }
 
+// getShellPathFromProfile looks up the shell path from a shell:profiles entry by ID.
+func getShellPathFromProfile(profileId string) string {
+	if profileId == "" {
+		return ""
+	}
+	config := wconfig.GetWatcher().GetFullConfig()
+	if config.Settings.ShellProfiles == nil {
+		return ""
+	}
+	profile, ok := config.Settings.ShellProfiles[profileId]
+	if !ok {
+		return ""
+	}
+	return profile.ShellPath
+}
+
+// getShellOptsFromProfile looks up shell opts from a shell:profiles entry by ID.
+func getShellOptsFromProfile(profileId string) []string {
+	if profileId == "" {
+		return nil
+	}
+	config := wconfig.GetWatcher().GetFullConfig()
+	if config.Settings.ShellProfiles == nil {
+		return nil
+	}
+	profile, ok := config.Settings.ShellProfiles[profileId]
+	if !ok {
+		return nil
+	}
+	if len(profile.ShellOpts) > 0 {
+		return append([]string{}, profile.ShellOpts...)
+	}
+	return nil
+}
+
 func getLocalShellPath(blockMeta waveobj.MetaMapType) (string, error) {
+	// Check shell:profile metadata first (new shell selector)
+	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
+	if shellProfileId != "" {
+		if path := getShellPathFromProfile(shellProfileId); path != "" {
+			return path, nil
+		}
+	}
+
 	shellPath := blockMeta.GetString(waveobj.MetaKey_TermLocalShellPath, "")
 	if shellPath != "" {
 		return shellPath, nil
 	}
 
 	connName := blockMeta.GetString(waveobj.MetaKey_Connection, "")
+
+	// Backwards compat: connection name might be a shell profile ID from old implementation
+	if connName != "" && !strings.HasPrefix(connName, "local:") && connName != "local" {
+		if path := getShellPathFromProfile(connName); path != "" {
+			return path, nil
+		}
+	}
 
 	// Check if this is a local shell profile defined in connections.json
 	if conncontroller.IsLocalShellProfile(connName) {
@@ -696,6 +774,14 @@ func getLocalShellPath(blockMeta waveobj.MetaMapType) (string, error) {
 }
 
 func getLocalShellOpts(blockMeta waveobj.MetaMapType) []string {
+	// Check shell:profile metadata first
+	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
+	if shellProfileId != "" {
+		if opts := getShellOptsFromProfile(shellProfileId); opts != nil {
+			return opts
+		}
+	}
+
 	if blockMeta.HasKey(waveobj.MetaKey_TermLocalShellOpts) {
 		opts := blockMeta.GetStringList(waveobj.MetaKey_TermLocalShellOpts)
 		return append([]string{}, opts...)

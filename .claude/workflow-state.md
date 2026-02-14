@@ -3,13 +3,19 @@ workflow: shell-selector-feature
 workflow_status: complete
 current_phase: complete
 started: 2026-01-30
-last_updated: 2026-01-31
-completed_at: 2026-01-31
+last_updated: 2026-01-30
+completed_at: 2026-01-30
 branch: feat/shell-selector
 base_branch: main
 ---
 
 # Shell Selector Feature - COMPLETE
+
+## Latest Commits (2026-01-30)
+
+- `bf96b7f4` feat(shell-profiles): add shell profiles system with settings UI
+- `621c28ee` chore: remove tsunami/waveapp references
+- `bc4ac205` feat(shell-selector): simplify terminal header to show shell info
 
 ## Summary
 

@@ -248,13 +248,34 @@ const ShellSelectorModal = React.memo(
                     return;
                 }
 
-                // Set the shell:profile metadata on the block
+                const shellProfile = shellProfiles?.[shellId];
+                const isWsl = shellProfile?.["shell:iswsl"] || shellId.startsWith("wsl:");
+
+                const meta: Record<string, any> = {
+                    "shell:profile": shellId || null,
+                };
+
+                if (isWsl) {
+                    const distro = shellProfile?.["shell:wsldistro"] || shellId.substring(4);
+                    meta["connection"] = `wsl://${distro}`;
+                } else {
+                    meta["connection"] = null; // Clear stale connection for local shells
+                }
+
                 await RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", blockId),
-                    meta: { "shell:profile": shellId || null },
+                    meta,
                 });
+
+                // Force restart the terminal to apply the new shell
+                const tabId = globalStore.get(atoms.staticTabId);
+                RpcApi.ControllerResyncCommand(TabRpcClient, {
+                    tabid: tabId,
+                    blockid: blockId,
+                    forcerestart: true,
+                }).catch((e) => console.log("error resyncing controller:", e));
             },
-            [blockId, currentShell]
+            [blockId, currentShell, shellProfiles]
         );
 
         // Build suggestion groups

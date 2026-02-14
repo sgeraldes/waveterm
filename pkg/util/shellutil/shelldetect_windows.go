@@ -238,21 +238,19 @@ func detectWslDistros() []DetectedShell {
 			continue
 		}
 
-		// WSL shells use wsl.exe with -d flag
-		// The path format is: wsl.exe -d <distroname>
-		// We store just the distro name in the path for identification
-		shellPath := fmt.Sprintf("wsl://%s", distroName)
-
+		// WSL shell is detected at runtime from within the distro.
+		// ShellPath is left empty — the actual shell comes from remoteInfo.Shell.
 		shell := DetectedShell{
-			ID:        GenerateShellID("wsl", shellPath),
+			ID:        GenerateShellID("wsl", distroName),
 			Name:      fmt.Sprintf("WSL: %s", distroName),
-			ShellPath: shellPath,
+			ShellPath: "",
 			ShellType: ShellType_bash, // Default to bash for WSL
 			Source:    ShellSource_Wsl,
 			Icon:      getWslDistroIcon(distroName),
+			WslDistro: distroName,
 		}
 
-		// Check if this is the default distro (just update the name, keep wsl:// path format)
+		// Check if this is the default distro
 		defaultDistro, ok, _ := wsl.DefaultDistro(ctx)
 		if ok && defaultDistro.Name() == distroName {
 			shell.IsDefault = true

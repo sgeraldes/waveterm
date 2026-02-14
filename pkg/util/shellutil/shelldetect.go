@@ -28,6 +28,7 @@ type DetectedShell struct {
 	Source    string `json:"source"`
 	Icon      string `json:"icon,omitempty"`
 	IsDefault bool   `json:"isdefault,omitempty"`
+	WslDistro string `json:"wsldistro,omitempty"` // Raw WSL distro name (without display suffixes)
 }
 
 // Shell source constants

@@ -16,7 +16,6 @@ import { atoms, getApi } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
-import { isWindows } from "@/util/platformutil";
 import { cn } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -515,7 +514,6 @@ interface AddConnectionFormProps {
 const AddConnectionForm = memo(({ onCancel, onSubmit, existingNames }: AddConnectionFormProps) => {
     const [name, setName] = useState("");
     const [error, setError] = useState<string | null>(null);
-    const showWSL = isWindows();
 
     // Validate name on every change to enable/disable submit button
     const validation = useMemo(() => validateConnectionName(name), [name]);
@@ -572,13 +570,11 @@ const AddConnectionForm = memo(({ onCancel, onSubmit, existingNames }: AddConnec
                         setError(null);
                     }}
                     onKeyDown={handleKeyDown}
-                    placeholder={showWSL ? "user@host or wsl://distro" : "user@host"}
+                    placeholder="user@host"
                     autoFocus
                 />
                 <div className="connections-add-form-hint">
-                    {showWSL
-                        ? "Enter SSH connection (user@host) or WSL distribution (wsl://distro)"
-                        : "Enter SSH connection in format: user@host or user@host:port"}
+                    Enter SSH connection in format: user@host or user@host:port
                 </div>
                 {error && <div className="connections-add-form-error">{error}</div>}
             </div>

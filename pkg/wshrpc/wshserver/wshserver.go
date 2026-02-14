@@ -862,12 +862,7 @@ func (ws *WshServer) MergeShellProfilesCommand(ctx context.Context, data wshrpc.
 		// Handle WSL shells
 		if shell.Source == shellutil.ShellSource_Wsl {
 			profiles[i].IsWsl = true
-			// Extract distro name from shell name (e.g., "WSL: Ubuntu" -> "Ubuntu")
-			distro := shell.Name
-			if len(distro) > 5 && distro[:5] == "WSL: " {
-				distro = distro[5:]
-			}
-			profiles[i].WslDistro = distro
+			profiles[i].WslDistro = shell.WslDistro
 		}
 	}
 
