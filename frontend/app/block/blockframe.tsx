@@ -37,6 +37,7 @@ import { OverlayScrollbarsComponent } from "overlayscrollbars-react";
 import * as React from "react";
 import { CopyButton } from "../element/copybutton";
 import { BlockFrameProps } from "./blocktypes";
+import { useMouseNavigation } from "./useMouseNavigation";
 
 const NumActiveConnColors = 8;
 
@@ -647,6 +648,8 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
             });
         }
     }, [manageConnection, blockData]);
+
+    useMouseNavigation(blockModel?.blockRef, viewModel ?? null);
 
     const viewIconElem = getViewIconElem(viewIconUnion, blockData);
     let innerStyle: React.CSSProperties = {};

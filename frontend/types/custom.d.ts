@@ -114,7 +114,7 @@ declare global {
         onWaveActivate: (callback: () => void) => void; // wave-activate
         sendLog: (log: string) => void; // fe-log
         onQuicklook: (filePath: string) => void; // quicklook
-        openNativePath(filePath: string): void; // open-native-path
+        openNativePath(filePath: string): Promise<string>; // open-native-path - returns error string or empty string on success
         captureScreenshot(rect: Electron.Rectangle): Promise<string>; // capture-screenshot
         setKeyboardChordMode: () => void; // set-keyboard-chord-mode
         clearWebviewStorage: (webContentsId: number) => Promise<void>; // clear-webview-storage
@@ -353,6 +353,10 @@ declare global {
 
         // Cleans up resources when the block is disposed.
         dispose?: () => void;
+
+        // Optional history navigation methods for mouse button 4/5 support.
+        goHistoryBack?: () => void;
+        goHistoryForward?: () => void;
     }
 
     type UpdaterStatus = "up-to-date" | "checking" | "downloading" | "ready" | "error" | "installing";

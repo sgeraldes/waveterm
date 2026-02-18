@@ -1,0 +1,81 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.notes-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.notes-status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    background: var(--block-bg-color, #1a1a1a);
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    min-height: 20px;
+    flex-shrink: 0;
+}
+
+.notes-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notes-saving {
+    color: var(--warning-color, #f0a500);
+    flex-shrink: 0;
+}
+
+.notes-saved {
+    color: var(--success-color, #4caf50);
+    flex-shrink: 0;
+    animation: notes-fade-out 2s ease-out forwards;
+}
+
+.notes-remote-hint {
+    color: var(--info-color, rgba(255, 255, 255, 0.4));
+    font-style: italic;
+    flex-shrink: 0;
+}
+
+.notes-editor {
+    flex: 1;
+    overflow: hidden;
+}
+
+.notes-loading,
+.notes-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    font-size: 14px;
+}
+
+.notes-error button {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    background: transparent;
+    color: var(--primary-text-color, white);
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+@keyframes notes-fade-out {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}

@@ -5,6 +5,7 @@ import { Button } from "@/app/element/button";
 import { CenteredDiv } from "@/app/element/quickelems";
 import { globalStore } from "@/store/global";
 import { getWebServerEndpoint } from "@/util/endpoints";
+import { jotaiLoadableValue } from "@/util/util";
 import { formatRemoteUri } from "@/util/waveutil";
 import { useAtomValue } from "jotai";
 import { useEffect } from "react";
@@ -55,8 +56,12 @@ function StreamingPreview({ model }: SpecializedViewProps) {
             model.refreshCallback = null;
         };
     }, []);
-    const conn = useAtomValue(model.connection);
-    const fileInfo = useAtomValue(model.statFile);
+    const conn = useAtomValue(model.connectionImmediate);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
+    const fileInfo = jotaiLoadableValue(loadableFileInfo, null);
+    if (!fileInfo) {
+        return <CenteredDiv>Loading...</CenteredDiv>;
+    }
     const filePath = fileInfo.path;
     const remotePath = formatRemoteUri(filePath, conn);
     const usp = new URLSearchParams();

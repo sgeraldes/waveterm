@@ -29,6 +29,7 @@
         flex-direction: row;
         height: 27px;
         -webkit-app-region: no-drag;
+        scroll-behavior: smooth;
     }
 
     .pinned-tab-spacer {
@@ -50,6 +51,18 @@
     .add-tab {
         padding: 0 10px;
         height: 27px;
+    }
+
+    .scroll-left-btn,
+    .scroll-right-btn {
+        padding: 0 8px;
+        height: 27px;
+        transition: opacity 0.2s ease;
+
+        &:disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
     }
 
     // Customize scrollbar styles

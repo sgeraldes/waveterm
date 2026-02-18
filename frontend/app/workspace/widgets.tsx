@@ -3,6 +3,7 @@
 
 import { Tooltip } from "@/app/element/tooltip";
 import { ContextMenuModel } from "@/app/store/contextmenu";
+import { ShellSelectorFloatingWindow } from "@/app/workspace/shell-selector";
 import { atoms, createBlock, globalStore, isDev } from "@/store/global";
 import { fireAndForget, isBlank, makeIconClass } from "@/util/util";
 import {
@@ -80,7 +81,11 @@ async function handleWidgetSelect(widget: WidgetConfigType) {
 
 const Widget = memo(({ widget, mode }: { widget: WidgetConfigType; mode: "normal" | "compact" | "supercompact" }) => {
     const [isTruncated, setIsTruncated] = useState(false);
+    const [isShellSelectorOpen, setIsShellSelectorOpen] = useState(false);
     const labelRef = useRef<HTMLDivElement>(null);
+    const widgetRef = useRef<HTMLDivElement>(null);
+
+    const isTerminalWidget = widget.blockdef?.meta?.view === "term";
 
     useEffect(() => {
         if (mode === "normal" && labelRef.current) {
@@ -89,32 +94,51 @@ const Widget = memo(({ widget, mode }: { widget: WidgetConfigType; mode: "normal
         }
     }, [mode, widget.label]);
 
-    const shouldDisableTooltip = mode !== "normal" ? false : !isTruncated;
+    const shouldDisableTooltip = (mode !== "normal" ? false : !isTruncated) || isShellSelectorOpen;
+
+    const handleClick = () => {
+        if (isTerminalWidget) {
+            setIsShellSelectorOpen((prev) => !prev);
+        } else {
+            handleWidgetSelect(widget);
+        }
+    };
 
     return (
-        <Tooltip
-            content={widget.description || widget.label}
-            placement="left"
-            disable={shouldDisableTooltip}
-            divClassName={clsx(
-                "flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-secondary overflow-hidden rounded-sm hover:bg-hoverbg hover:text-white cursor-pointer",
-                mode === "supercompact" ? "text-sm" : "text-lg",
-                widget["display:hidden"] && "hidden"
-            )}
-            divOnClick={() => handleWidgetSelect(widget)}
-        >
-            <div style={{ color: widget.color }}>
-                <i className={makeIconClass(widget.icon, true, { defaultIcon: "browser" })}></i>
-            </div>
-            {mode === "normal" && !isBlank(widget.label) ? (
-                <div
-                    ref={labelRef}
-                    className="text-xxs mt-0.5 w-full px-0.5 text-center whitespace-nowrap overflow-hidden text-ellipsis"
+        <>
+            <div ref={widgetRef}>
+                <Tooltip
+                    content={widget.description || widget.label}
+                    placement="left"
+                    disable={shouldDisableTooltip}
+                    divClassName={clsx(
+                        "flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-secondary overflow-hidden rounded-sm hover:bg-hoverbg hover:text-white cursor-pointer",
+                        mode === "supercompact" ? "text-sm" : "text-lg",
+                        widget["display:hidden"] && "hidden"
+                    )}
+                    divOnClick={handleClick}
                 >
-                    {widget.label}
-                </div>
-            ) : null}
-        </Tooltip>
+                    <div style={{ color: widget.color }}>
+                        <i className={makeIconClass(widget.icon, true, { defaultIcon: "browser" })}></i>
+                    </div>
+                    {mode === "normal" && !isBlank(widget.label) ? (
+                        <div
+                            ref={labelRef}
+                            className="text-xxs mt-0.5 w-full px-0.5 text-center whitespace-nowrap overflow-hidden text-ellipsis"
+                        >
+                            {widget.label}
+                        </div>
+                    ) : null}
+                </Tooltip>
+            </div>
+            {isTerminalWidget && widgetRef.current && (
+                <ShellSelectorFloatingWindow
+                    isOpen={isShellSelectorOpen}
+                    onClose={() => setIsShellSelectorOpen(false)}
+                    referenceElement={widgetRef.current}
+                />
+            )}
+        </>
     );
 });
 
@@ -241,9 +265,6 @@ const Widgets = memo(() => {
         : Object.fromEntries(Object.entries(widgetsMap).filter(([key]) => key !== "defwidget@ai"));
     const widgets = sortByDisplayOrder(filteredWidgets);
 
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const settingsButtonRef = useRef<HTMLDivElement>(null);
-
     const checkModeNeeded = useCallback(() => {
         if (!containerRef.current || !measurementRef.current) return;
 
@@ -310,6 +331,39 @@ const Widgets = memo(() => {
         ContextMenuModel.showContextMenu(menu, e);
     };
 
+    const openHelp = () =>
+        fireAndForget(async () => createBlock({ meta: { view: "help" } }));
+    const openTips = () =>
+        fireAndForget(async () => createBlock({ meta: { view: "tips" } }, true, true));
+    const openSettings = () =>
+        fireAndForget(async () => createBlock({ meta: { view: "waveconfig" } }, false, true));
+
+    const bottomButtonClass = clsx(
+        "flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-secondary overflow-hidden rounded-sm hover:bg-hoverbg hover:text-white cursor-pointer",
+        mode === "supercompact" ? "text-sm" : "text-lg"
+    );
+
+    const bottomButtons = (
+        <>
+            <div className="border-t border-border mx-1 my-1 opacity-40" />
+            <Tooltip content="Help" placement="left">
+                <div className={bottomButtonClass} onClick={openHelp}>
+                    <i className={makeIconClass("circle-question", true)}></i>
+                </div>
+            </Tooltip>
+            <Tooltip content="Tips" placement="left">
+                <div className={bottomButtonClass} onClick={openTips}>
+                    <i className={makeIconClass("lightbulb", true)}></i>
+                </div>
+            </Tooltip>
+            <Tooltip content="Settings" placement="left">
+                <div className={bottomButtonClass} onClick={openSettings}>
+                    <i className={makeIconClass("gear", true)}></i>
+                </div>
+            </Tooltip>
+        </>
+    );
+
     return (
         <>
             <div
@@ -325,17 +379,7 @@ const Widgets = memo(() => {
                             ))}
                         </div>
                         <div className="flex-grow" />
-                        <div
-                            ref={settingsButtonRef}
-                            className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-secondary text-sm overflow-hidden rounded-sm hover:bg-hoverbg hover:text-white cursor-pointer"
-                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                        >
-                            <Tooltip content="Settings & Help" placement="left" disable={isSettingsOpen}>
-                                <div>
-                                    <i className={makeIconClass("gear", true)}></i>
-                                </div>
-                            </Tooltip>
-                        </div>
+                        {bottomButtons}
                     </>
                 ) : (
                     <>
@@ -343,17 +387,7 @@ const Widgets = memo(() => {
                             <Widget key={`widget-${idx}`} widget={data} mode={mode} />
                         ))}
                         <div className="flex-grow" />
-                        <div
-                            ref={settingsButtonRef}
-                            className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-secondary text-lg overflow-hidden rounded-sm hover:bg-hoverbg hover:text-white cursor-pointer"
-                            onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                        >
-                            <Tooltip content="Settings & Help" placement="left" disable={isSettingsOpen}>
-                                <div>
-                                    <i className={makeIconClass("gear", true)}></i>
-                                </div>
-                            </Tooltip>
-                        </div>
+                        {bottomButtons}
                     </>
                 )}
                 {isDev() ? (
@@ -365,13 +399,6 @@ const Widgets = memo(() => {
                     </div>
                 ) : null}
             </div>
-            {settingsButtonRef.current && (
-                <SettingsFloatingWindow
-                    isOpen={isSettingsOpen}
-                    onClose={() => setIsSettingsOpen(false)}
-                    referenceElement={settingsButtonRef.current}
-                />
-            )}
 
             <div
                 ref={measurementRef}
@@ -381,11 +408,15 @@ const Widgets = memo(() => {
                     <Widget key={`measurement-widget-${idx}`} widget={data} mode="normal" />
                 ))}
                 <div className="flex-grow" />
+                <div className="border-t border-border mx-1 my-1" />
                 <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
-                    <div>
-                        <i className={makeIconClass("gear", true)}></i>
-                    </div>
-                    <div className="text-xxs mt-0.5 w-full px-0.5 text-center">settings</div>
+                    <i className={makeIconClass("circle-question", true)}></i>
+                </div>
+                <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
+                    <i className={makeIconClass("lightbulb", true)}></i>
+                </div>
+                <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
+                    <i className={makeIconClass("gear", true)}></i>
                 </div>
                 {isDev() ? (
                     <div

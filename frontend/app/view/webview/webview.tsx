@@ -316,6 +316,14 @@ export class WebViewModel implements ViewModel {
         this.webviewRef.current?.goForward();
     }
 
+    goHistoryBack() {
+        this.webviewRef.current?.goBack();
+    }
+
+    goHistoryForward() {
+        this.webviewRef.current?.goForward();
+    }
+
     handleRefresh(e: React.MouseEvent<HTMLDivElement, MouseEvent>) {
         e.preventDefault();
         e.stopPropagation();

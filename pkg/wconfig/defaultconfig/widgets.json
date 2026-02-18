@@ -50,5 +50,35 @@
                 "view": "sysinfo"
             }
         }
+    },
+    "defwidget@treeview": {
+        "display:order": 1,
+        "icon": "sitemap",
+        "label": "tree view",
+        "blockdef": {
+            "meta": {
+                "view": "treeview"
+            }
+        }
+    },
+    "defwidget@notes": {
+        "display:order": 2,
+        "icon": "note-sticky",
+        "label": "notes",
+        "blockdef": {
+            "meta": {
+                "view": "notes"
+            }
+        }
+    },
+    "defwidget@todo": {
+        "display:order": 3,
+        "icon": "check-square",
+        "label": "todo",
+        "blockdef": {
+            "meta": {
+                "view": "todo"
+            }
+        }
     }
 }

@@ -12,6 +12,9 @@ import {
 import { AiFileDiffViewModel } from "@/app/view/aifilediff/aifilediff";
 import { LauncherViewModel } from "@/app/view/launcher/launcher";
 import { PreviewModel } from "@/app/view/preview/preview-model";
+import { TreeViewModel } from "@/app/view/treeview/treeview-model";
+import { NotesViewModel } from "@/app/view/notes/notes-model";
+import { TodoViewModel } from "@/app/view/todo/todo-model";
 import { SysinfoViewModel } from "@/app/view/sysinfo/sysinfo";
 import { ErrorBoundary } from "@/element/errorboundary";
 import { CenteredDiv } from "@/element/quickelems";
@@ -52,6 +55,9 @@ BlockRegistry.set("help", HelpViewModel);
 BlockRegistry.set("launcher", LauncherViewModel);
 BlockRegistry.set("aifilediff", AiFileDiffViewModel);
 BlockRegistry.set("waveconfig", WaveConfigViewModel);
+BlockRegistry.set("treeview", TreeViewModel);
+BlockRegistry.set("notes", NotesViewModel);
+BlockRegistry.set("todo", TodoViewModel);
 
 function makeViewModel(blockId: string, blockView: string, nodeModel: BlockNodeModel, tabModel: TabModel): ViewModel {
     const ctor = BlockRegistry.get(blockView);

@@ -6,9 +6,10 @@ import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { BlockHeaderSuggestionControl } from "@/app/suggestion/suggestion";
 import { globalStore } from "@/store/global";
-import { isBlank, makeConnRoute } from "@/util/util";
+import { isBlank, jotaiLoadableValue, makeConnRoute } from "@/util/util";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useEffect } from "react";
+import { useDrop } from "react-dnd";
 import { CSVView } from "./csvview";
 import { DirectoryPreview } from "./preview-directory";
 import { CodeEditPreview } from "./preview-edit";
@@ -39,19 +40,29 @@ function canPreview(mimeType: string): boolean {
 
 function CSVViewPreview({ model, parentRef }: SpecializedViewProps) {
     const fileContent = useAtomValue(model.fileContent);
-    const fileName = useAtomValue(model.statFilePath);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
+    const fileName = jotaiLoadableValue(loadableFileInfo, null)?.path;
     return <CSVView parentRef={parentRef} readonly={true} content={fileContent} filename={fileName} />;
 }
 
 const SpecializedView = memo(({ parentRef, model }: SpecializedViewProps) => {
-    const specializedView = useAtomValue(model.specializedView);
-    const mimeType = useAtomValue(model.fileMimeType);
+    const loadableSpecializedView = useAtomValue(model.loadableSpecializedView);
+    const loadableMimeType = useAtomValue(model.fileMimeTypeLoadable);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
     const setCanPreview = useSetAtom(model.canPreview);
-    const path = useAtomValue(model.statFilePath);
+
+    const mimeType = jotaiLoadableValue(loadableMimeType, null);
+    const fileInfo = jotaiLoadableValue(loadableFileInfo, null);
+    const specializedView = jotaiLoadableValue(loadableSpecializedView, { specializedView: null, errorStr: null });
 
     useEffect(() => {
         setCanPreview(canPreview(mimeType));
     }, [mimeType, setCanPreview]);
+
+    // Show loading state while promises resolve
+    if (loadableSpecializedView.state === "loading") {
+        return <CenteredDiv>Loading...</CenteredDiv>;
+    }
 
     if (specializedView.errorStr != null) {
         return <CenteredDiv>{specializedView.errorStr}</CenteredDiv>;
@@ -60,7 +71,8 @@ const SpecializedView = memo(({ parentRef, model }: SpecializedViewProps) => {
     if (!SpecializedViewComponent) {
         return <CenteredDiv>Invalid Specialized View Component ({specializedView.specializedView})</CenteredDiv>;
     }
-    return <SpecializedViewComponent key={path} model={model} parentRef={parentRef} />;
+    // Use blockId as key for stability - path changes shouldn't remount the editor
+    return <SpecializedViewComponent key={model.blockId} model={model} parentRef={parentRef} />;
 });
 
 const fetchSuggestions = async (
@@ -107,7 +119,43 @@ function PreviewView({
     const connStatus = useAtomValue(model.connStatus);
     const [errorMsg, setErrorMsg] = useAtom(model.errorMsgAtom);
     const connection = useAtomValue(model.connectionImmediate);
-    const fileInfo = useAtomValue(model.statFile);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
+    const fileInfo = jotaiLoadableValue(loadableFileInfo, null);
+    const loadableSpecializedView = useAtomValue(model.loadableSpecializedView);
+    const currentView =
+        loadableSpecializedView.state === "hasData" ? loadableSpecializedView.data.specializedView : null;
+
+    const [{ isOver, canDrop }, dropRef] = useDrop(
+        () => ({
+            accept: "FILE_ITEM",
+            canDrop: (draggedFile: DraggedFile) => {
+                // Directory view handles its own drops (for copy); skip the open drop zone
+                if (currentView === "directory") return false;
+                // Only allow drops from the same connection
+                const fileConn = isBlank(connection) ? "local" : connection;
+                const expectedPrefix = `wsh://${fileConn}/`;
+                return draggedFile.uri.startsWith(expectedPrefix);
+            },
+            drop: (draggedFile: DraggedFile) => {
+                // Extract path from URI: "wsh://local/path/to/file" -> "/path/to/file"
+                const url = new URL(draggedFile.uri);
+                const filePath = url.pathname;
+                model.goHistory(filePath);
+            },
+            collect: (monitor) => ({
+                isOver: monitor.isOver(),
+                canDrop: monitor.canDrop(),
+            }),
+        }),
+        [connection, currentView, model]
+    );
+
+    // Attach drop ref to contentRef element when it's available
+    useEffect(() => {
+        if (contentRef.current) {
+            dropRef(contentRef.current);
+        }
+    }, [contentRef.current, dropRef]);
 
     useEffect(() => {
         console.log("fileInfo or connection changed", fileInfo, connection);
@@ -147,8 +195,28 @@ function PreviewView({
         <>
             <div key="fullpreview" className="flex flex-col w-full overflow-hidden scrollbar-hide-until-hover">
                 {errorMsg && <ErrorOverlay errorMsg={errorMsg} resetOverlay={() => setErrorMsg(null)} />}
-                <div ref={contentRef} className="flex-grow overflow-hidden">
+                <div ref={contentRef} className="flex-grow overflow-hidden" style={{ position: "relative" }}>
                     <SpecializedView parentRef={contentRef} model={model} />
+                    {isOver && canDrop && (
+                        <div
+                            style={{
+                                position: "absolute",
+                                inset: 0,
+                                backgroundColor: "rgba(var(--accent-color-rgb, 59, 130, 246), 0.15)",
+                                border: "2px dashed var(--accent-color, #3b82f6)",
+                                borderRadius: "4px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                pointerEvents: "none",
+                                zIndex: 10,
+                                fontSize: "14px",
+                                color: "var(--main-text-color)",
+                            }}
+                        >
+                            Open File
+                        </div>
+                    )}
                 </div>
             </div>
             <BlockHeaderSuggestionControl
