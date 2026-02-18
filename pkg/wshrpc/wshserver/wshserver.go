@@ -1,9 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package wshserver
 
-// this file contains the implementation of the wsh server methods
 
 import (
 	"context"
@@ -36,7 +33,6 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/suggestion"
 	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
-	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 	"github.com/wavetermdev/waveterm/pkg/waveai"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
 	"github.com/wavetermdev/waveterm/pkg/wavejwt"
@@ -46,12 +42,8 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wps"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 	"github.com/wavetermdev/waveterm/pkg/wshutil"
-	"github.com/wavetermdev/waveterm/pkg/wsl"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
-
-var InvalidWslDistroNames = []string{"docker-desktop", "docker-desktop-data"}
 
 type WshServer struct{}
 
@@ -72,13 +64,11 @@ func (ws *WshServer) TestCommand(ctx context.Context, data string) error {
 	return nil
 }
 
-// for testing
 func (ws *WshServer) MessageCommand(ctx context.Context, data wshrpc.CommandMessageData) error {
 	log.Printf("MESSAGE: %s\n", data.Message)
 	return nil
 }
 
-// for testing
 func (ws *WshServer) StreamTestCommand(ctx context.Context) chan wshrpc.RespOrErrorUnion[int] {
 	rtn := make(chan wshrpc.RespOrErrorUnion[int])
 	go func() {
@@ -120,12 +110,10 @@ func SavePlotData(ctx context.Context, blockId string, history string) error {
 		return fmt.Errorf("invalid view type: %s", viewName)
 	}
 	// todo: interpret the data being passed
-	// for now, this is just to throw an error if the block was closed
 	historyBytes, err := json.Marshal(history)
 	if err != nil {
 		return fmt.Errorf("unable to serialize plot data: %v", err)
 	}
-	// ignore MakeFile error (already exists is ok)
 	return filestore.WFS.WriteFile(ctx, blockId, "cpuplotdata", historyBytes)
 }
 
@@ -143,7 +131,6 @@ func (ws *WshServer) GetMetaCommand(ctx context.Context, data wshrpc.CommandGetM
 func (ws *WshServer) SetMetaCommand(ctx context.Context, data wshrpc.CommandSetMetaData) error {
 	log.Printf("SetMetaCommand: %s | %v\n", data.ORef, data.Meta)
 	oref := data.ORef
-	// Validate metadata before persistence
 	if err := waveobj.ValidateMetadata(oref, data.Meta); err != nil {
 		return fmt.Errorf("metadata validation failed: %w", err)
 	}
@@ -408,9 +395,7 @@ func (ws *WshServer) FileRestoreBackupCommand(ctx context.Context, data wshrpc.C
 func (ws *WshServer) GetTempDirCommand(ctx context.Context, data wshrpc.CommandGetTempDirData) (string, error) {
 	tempDir := os.TempDir()
 	if data.FileName != "" {
-		// Reduce to a simple file name to avoid absolute paths or traversal
 		name := filepath.Base(data.FileName)
-		// Normalize/trim any stray separators and whitespace
 		name = strings.Trim(name, `/\`+" ")
 		if name == "" || name == "." {
 			return tempDir, nil
@@ -559,11 +544,6 @@ func (ws *WshServer) ConnStatusCommand(ctx context.Context) ([]wshrpc.ConnStatus
 	return rtn, nil
 }
 
-func (ws *WshServer) WslStatusCommand(ctx context.Context) ([]wshrpc.ConnStatus, error) {
-	rtn := wslconn.GetAllConnStatus()
-	return rtn, nil
-}
-
 func termCtxWithLogBlockId(ctx context.Context, logBlockId string) context.Context {
 	if logBlockId == "" {
 		return ctx
@@ -582,24 +562,12 @@ func termCtxWithLogBlockId(ctx context.Context, logBlockId string) context.Conte
 func (ws *WshServer) ConnEnsureCommand(ctx context.Context, data wshrpc.ConnExtData) error {
 	ctx = genconn.ContextWithConnData(ctx, data.LogBlockId)
 	ctx = termCtxWithLogBlockId(ctx, data.LogBlockId)
-	if strings.HasPrefix(data.ConnName, "wsl://") {
-		distroName := strings.TrimPrefix(data.ConnName, "wsl://")
-		return wslconn.EnsureConnection(ctx, distroName)
-	}
 	return conncontroller.EnsureConnection(ctx, data.ConnName)
 }
 
 func (ws *WshServer) ConnDisconnectCommand(ctx context.Context, connName string) error {
 	if conncontroller.IsLocalConnName(connName) {
 		return nil
-	}
-	if strings.HasPrefix(connName, "wsl://") {
-		distroName := strings.TrimPrefix(connName, "wsl://")
-		conn := wslconn.GetWslConn(distroName)
-		if conn == nil {
-			return fmt.Errorf("distro not found: %s", connName)
-		}
-		return conn.Close()
 	}
 	connOpts, err := remote.ParseOpts(connName)
 	if err != nil {
@@ -619,14 +587,6 @@ func (ws *WshServer) ConnConnectCommand(ctx context.Context, connRequest wshrpc.
 	ctx = genconn.ContextWithConnData(ctx, connRequest.LogBlockId)
 	ctx = termCtxWithLogBlockId(ctx, connRequest.LogBlockId)
 	connName := connRequest.Host
-	if strings.HasPrefix(connName, "wsl://") {
-		distroName := strings.TrimPrefix(connName, "wsl://")
-		conn := wslconn.GetWslConn(distroName)
-		if conn == nil {
-			return fmt.Errorf("connection not found: %s", connName)
-		}
-		return conn.Connect(ctx)
-	}
 	connOpts, err := remote.ParseOpts(connName)
 	if err != nil {
 		return fmt.Errorf("error parsing connection name: %w", err)
@@ -645,14 +605,6 @@ func (ws *WshServer) ConnReinstallWshCommand(ctx context.Context, data wshrpc.Co
 	ctx = genconn.ContextWithConnData(ctx, data.LogBlockId)
 	ctx = termCtxWithLogBlockId(ctx, data.LogBlockId)
 	connName := data.ConnName
-	if strings.HasPrefix(connName, "wsl://") {
-		distroName := strings.TrimPrefix(connName, "wsl://")
-		conn := wslconn.GetWslConn(distroName)
-		if conn == nil {
-			return fmt.Errorf("connection not found: %s", connName)
-		}
-		return conn.InstallWsh(ctx, "")
-	}
 	connOpts, err := remote.ParseOpts(connName)
 	if err != nil {
 		return fmt.Errorf("error parsing connection name: %w", err)
@@ -680,16 +632,12 @@ func (ws *WshServer) ConnUpdateWshCommand(ctx context.Context, remoteInfo wshrpc
 		return false, fmt.Errorf("unable to compare wsh version: %w", err)
 	}
 	if upToDate {
-		// no need to update
 		log.Printf("wsh is already up to date for connection %s", connName)
 		return false, nil
 	}
 
 	// todo: need to add user input code here for validation
 
-	if strings.HasPrefix(connName, "wsl://") {
-		return false, fmt.Errorf("connupdatewshcommand is not supported for wsl connections")
-	}
 	connOpts, err := remote.ParseOpts(connName)
 	if err != nil {
 		return false, fmt.Errorf("error parsing connection name: %w", err)
@@ -711,47 +659,10 @@ func (ws *WshServer) ConnListCommand(ctx context.Context) ([]string, error) {
 	return conncontroller.GetConnectionsList()
 }
 
-func (ws *WshServer) WslListCommand(ctx context.Context) ([]string, error) {
-	distros, err := wsl.RegisteredDistros(ctx)
-	if err != nil {
-		return nil, err
-	}
-	var distroNames []string
-	for _, distro := range distros {
-		distroName := distro.Name()
-		if utilfn.ContainsStr(InvalidWslDistroNames, distroName) {
-			continue
-		}
-		distroNames = append(distroNames, distroName)
-	}
-	return distroNames, nil
-}
-
-func (ws *WshServer) WslDefaultDistroCommand(ctx context.Context) (string, error) {
-	distro, ok, err := wsl.DefaultDistro(ctx)
-	if err != nil {
-		return "", fmt.Errorf("unable to determine default distro: %w", err)
-	}
-	if !ok {
-		return "", fmt.Errorf("unable to determine default distro")
-	}
-	return distro.Name(), nil
-}
-
 /**
  * Dismisses the WshFail Command in runtime memory on the backend
  */
 func (ws *WshServer) DismissWshFailCommand(ctx context.Context, connName string) error {
-	if strings.HasPrefix(connName, "wsl://") {
-		distroName := strings.TrimPrefix(connName, "wsl://")
-		conn := wslconn.GetWslConn(distroName)
-		if conn == nil {
-			return fmt.Errorf("connection not found: %s", connName)
-		}
-		conn.ClearWshError()
-		conn.FireConnChangeEvent()
-		return nil
-	}
 	opts, err := remote.ParseOpts(connName)
 	if err != nil {
 		return err
@@ -771,8 +682,6 @@ func (ws *WshServer) FindGitBashCommand(ctx context.Context, rescan bool) (strin
 }
 
 func (ws *WshServer) DetectAvailableShellsCommand(ctx context.Context, data wshrpc.DetectShellsRequest) (wshrpc.DetectShellsResponse, error) {
-	// Currently only local detection is supported
-	// Remote connection detection would be a future enhancement
 	if data.ConnectionName != "" {
 		return wshrpc.DetectShellsResponse{
 			Shells: nil,
@@ -788,7 +697,6 @@ func (ws *WshServer) DetectAvailableShellsCommand(ctx context.Context, data wshr
 		errStr = err.Error()
 	}
 
-	// Convert shellutil.DetectedShell to wshrpc.DetectedShell
 	rpcShells := make([]wshrpc.DetectedShell, len(detectedShells))
 	for i, shell := range detectedShells {
 		rpcShells[i] = wshrpc.DetectedShell{
@@ -848,7 +756,6 @@ func (ws *WshServer) MergeShellProfilesCommand(ctx context.Context, data wshrpc.
 		}, nil
 	}
 
-	// Convert DetectedShell to ShellProfileType
 	profiles := make([]wconfig.ShellProfileType, len(detectedShells))
 	for i, shell := range detectedShells {
 		profiles[i] = wconfig.ShellProfileType{
@@ -859,7 +766,6 @@ func (ws *WshServer) MergeShellProfilesCommand(ctx context.Context, data wshrpc.
 			Source:       shell.Source,
 			Autodetected: true,
 		}
-		// Handle WSL shells
 		if shell.Source == shellutil.ShellSource_Wsl {
 			profiles[i].IsWsl = true
 			profiles[i].WslDistro = shell.WslDistro
@@ -935,14 +841,11 @@ func (ws *WshServer) WaveInfoCommand(ctx context.Context) (*wshrpc.WaveInfoData,
 	}, nil
 }
 
-// BlocksListCommand returns every block visible in the requested
-// scope (current workspace by default).
 func (ws *WshServer) BlocksListCommand(
 	ctx context.Context,
 	req wshrpc.BlocksListRequest) ([]wshrpc.BlocksListEntry, error) {
 	var results []wshrpc.BlocksListEntry
 
-	// Resolve the set of workspaces to inspect
 	var workspaceIDs []string
 	if req.WorkspaceId != "" {
 		workspaceIDs = []string{req.WorkspaceId}
@@ -953,7 +856,6 @@ func (ws *WshServer) BlocksListCommand(
 		}
 		workspaceIDs = []string{win.WorkspaceId}
 	} else {
-		// "current" == first workspace in client focus list
 		client, err := wstore.DBGetSingleton[*waveobj.Client](ctx)
 		if err != nil {
 			return nil, err
@@ -1107,12 +1009,10 @@ func (ws *WshServer) WaveAIGetToolDiffCommand(ctx context.Context, data wshrpc.C
 }
 
 func (ws *WshServer) WshActivityCommand(ctx context.Context, data map[string]int) error {
-	// Telemetry removed - this is now a no-op
 	return nil
 }
 
 func (ws *WshServer) ActivityCommand(ctx context.Context, activity wshrpc.ActivityUpdate) error {
-	// Telemetry removed - this is now a no-op
 	return nil
 }
 
@@ -1335,7 +1235,6 @@ func (ws *WshServer) JobControllerDetachJobCommand(ctx context.Context, jobId st
 	return jobcontroller.DetachJobFromBlock(ctx, jobId, true)
 }
 
-// OMP (Oh-My-Posh) integration handlers
 
 func (ws *WshServer) OmpGetConfigInfoCommand(ctx context.Context) (wshrpc.CommandOmpGetConfigInfoRtnData, error) {
 	result := wshrpc.CommandOmpGetConfigInfoRtnData{}
@@ -1381,9 +1280,8 @@ func (ws *WshServer) OmpWritePaletteCommand(ctx context.Context, data wshrpc.Com
 		backupPath := configPath + ".backup"
 		content, err := os.ReadFile(configPath)
 		if err == nil {
-			// Preserve original file permissions for backup
 			origInfo, statErr := os.Stat(configPath)
-			backupMode := os.FileMode(0600) // Default to more restrictive
+			backupMode := os.FileMode(0600)
 			if statErr == nil {
 				backupMode = origInfo.Mode()
 			}
@@ -1440,7 +1338,6 @@ func (ws *WshServer) OmpAnalyzeCommand(ctx context.Context, data wshrpc.CommandO
 
 	transparentSegments := wshutil.DetectTransparentSegments(config)
 
-	// Convert to RPC type
 	for _, seg := range transparentSegments {
 		result.TransparentSegments = append(result.TransparentSegments, wshrpc.TransparentSegmentInfo{
 			BlockIndex:   seg.BlockIndex,
@@ -1463,7 +1360,6 @@ func (ws *WshServer) OmpApplyHighContrastCommand(ctx context.Context, data wshrp
 		return result, nil
 	}
 
-	// Create backup if requested
 	if data.CreateBackup {
 		backupPath, err := wshutil.CreateOmpBackup(configPath)
 		if err != nil {
@@ -1473,7 +1369,6 @@ func (ws *WshServer) OmpApplyHighContrastCommand(ctx context.Context, data wshrp
 		result.BackupPath = backupPath
 	}
 
-	// Read and parse current config
 	content, err := os.ReadFile(configPath)
 	if err != nil {
 		result.Error = fmt.Sprintf("cannot read config: %v", err)
@@ -1486,17 +1381,14 @@ func (ws *WshServer) OmpApplyHighContrastCommand(ctx context.Context, data wshrp
 		return result, nil
 	}
 
-	// Apply high contrast mode
 	modifiedConfig := wshutil.ApplyHighContrastMode(config)
 
-	// Serialize the modified config
 	newContent, err := wshutil.SerializeOmpConfig(modifiedConfig)
 	if err != nil {
 		result.Error = fmt.Sprintf("cannot serialize config: %v", err)
 		return result, nil
 	}
 
-	// Write the modified config
 	fileInfo, _ := os.Stat(configPath)
 	mode := os.FileMode(0644)
 	if fileInfo != nil {
@@ -1531,11 +1423,9 @@ func (ws *WshServer) OmpRestoreBackupCommand(ctx context.Context, data wshrpc.Co
 	return result, nil
 }
 
-// OmpReadConfigCommand reads the full OMP configuration for the configurator
 func (ws *WshServer) OmpReadConfigCommand(ctx context.Context) (wshrpc.CommandOmpReadConfigRtnData, error) {
 	result := wshrpc.CommandOmpReadConfigRtnData{}
 
-	// Determine config source
 	poshTheme := os.Getenv("POSH_THEME")
 	if poshTheme != "" {
 		result.Source = "POSH_THEME"
@@ -1550,24 +1440,20 @@ func (ws *WshServer) OmpReadConfigCommand(ctx context.Context) (wshrpc.CommandOm
 	}
 	result.ConfigPath = configPath
 
-	// Detect format
 	format := wshutil.DetectConfigFormat(configPath)
 	result.Format = string(format)
 
-	// Check if backup exists
 	backupPath := wshutil.GetBackupPath(configPath)
 	if _, err := os.Stat(backupPath); err == nil {
 		result.BackupExists = true
 	}
 
-	// Read the file
 	content, err := os.ReadFile(configPath)
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to read config: %v", err)
 		return result, nil
 	}
 
-	// For JSON, parse and return structured config
 	if format == wshutil.OmpFormatJSON {
 		var config wshrpc.OmpConfigData
 		if err := json.Unmarshal(content, &config); err != nil {
@@ -1577,14 +1463,12 @@ func (ws *WshServer) OmpReadConfigCommand(ctx context.Context) (wshrpc.CommandOm
 		}
 		result.Config = &config
 	} else {
-		// For YAML/TOML, return raw content (not yet supported for editing)
 		result.RawContent = string(content)
 	}
 
 	return result, nil
 }
 
-// OmpWriteConfigCommand writes the full OMP configuration
 func (ws *WshServer) OmpWriteConfigCommand(ctx context.Context, data wshrpc.CommandOmpWriteConfigData) (wshrpc.CommandOmpWriteConfigRtnData, error) {
 	result := wshrpc.CommandOmpWriteConfigRtnData{}
 
@@ -1599,13 +1483,11 @@ func (ws *WshServer) OmpWriteConfigCommand(ctx context.Context, data wshrpc.Comm
 		return result, nil
 	}
 
-	// Validate the path
 	if err := wshutil.ValidateOmpConfigPath(configPath); err != nil {
 		result.Error = err.Error()
 		return result, nil
 	}
 
-	// Create backup if requested
 	if data.CreateBackup {
 		backupPath, err := wshutil.CreateOmpBackup(configPath)
 		if err != nil {
@@ -1615,21 +1497,18 @@ func (ws *WshServer) OmpWriteConfigCommand(ctx context.Context, data wshrpc.Comm
 		result.BackupPath = backupPath
 	}
 
-	// Serialize the config to JSON with nice formatting
 	content, err := json.MarshalIndent(data.Config, "", "  ")
 	if err != nil {
 		result.Error = fmt.Sprintf("Failed to serialize config: %v", err)
 		return result, nil
 	}
 
-	// Get original file permissions
 	origInfo, err := os.Stat(configPath)
 	mode := os.FileMode(0644)
 	if err == nil {
 		mode = origInfo.Mode()
 	}
 
-	// Write the file
 	if err := os.WriteFile(configPath, content, mode); err != nil {
 		result.Error = fmt.Sprintf("Failed to write config: %v", err)
 		return result, nil
@@ -1639,39 +1518,32 @@ func (ws *WshServer) OmpWriteConfigCommand(ctx context.Context, data wshrpc.Comm
 	return result, nil
 }
 
-// OmpReinitCommand sends the OMP reinit command to a terminal block
 func (ws *WshServer) OmpReinitCommand(ctx context.Context, data wshrpc.CommandOmpReinitData) error {
 	if data.BlockId == "" {
 		return fmt.Errorf("blockid is required")
 	}
 
-	// Get block data to validate it exists and is a terminal
 	blockData, err := wstore.DBMustGet[*waveobj.Block](ctx, data.BlockId)
 	if err != nil {
 		return fmt.Errorf("error getting block: %w", err)
 	}
 
-	// Validate block is a terminal view
 	viewType := blockData.Meta.GetString(waveobj.MetaKey_View, "")
 	if viewType != "term" {
 		return fmt.Errorf("block %s is not a terminal (view=%s)", data.BlockId, viewType)
 	}
 
-	// Get shell path from block or connection to determine shell type
 	shellPath := blockData.Meta.GetString(waveobj.MetaKey_TermLocalShellPath, "")
 	if shellPath == "" {
-		// Try to get from settings
 		settings := wconfig.GetWatcher().GetFullConfig().Settings
 		shellPath = settings.TermLocalShellPath
 	}
 	if shellPath == "" {
-		// Use default detection
 		shellPath = shellutil.DetectLocalShellPath()
 	}
 
 	shellType := shellutil.GetShellTypeFromShellPath(shellPath)
 
-	// Generate the OMP reinit command based on shell type
 	var reinitCmd string
 	switch shellType {
 	case shellutil.ShellType_pwsh:
@@ -1684,7 +1556,6 @@ func (ws *WshServer) OmpReinitCommand(ctx context.Context, data wshrpc.CommandOm
 		return fmt.Errorf("unsupported shell type for OMP reinit: %s", shellType)
 	}
 
-	// Send the reinit command to the terminal as input
 	inputData := []byte(reinitCmd + "\n")
 	inputUnion := &blockcontroller.BlockInputUnion{
 		InputData: inputData,

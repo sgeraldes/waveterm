@@ -1,7 +1,5 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
-package wslconn
+package wslutil
 
 import (
 	"bytes"
@@ -37,17 +35,12 @@ func hasBashInstalled(ctx context.Context, client *wsl.Distro) (bool, error) {
 		return true, nil
 	}
 
-	// note: we could also check in /bin/bash explicitly
-	// just in case that wasn't added to the path. but if
-	// that's true, we will most likely have worse
-	// problems going forward
-
 	return false, nil
 }
 
-func normalizeOs(os string) string {
-	os = strings.ToLower(strings.TrimSpace(os))
-	return os
+func normalizeOs(osStr string) string {
+	osStr = strings.ToLower(strings.TrimSpace(osStr))
+	return osStr
 }
 
 func normalizeArch(arch string) string {
@@ -61,8 +54,6 @@ func normalizeArch(arch string) string {
 	return arch
 }
 
-// returns (os, arch, error)
-// guaranteed to return a supported platform
 func GetClientPlatform(ctx context.Context, shell genconn.ShellClient) (string, string, error) {
 	blocklogger.Infof(ctx, "[conndebug] running `uname -sm` to detect client platform\n")
 	stdout, stderr, err := genconn.RunSimpleCommand(ctx, shell, genconn.CommandSpec{
@@ -71,16 +62,15 @@ func GetClientPlatform(ctx context.Context, shell genconn.ShellClient) (string, 
 	if err != nil {
 		return "", "", fmt.Errorf("error running uname -sm: %w, stderr: %s", err, stderr)
 	}
-	// Parse and normalize output
 	parts := strings.Fields(strings.ToLower(strings.TrimSpace(stdout)))
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("unexpected output from uname: %s", stdout)
 	}
-	os, arch := normalizeOs(parts[0]), normalizeArch(parts[1])
-	if err := wavebase.ValidateWshSupportedArch(os, arch); err != nil {
+	osStr, arch := normalizeOs(parts[0]), normalizeArch(parts[1])
+	if err := wavebase.ValidateWshSupportedArch(osStr, arch); err != nil {
 		return "", "", err
 	}
-	return os, arch, nil
+	return osStr, arch, nil
 }
 
 func GetClientPlatformFromOsArchStr(ctx context.Context, osArchStr string) (string, string, error) {
@@ -88,14 +78,14 @@ func GetClientPlatformFromOsArchStr(ctx context.Context, osArchStr string) (stri
 	if len(parts) != 2 {
 		return "", "", fmt.Errorf("unexpected output from uname: %s", osArchStr)
 	}
-	os, arch := normalizeOs(parts[0]), normalizeArch(parts[1])
-	if err := wavebase.ValidateWshSupportedArch(os, arch); err != nil {
+	osStr, arch := normalizeOs(parts[0]), normalizeArch(parts[1])
+	if err := wavebase.ValidateWshSupportedArch(osStr, arch); err != nil {
 		return "", "", err
 	}
-	return os, arch, nil
+	return osStr, arch, nil
 }
 
-type CancellableCmd struct {
+type cancellableCmd struct {
 	Cmd    *wsl.WslCmd
 	Cancel func()
 }
@@ -114,7 +104,7 @@ var installTemplatesRawDefault = map[string]string{
 	"chmod": `chmod a+x {{.installPath}}`,
 }
 
-func makeCancellableCommand(ctx context.Context, client *wsl.Distro, cmdTemplateRaw string, words map[string]string) (*CancellableCmd, error) {
+func makeCancellableCommand(ctx context.Context, client *wsl.Distro, cmdTemplateRaw string, words map[string]string) (*cancellableCmd, error) {
 	cmdContext, cmdCancel := context.WithCancel(ctx)
 
 	cmdStr := &bytes.Buffer{}
@@ -123,10 +113,13 @@ func makeCancellableCommand(ctx context.Context, client *wsl.Distro, cmdTemplate
 		cmdCancel()
 		return nil, err
 	}
-	cmdTemplate.Execute(cmdStr, words)
+	if err := cmdTemplate.Execute(cmdStr, words); err != nil {
+		cmdCancel()
+		return nil, fmt.Errorf("template execution failed: %w", err)
+	}
 
 	cmd := client.WslCommand(cmdContext, cmdStr.String())
-	return &CancellableCmd{cmd, cmdCancel}, nil
+	return &cancellableCmd{cmd, cmdCancel}, nil
 }
 
 func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, clientArch string) error {
@@ -134,7 +127,6 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 	if err != nil {
 		return err
 	}
-	// warning: does not work on windows remote yet
 	bashInstalled, err := hasBashInstalled(ctx, client)
 	if err != nil {
 		return err
@@ -148,8 +140,6 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 		selectedTemplatesRaw = installTemplatesRawDefault
 	}
 
-	// I need to use toSlash here to force unix keybindings
-	// this means we can't guarantee it will work on a remote windows machine
 	var installWords = map[string]string{
 		"installDir":  filepath.ToSlash(filepath.Dir(wavebase.RemoteFullWshBinPath)),
 		"tempPath":    wavebase.RemoteFullWshBinPath + ".temp",
@@ -157,7 +147,7 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 	}
 
 	blocklogger.Infof(ctx, "[conndebug] copying %q to remote server %q\n", wshLocalPath, wavebase.RemoteFullWshBinPath)
-	installStepCmds := make(map[string]*CancellableCmd)
+	installStepCmds := make(map[string]*cancellableCmd)
 	for cmdName, selectedTemplateRaw := range selectedTemplatesRaw {
 		cancellableCmd, err := makeCancellableCommand(ctx, client, selectedTemplateRaw, installWords)
 		if err != nil {
@@ -171,7 +161,6 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 		return err
 	}
 
-	// the cat part of this is complicated since it requires stdin
 	catCmd := installStepCmds["cat"].Cmd
 	catStdin, err := catCmd.StdinPipe()
 	if err != nil {
@@ -192,9 +181,6 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 		io.Copy(catStdin, input)
 		installStepCmds["cat"].Cancel()
 
-		// backup just in case something weird happens
-		// could cause potential race condition, but very
-		// unlikely
 		time.Sleep(time.Second * 1)
 		process := catCmd.GetProcess()
 		if process != nil {
@@ -217,10 +203,4 @@ func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, cli
 	}
 
 	return nil
-}
-
-func IsPowershell(shellPath string) bool {
-	// get the base path, and then check contains
-	shellBase := filepath.Base(shellPath)
-	return strings.Contains(shellBase, "powershell") || strings.Contains(shellBase, "pwsh")
 }

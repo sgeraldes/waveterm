@@ -1,7 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-import debug from "debug";
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
 import { FocusManager } from "@/app/store/focusManager";
 import {
@@ -29,6 +25,7 @@ import * as keyutil from "@/util/keyutil";
 import { isWindows } from "@/util/platformutil";
 import { CHORD_TIMEOUT } from "@/util/sharedconst";
 import { fireAndForget } from "@/util/util";
+import debug from "debug";
 import * as jotai from "jotai";
 import { modalsModel } from "./modalmodel";
 
@@ -41,7 +38,6 @@ const globalKeyMap = new Map<string, (waveEvent: WaveKeyboardEvent) => boolean>(
 const globalChordMap = new Map<string, Map<string, KeyHandler>>();
 let globalKeybindingsDisabled = false;
 
-// track current chord state and timeout (for resetting)
 let activeChord: string | null = null;
 let chordTimeout: NodeJS.Timeout = null;
 
@@ -131,7 +127,6 @@ function getStaticTabBlockCount(): number {
 function simpleCloseStaticTab() {
     const ws = globalStore.get(atoms.workspace);
     const tabId = globalStore.get(atoms.staticTabId);
-    // Clean up OSC 7 debounce timers for this tab to prevent memory leaks
     cleanupOsc7DebounceForTab(tabId);
     getApi().closeTab(ws.oid, tabId);
     deleteLayoutModelForTab(tabId);
@@ -305,7 +300,6 @@ function globalRefocus() {
     const layoutModel = getLayoutModelForStaticTab();
     const focusedNode = globalStore.get(layoutModel.focusedNode);
     if (focusedNode == null) {
-        // focus a node
         layoutModel.focusFirstNode();
         return;
     }
@@ -326,7 +320,6 @@ async function getDefaultNewBlockDef(): Promise<BlockDef> {
             },
         };
     }
-    // "term", blank, anything else, fall back to terminal
     const termBlockDef: BlockDef = {
         meta: {
             view: "term",
@@ -334,19 +327,9 @@ async function getDefaultNewBlockDef(): Promise<BlockDef> {
         },
     };
 
-    // ===== Tab Base Directory Inheritance =====
-    // When creating new terminals via keyboard shortcuts (e.g., Cmd+N, Cmd+D),
-    // inherit the tab's base directory as the terminal's initial working directory.
-    // This ensures new terminals in the same tab start in the same project context.
-    //
-    // Inheritance priority:
-    // 1. Focused block's cmd:cwd (copy directory from existing terminal)
-    // 2. Tab's tab:basedir (use tab-level project directory)
-    // 3. Default (typically home directory ~)
     const tabData = globalStore.get(atoms.activeTab);
     let tabBaseDir = tabData?.meta?.["tab:basedir"];
 
-    // Pre-use validation: quickly validate tab basedir before using it
     if (tabBaseDir && tabBaseDir.trim() !== "") {
         try {
             const { validateTabBasedir } = await import("@/store/tab-basedir-validator");
@@ -355,11 +338,11 @@ async function getDefaultNewBlockDef(): Promise<BlockDef> {
                 console.warn(
                     `[keymodel] Tab basedir validation failed at use-time: ${tabBaseDir} (${validationResult.reason}). Falling back to home directory.`
                 );
-                tabBaseDir = null; // Fall back to home directory
+                tabBaseDir = null;
             }
         } catch (error) {
             console.error("[keymodel] Failed to validate tab basedir:", error);
-            tabBaseDir = null; // Fall back to home directory on error
+            tabBaseDir = null;
         }
     }
 
@@ -376,9 +359,11 @@ async function getDefaultNewBlockDef(): Promise<BlockDef> {
         if (blockData?.meta?.connection != null) {
             termBlockDef.meta.connection = blockData.meta.connection;
         }
+        if (blockData?.meta?.["shell:profile"] != null) {
+            termBlockDef.meta["shell:profile"] = blockData.meta["shell:profile"];
+        }
     }
 
-    // If no cwd from focused block, use tab base directory (if valid)
     if (termBlockDef.meta["cmd:cwd"] == null && tabBaseDir != null) {
         termBlockDef.meta["cmd:cwd"] = tabBaseDir;
     }
@@ -413,7 +398,6 @@ async function handleSplitVertical(position: "before" | "after") {
 
 let lastHandledEvent: KeyboardEvent | null = null;
 
-// returns [keymatch, T]
 function checkKeyMap<T>(waveEvent: WaveKeyboardEvent, keyMap: Map<string, T>): [string, T] {
     for (const key of keyMap.keys()) {
         if (keyutil.checkKeyPressed(waveEvent, key)) {
@@ -436,14 +420,12 @@ function appHandleKeyDown(waveEvent: WaveKeyboardEvent): boolean {
     lastHandledEvent = nativeEvent;
     if (activeChord) {
         dlog("handle activeChord", activeChord);
-        // If we're in chord mode, look for the second key.
         const chordBindings = globalChordMap.get(activeChord);
         const [, handler] = checkKeyMap(waveEvent, chordBindings);
         if (handler) {
             resetChord();
             return handler(waveEvent);
         } else {
-            // invalid chord; reset state and consume key
             resetChord();
             return true;
         }
@@ -462,7 +444,6 @@ function appHandleKeyDown(waveEvent: WaveKeyboardEvent): boolean {
         }
     }
     // Note: builder mode was removed, so window type is always "tab"
-    // Check that activeTab exists before trying to use the layout model
     if (globalStore.get(atoms.activeTab) != null) {
         const layoutModel = getLayoutModelForStaticTab();
         const focusedNode = globalStore.get(layoutModel.focusedNode);
@@ -614,7 +595,6 @@ function registerGlobalKeys() {
         }
         const curMI = globalStore.get(tabModel.isTermMultiInput);
         if (!curMI && countTermBlocks() <= 1) {
-            // don't turn on multi-input unless there are 2 or more basic term blocks
             return true;
         }
         globalStore.set(tabModel.isTermMultiInput, !curMI);
@@ -655,7 +635,6 @@ function registerGlobalKeys() {
     }
     function activateSearch(event: WaveKeyboardEvent): boolean {
         const bcm = getBlockComponentModel(getFocusedBlockInStaticTab());
-        // Ctrl+f is reserved in most shells
         if (event.control && bcm.viewModel.viewType == "term") {
             return false;
         }
@@ -690,7 +669,6 @@ function registerGlobalKeys() {
         return true;
     });
     const allKeys = Array.from(globalKeyMap.keys());
-    // special case keys, handled by web view
     allKeys.push("Cmd:l", "Cmd:r", "Cmd:ArrowRight", "Cmd:ArrowLeft", "Cmd:o");
     getApi().registerGlobalWebviewKeys(allKeys);
 

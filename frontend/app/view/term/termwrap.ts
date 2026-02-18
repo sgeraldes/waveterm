@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import type { BlockNodeModel } from "@/app/block/blocktypes";
 import { getFileSubject } from "@/app/store/wps";
 import { RpcApi } from "@/app/store/wshclientapi";
@@ -17,7 +14,7 @@ import {
     WOS,
 } from "@/store/global";
 import * as services from "@/store/services";
-import { sanitizeOsc7Path } from "@/util/pathutil";
+import { isWslUncPath, sanitizeOsc7Path, windowsToWslPath } from "@/util/pathutil";
 import { PLATFORM, PlatformMacOS } from "@/util/platformutil";
 import { base64ToArray, base64ToString, fireAndForget } from "@/util/util";
 import { LigaturesAddon } from "@xterm/addon-ligatures";
@@ -35,7 +32,6 @@ import { createTempFileFromBlob, extractAllClipboardData } from "./termutil";
 
 const dlog = debug("wave:termwrap");
 
-// Debounce map for OSC 7 updates per tab
 const osc7DebounceMap = new Map<string, NodeJS.Timeout>();
 const OSC7_DEBOUNCE_MS = 300;
 
@@ -47,28 +43,25 @@ function clearOsc7Debounce(tabId: string) {
     }
 }
 
-// Cleanup function to prevent memory leaks
 function cleanupOsc7DebounceForTab(tabId: string) {
     clearOsc7Debounce(tabId);
 }
 
-// Export cleanup function for use in tab close handlers
 export { cleanupOsc7DebounceForTab };
 
 const TermFileName = "term";
 const TermCacheFileName = "cache:term:full";
 const MinDataProcessedForCache = 100 * 1024;
-const Osc52MaxDecodedSize = 75 * 1024; // max clipboard size for OSC 52 (matches common terminal implementations)
-const Osc52MaxRawLength = 128 * 1024; // includes selector + base64 + whitespace (rough check)
+const Osc52MaxDecodedSize = 75 * 1024;
+const Osc52MaxRawLength = 128 * 1024;
 export const SupportsImageInput = true;
 
-// detect webgl support
 function detectWebGLSupport(): boolean {
     try {
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("webgl");
         return !!ctx;
-    } catch (e) {
+    } catch {
         return false;
     }
 }
@@ -85,8 +78,6 @@ type TermWrapOptions = {
     jobId?: string;
 };
 
-// for xterm OSC handlers, we return true always because we "own" the OSC number.
-// even if data is invalid we don't want to propagate to other handlers.
 function handleOsc52Command(data: string, blockId: string, loaded: boolean, termWrap: TermWrap): boolean {
     if (!loaded) {
         return true;
@@ -114,7 +105,6 @@ function handleOsc52Command(data: string, blockId: string, loaded: boolean, term
     const clipboardSelection = data.substring(0, semicolonIndex);
     const base64Data = data.substring(semicolonIndex + 1);
 
-    // clipboard query ("?") is not supported for security (prevents clipboard theft)
     if (base64Data === "?") {
         console.log("OSC 52: clipboard query not supported");
         return true;
@@ -136,11 +126,9 @@ function handleOsc52Command(data: string, blockId: string, loaded: boolean, term
     }
 
     try {
-        // strip whitespace from base64 data (some terminals chunk with newlines per RFC 4648)
         const cleanBase64Data = base64Data.replace(/\s+/g, "");
         const decodedText = base64ToString(cleanBase64Data);
 
-        // validate actual decoded size (base64 estimate can be off for multi-byte UTF-8)
         const actualByteSize = new TextEncoder().encode(decodedText).length;
         if (actualByteSize > Osc52MaxDecodedSize) {
             console.log("OSC 52: decoded text too large", actualByteSize, "bytes");
@@ -190,9 +178,9 @@ function handleOsc52Command(data: string, blockId: string, loaded: boolean, term
  *
  * @example
  * // Shell sends: printf '\033]7;file://localhost/home/user/project\007'
- * // Handler extracts: /home/user/project
- * // Updates: block.meta["cmd:cwd"] = "/home/user/project"
- * // If unlocked and basedir empty: tab.meta["tab:basedir"] = "/home/user/project"
+ *
+ *
+ *
  *
  * @see https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
  */
@@ -219,26 +207,18 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
             return true;
         }
 
-        // SECURITY: Only decode once to prevent double-encoding bypass attacks
-        // e.g., %252e%252e -> %2e%2e -> .. (if decoded twice)
         pathPart = decodeURIComponent(url.pathname);
 
-        // SECURITY: Block UNC paths BEFORE normalization to prevent bypass
-        // UNC paths like //server or \\server can be used for data exfiltration via network shares
-        // This regex matches both forward-slash and backslash UNC paths: //server, \\server, /\\server
-        if (/^[\\/]{2}[^\\/]/.test(pathPart)) {
+        if (/^[\\/]{2}[^\\/]/.test(pathPart) && !isWslUncPath(pathPart)) {
             console.warn("[Security] UNC path blocked in OSC 7:", pathPart);
             return true;
         }
 
-        // Normalize double slashes at the beginning to single slash
         if (pathPart.startsWith("//")) {
             pathPart = pathPart.substring(1);
         }
 
-        // Handle Windows paths (e.g., /C:/... or /D:\...)
         if (/^\/[a-zA-Z]:[\\/]/.test(pathPart)) {
-            // Strip leading slash and normalize to forward slashes
             pathPart = pathPart.substring(1).replace(/\\/g, "/");
             dlog("OSC 7 Windows path normalized:", pathPart);
         }
@@ -247,19 +227,13 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
         return true;
     }
 
-    // ========== SECURITY VALIDATION ==========
-    // Validate and sanitize the path before storing to metadata
     const validatedPath = sanitizeOsc7Path(pathPart);
     if (validatedPath == null) {
-        // Path was rejected by security validation
-        // Warning already logged by sanitizeOsc7Path
         return true;
     }
-    // ==========================================
 
     setTimeout(() => {
         fireAndForget(async () => {
-            // Use validated path for all operations
             await services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", blockId), {
                 "cmd:cwd": validatedPath,
             });
@@ -273,33 +247,20 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
                 console.log("error setting RT info", e)
             );
 
-            // ===== Smart Auto-Detection =====
-            // Automatically update tab basedir from terminal's working directory.
-            // This allows the first terminal in a tab to "teach" the tab its project context.
-            //
-            // Design: Uses debouncing (300ms) + atomic lock check to prevent race conditions
-            // when multiple terminals send OSC 7 updates simultaneously.
-            //
-            // IMPORTANT: We use the tabId passed from TermWrap (the tab that owns this terminal),
-            // NOT atoms.activeTab, to ensure background terminals update the correct tab.
             if (!tabId) {
-                return; // Early return if no tabId
+                return;
             }
 
             const tabORef = WOS.makeORef("tab", tabId);
 
-            // Clear existing debounce timer for this tab
             clearOsc7Debounce(tabId);
 
-            // Debounce OSC 7 updates to reduce race condition window (300ms)
-            // This consolidates rapid cd commands into a single update
             osc7DebounceMap.set(
                 tabId,
                 setTimeout(() => {
                     osc7DebounceMap.delete(tabId);
 
                     fireAndForget(async () => {
-                        // Get fresh tab data with current version for atomic update
                         const currentTab = WOS.getObjectValue<Tab>(tabORef);
                         if (!currentTab) {
                             return;
@@ -309,38 +270,46 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
                         const isLocked = currentTab.meta?.["tab:basedirlock"];
                         const currentBasedir = currentTab.meta?.["tab:basedir"];
 
-                        // Only skip if explicitly locked
                         if (isLocked) {
                             dlog("OSC 7: Skipping update - tab basedir is locked");
                             return;
                         }
 
-                        // Only update basedir if it's empty or equals "~" (smart auto-detection)
-                        // This respects user-set directories while allowing first terminal to "teach" the tab
                         if (currentBasedir && currentBasedir !== "~") {
                             dlog("OSC 7: Skipping update - tab basedir already explicitly set:", currentBasedir);
                             return;
                         }
 
+                        const blockORef = WOS.makeORef("block", blockId);
+                        const block = WOS.getObjectValue<Block>(blockORef);
+                        const shellProfile = block?.meta?.["shell:profile"] as string | undefined;
+                        const isWsl = block?.meta?.["shell:iswsl"] || shellProfile?.startsWith("wsl:");
+                        let wslDistro: string | null = null;
+                        if (isWsl) {
+                            wslDistro =
+                                (block?.meta?.["shell:wsldistro"] as string) || shellProfile?.substring(4) || null;
+                            dlog("OSC 7: WSL terminal detected, distro:", wslDistro);
+                        }
+
                         try {
-                            // Use atomic lock-aware update to prevent TOCTOU (Time-Of-Check-Time-Of-Use)
-                            // This ensures the lock state and version haven't changed since we checked
+                            const metaUpdate: MetaType = {
+                                "tab:basedir": validatedPath,
+                                "tab:wsldistro": wslDistro,
+                            };
                             await services.ObjectService.UpdateObjectMetaIfNotLocked(
                                 tabORef,
-                                { "tab:basedir": validatedPath },
+                                metaUpdate,
                                 "tab:basedirlock",
                                 currentVersion
                             );
 
-                            // Update validation state to "valid" after successful OSC 7 update
                             const { getTabModelByTabId } = await import("@/store/tab-model");
                             const tabModel = getTabModelByTabId(tabId);
                             globalStore.set(tabModel.basedirValidationAtom, "valid");
                             globalStore.set(tabModel.lastValidationTimeAtom, Date.now());
-                        } catch (err: any) {
-                            // Version mismatch or locked - silently ignore
-                            // This is expected during concurrent updates or when user locks the directory
-                            if (err.message?.includes("version mismatch") || err.message?.includes("locked")) {
+                        } catch (err: unknown) {
+                            const errMsg = (err as Error)?.message ?? "";
+                            if (errMsg.includes("version mismatch") || errMsg.includes("locked")) {
                                 dlog("OSC 7: Skipped update (concurrent modification or locked)");
                                 return;
                             }
@@ -354,45 +323,15 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
     return true;
 }
 
-// some POC concept code for adding a decoration to a marker
-function addTestMarkerDecoration(terminal: Terminal, marker: TermTypes.IMarker, termWrap: TermWrap): void {
-    const decoration = terminal.registerDecoration({
-        marker: marker,
-        layer: "top",
-    });
-    if (!decoration) {
-        return;
-    }
-    decoration.onRender((el) => {
-        el.classList.add("wave-decoration");
-        el.classList.add("bg-ansi-white");
-        el.dataset.markerline = String(marker.line);
-        if (!el.querySelector(".wave-deco-line")) {
-            const line = document.createElement("div");
-            line.classList.add("wave-deco-line", "bg-accent/20");
-            line.style.position = "absolute";
-            line.style.top = "0";
-            line.style.left = "0";
-            line.style.width = "500px";
-            line.style.height = "1px";
-            el.appendChild(line);
-        }
-    });
-}
-
-// Telemetry removed - checkCommandForTelemetry function removed
-
-// OSC 16162 - Shell Integration Commands
-// See aiprompts/wave-osc-16162.md for full documentation
 type ShellIntegrationStatus = "ready" | "running-command";
 
 type Osc16162Command =
-    | { command: "A"; data: {} }
+    | { command: "A"; data: Record<string, never> }
     | { command: "C"; data: { cmd64?: string } }
     | { command: "M"; data: { shell?: string; shellversion?: string; uname?: string; integration?: boolean } }
     | { command: "D"; data: { exitcode?: number } }
     | { command: "I"; data: { inputempty?: boolean } }
-    | { command: "R"; data: {} };
+    | { command: "R"; data: Record<string, never> };
 
 function handleOsc16162Command(data: string, blockId: string, loaded: boolean, termWrap: TermWrap): boolean {
     const terminal = termWrap.terminal;
@@ -406,7 +345,7 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
     const parts = data.split(";");
     const commandStr = parts[0];
     const jsonDataStr = parts.length > 1 ? parts.slice(1).join(";") : null;
-    let parsedData: Record<string, any> = {};
+    let parsedData: Record<string, unknown> = {};
     if (jsonDataStr) {
         try {
             parsedData = JSON.parse(jsonDataStr);
@@ -418,13 +357,12 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
     const cmd: Osc16162Command = { command: commandStr, data: parsedData } as Osc16162Command;
     const rtInfo: ObjRTInfo = {};
     switch (cmd.command) {
-        case "A":
+        case "A": {
             rtInfo["shell:state"] = "ready";
             termWrap.setShellIntegrationStatus("ready");
             const marker = terminal.registerMarker(0);
             if (marker) {
                 termWrap.promptMarkers.push(marker);
-                // addTestMarkerDecoration(terminal, marker, termWrap);
                 marker.onDispose(() => {
                     const idx = termWrap.promptMarkers.indexOf(marker);
                     if (idx !== -1) {
@@ -433,6 +371,7 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
                 });
             }
             break;
+        }
         case "C":
             rtInfo["shell:state"] = "running-command";
             termWrap.setShellIntegrationStatus("running-command");
@@ -447,7 +386,6 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
                         const decodedCmd = base64ToString(cmd.data.cmd64);
                         rtInfo["shell:lastcmd"] = decodedCmd;
                         globalStore.set(termWrap.lastCommandAtom, decodedCmd);
-                        // Telemetry removed - no command tracking
                     } catch (e) {
                         console.error("Error decoding cmd64:", e);
                         rtInfo["shell:lastcmd"] = null;
@@ -458,7 +396,6 @@ function handleOsc16162Command(data: string, blockId: string, loaded: boolean, t
                 rtInfo["shell:lastcmd"] = null;
                 globalStore.set(termWrap.lastCommandAtom, null);
             }
-            // also clear lastcmdexitcode (since we've now started a new command)
             rtInfo["shell:lastcmdexitcode"] = null;
             break;
         case "M":
@@ -537,20 +474,15 @@ export class TermWrap {
     promptMarkers: TermTypes.IMarker[] = [];
     shellIntegrationStatusAtom: jotai.PrimitiveAtom<"ready" | "running-command" | null>;
     lastCommandAtom: jotai.PrimitiveAtom<string | null>;
-    nodeModel: BlockNodeModel; // this can be null
-    onShellIntegrationStatusChange?: () => void; // callback for tab status updates
+    nodeModel: BlockNodeModel;
+    onShellIntegrationStatusChange?: () => void;
 
-    // IME composition state tracking
-    // Prevents duplicate input when switching input methods during composition (e.g., using Capslock)
-    // xterm.js sends data during compositionupdate AND after compositionend, causing duplicates
     isComposing: boolean = false;
     composingData: string = "";
     lastCompositionEnd: number = 0;
     lastComposedText: string = "";
     firstDataAfterCompositionSent: boolean = false;
 
-    // Paste deduplication
-    // xterm.js paste() method triggers onData event, which can cause duplicate sends
     lastPasteData: string = "";
     lastPasteTime: number = 0;
 
@@ -612,7 +544,6 @@ export class TermWrap {
                 loggedWebGL = true;
             }
         }
-        // Register OSC handlers
         this.terminal.parser.registerOscHandler(7, (data: string) => {
             return handleOsc7Command(data, this.blockId, this.tabId, this.loaded);
         });
@@ -623,15 +554,10 @@ export class TermWrap {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
 
-        // Register CSI handler to optionally block DEC mode 1004 (focus reporting)
-        // This prevents applications like Claude Code from receiving focus events
-        // which can cause jarring UI changes when the terminal loses/gains focus
-        // Default is DISABLED (false) to protect users from UI corruption issues
         this.terminal.parser.registerCsiHandler({ prefix: "?", final: "h" }, (params: (number | number[])[]) => {
             const reportFocusEnabled =
                 globalStore.get(getOverrideConfigAtom(this.blockId, "term:reportfocus")) ?? false;
             if (!reportFocusEnabled) {
-                // Check if any param is mode 1004 (send focus events)
                 let has1004 = false;
                 for (const param of params) {
                     if (param === 1004 || (Array.isArray(param) && param.includes(1004))) {
@@ -641,18 +567,14 @@ export class TermWrap {
                 }
                 if (has1004) {
                     dlog("Blocking DEC mode 1004 (focus reporting) - term:reportfocus is disabled");
-                    // Filter out mode 1004 and let other modes through
                     const remainingModes = (params as number[]).filter((p) => p !== 1004);
                     if (remainingModes.length > 0) {
-                        // Re-emit the CSI sequence without mode 1004
                         const seq = `\x1b[?${remainingModes.join(";")}h`;
                         this.terminal.write(seq);
                     }
-                    // Return true to prevent the original (full) sequence from being processed
                     return true;
                 }
             }
-            // Return false to let the default handler process this CSI sequence
             return false;
         });
 
@@ -745,14 +667,12 @@ export class TermWrap {
             this.toDispose.push(this.searchAddon.onDidChangeResults(this.onSearchResultsDidChange.bind(this)));
         }
 
-        // Register IME composition event listeners on the xterm.js textarea
         const textareaElem = this.connectElem.querySelector("textarea");
         if (textareaElem) {
             textareaElem.addEventListener("compositionstart", this.handleCompositionStart);
             textareaElem.addEventListener("compositionupdate", this.handleCompositionUpdate);
             textareaElem.addEventListener("compositionend", this.handleCompositionEnd);
 
-            // Handle blur during composition - reset state to avoid stale data
             const blurHandler = () => {
                 if (this.isComposing) {
                     dlog("Terminal lost focus during composition, resetting IME state");
@@ -804,14 +724,16 @@ export class TermWrap {
         this.promptMarkers.forEach((marker) => {
             try {
                 marker.dispose();
-            } catch (_) {}
+                // eslint-disable-next-line no-empty
+            } catch {}
         });
         this.promptMarkers = [];
         this.terminal.dispose();
         this.toDispose.forEach((d) => {
             try {
                 d.dispose();
-            } catch (_) {}
+                // eslint-disable-next-line no-empty
+            } catch {}
         });
         this.mainFileSubject.release();
     }
@@ -829,9 +751,6 @@ export class TermWrap {
             return;
         }
 
-        // IME Composition Handling
-        // Block all data during composition - only send the final text after compositionend
-        // This prevents xterm.js from sending intermediate composition data (e.g., during compositionupdate)
         if (this.isComposing) {
             dlog("Blocked data during composition:", data);
             return;
@@ -843,21 +762,16 @@ export class TermWrap {
             }
         }
 
-        // IME Deduplication (for Capslock input method switching)
-        // When switching input methods with Capslock during composition, some systems send the
-        // composed text twice. We allow the first send and block subsequent duplicates.
         const IMEDedupWindowMs = 50;
         const now = Date.now();
         const timeSinceCompositionEnd = now - this.lastCompositionEnd;
         if (timeSinceCompositionEnd < IMEDedupWindowMs && data === this.lastComposedText && this.lastComposedText) {
             if (!this.firstDataAfterCompositionSent) {
-                // First send after composition - allow it but mark as sent
                 this.firstDataAfterCompositionSent = true;
                 dlog("First data after composition, allowing:", data);
             } else {
-                // Second send of the same data - this is a duplicate from Capslock switching, block it
                 dlog("Blocked duplicate IME data:", data);
-                this.lastComposedText = ""; // Clear to allow same text to be typed again later
+                this.lastComposedText = "";
                 this.firstDataAfterCompositionSent = false;
                 return;
             }
@@ -895,7 +809,7 @@ export class TermWrap {
 
     doTerminalWrite(data: string | Uint8Array, setPtyOffset?: number): Promise<void> {
         let resolve: () => void = null;
-        let prtn = new Promise<void>((presolve, _) => {
+        const prtn = new Promise<void>((presolve) => {
             resolve = presolve;
         });
         this.terminal.write(data, () => {
@@ -965,9 +879,7 @@ export class TermWrap {
         this.fitAddon.fit();
         if (oldRows !== this.terminal.rows || oldCols !== this.terminal.cols) {
             const termSize: TermSize = { rows: this.terminal.rows, cols: this.terminal.cols };
-            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
-                // Expected during startup - controller may not be ready yet
-            });
+            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {});
         }
         dlog("resize", `${this.terminal.rows}x${this.terminal.cols}`, `${oldRows}x${oldCols}`, this.hasResized);
         if (!this.hasResized) {
@@ -1004,6 +916,12 @@ export class TermWrap {
         e?.stopPropagation();
 
         try {
+            // Check if this terminal is running in WSL
+            const blockORef = WOS.makeORef("block", this.blockId);
+            const block = WOS.getObjectValue<Block>(blockORef);
+            const shellProfile = block?.meta?.["shell:profile"] as string | undefined;
+            const isWsl = block?.meta?.["shell:iswsl"] || shellProfile?.startsWith("wsl:");
+
             const clipboardData = await extractAllClipboardData(e);
             let firstImage = true;
             for (const data of clipboardData) {
@@ -1011,7 +929,17 @@ export class TermWrap {
                     if (!firstImage) {
                         await new Promise((r) => setTimeout(r, 150));
                     }
-                    const tempPath = await createTempFileFromBlob(data.image);
+                    let tempPath = await createTempFileFromBlob(data.image);
+
+                    // Convert Windows path to WSL path if this is a WSL terminal
+                    if (isWsl) {
+                        const wslPath = windowsToWslPath(tempPath);
+                        if (wslPath) {
+                            dlog("pasteHandler: converted Windows path to WSL path:", tempPath, "->", wslPath);
+                            tempPath = wslPath;
+                        }
+                    }
+
                     this.terminal.paste(tempPath + " ");
                     firstImage = false;
                 }

@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package connparse
 
@@ -21,7 +19,6 @@ const (
 )
 
 var windowsDriveRegex = regexp.MustCompile(`^[a-zA-Z]:`)
-var wslConnRegex = regexp.MustCompile(`^wsl://[^/]+`)
 
 type Connection struct {
 	Scheme string
@@ -73,7 +70,6 @@ func ParseURIAndReplaceCurrentHost(ctx context.Context, uri string) (*Connection
 			return nil, fmt.Errorf("error getting connection name from context: %v", err)
 		}
 
-		// RPC context connection is empty for local connections
 		if source == "" {
 			source = wshrpc.LocalConnName
 		}
@@ -90,7 +86,6 @@ func GetConnNameFromContext(ctx context.Context) (string, error) {
 	return handler.GetRpcContext().Conn, nil
 }
 
-// ParseURI parses a connection URI and returns the connection type, host/path, and parameters.
 func ParseURI(uri string) (*Connection, error) {
 	split := strings.SplitN(uri, "://", 2)
 	var scheme string
@@ -111,21 +106,11 @@ func ParseURI(uri string) (*Connection, error) {
 		if len(split) > 1 && split[1] != "" {
 			remotePath = split[1]
 		} else if strings.HasSuffix(rest, "/") {
-			// preserve trailing slash
 			remotePath = "/"
 		} else {
 			remotePath = ""
 		}
 	}
-	parseWshPath := func() {
-		if strings.HasPrefix(rest, "wsl://") {
-			host = wslConnRegex.FindString(rest)
-			remotePath = strings.TrimPrefix(rest, host)
-		} else {
-			parseGenericPath()
-		}
-	}
-
 	addPrecedingSlash := true
 
 	if scheme == "" {
@@ -133,7 +118,7 @@ func ParseURI(uri string) (*Connection, error) {
 		addPrecedingSlash = false
 		if len(rest) != len(uri) {
 			// This accounts for when the uri starts with "//", which would get trimmed in the first split.
-			parseWshPath()
+			parseGenericPath()
 		} else if strings.HasPrefix(rest, "/~") {
 			host = wshrpc.LocalConnName
 			remotePath = rest
@@ -142,7 +127,7 @@ func ParseURI(uri string) (*Connection, error) {
 			remotePath = rest
 		}
 	} else if scheme == ConnectionTypeWsh {
-		parseWshPath()
+		parseGenericPath()
 	} else {
 		parseGenericPath()
 	}

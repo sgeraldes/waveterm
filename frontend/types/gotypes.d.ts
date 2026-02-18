@@ -1014,6 +1014,7 @@ declare global {
         "bg:text"?: string;
         "tab:basedir"?: string;
         "tab:basedirlock"?: boolean;
+        "tab:wsldistro"?: string;
         "tab:color"?: string;
         "tab:termstatus"?: string;
         "waveai:panelopen"?: boolean;
@@ -1799,6 +1800,21 @@ declare global {
     // wshrpc.WshServerCommandMeta
     type WshServerCommandMeta = {
         commandtype: string;
+    };
+
+    // wshrpc.WslPathStatRequest
+    type WslPathStatRequest = {
+        distro: string;
+        path: string;
+    };
+
+    // wshrpc.WslPathStatResponse
+    type WslPathStatResponse = {
+        exists: boolean;
+        isdir?: boolean;
+        size?: number;
+        modtime?: number;
+        error?: string;
     };
 
 }

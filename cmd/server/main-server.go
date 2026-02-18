@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package main
 
@@ -41,14 +39,12 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshremote"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshserver"
 	"github.com/wavetermdev/waveterm/pkg/wshutil"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 
 	"net/http"
 	_ "net/http/pprof"
 )
 
-// these are set at build time
 var WaveVersion = "0.0.0"
 var BuildTime = "0"
 
@@ -59,10 +55,8 @@ const DiagnosticTick = 10 * time.Minute
 
 var shutdownOnce sync.Once
 
-// Unused variable to satisfy imports (secretstore, conncontroller, wslconn are used for counting)
 var _ = secretstore.CountSecrets
 var _ = conncontroller.GetNumSSHHasConnected
-var _ = wslconn.GetNumWSLHasConnected
 
 func init() {
 	envFilePath := os.Getenv("WAVETERM_ENVFILE")
@@ -78,7 +72,6 @@ func doShutdown(reason string) {
 		ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelFn()
 		go blockcontroller.StopAllBlockControllersForShutdown()
-		// Telemetry removed - no shutdown telemetry
 		clearTempFiles()
 		filestore.WFS.FlushCache(ctx)
 		watcher := wconfig.GetWatcher()
@@ -91,7 +84,6 @@ func doShutdown(reason string) {
 	})
 }
 
-// watch stdin, kill server if stdin is closed
 func stdinReadWatch() {
 	defer func() {
 		panichandler.PanicHandler("stdinReadWatch", recover())
@@ -192,7 +184,6 @@ func grabAndRemoveEnvVars() error {
 		return err
 	}
 
-	// Remove WAVETERM env vars that leak from prod => dev
 	os.Unsetenv("WAVETERM_CLIENTID")
 	os.Unsetenv("WAVETERM_WORKSPACEID")
 	os.Unsetenv("WAVETERM_TABID")
@@ -238,8 +229,41 @@ func maybeStartPprofServer() {
 	}()
 }
 
+// migrateWslBlocks converts legacy wsl:// connection blocks to the new shell profile model.
+// Blocks with connection=wsl://<distro> get connection cleared and shell:profile=wsl:<distro> set.
+func migrateWslBlocks() {
+	ctx, cancelFn := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelFn()
+	blocks, err := wstore.DBGetAllObjsByType[*waveobj.Block](ctx, waveobj.OType_Block)
+	if err != nil {
+		log.Printf("migrateWslBlocks: error getting blocks: %v\n", err)
+		return
+	}
+	for _, block := range blocks {
+		conn := block.Meta.GetString(waveobj.MetaKey_Connection, "")
+		if len(conn) < 6 || conn[:6] != "wsl://" {
+			continue
+		}
+		distro := conn[6:]
+		if distro == "" {
+			continue
+		}
+		profileId := "wsl:" + distro
+		oref := waveobj.ORef{OType: waveobj.OType_Block, OID: block.OID}
+		newMeta := waveobj.MetaMapType{
+			waveobj.MetaKey_Connection:   nil,
+			waveobj.MetaKey_ShellProfile: profileId,
+		}
+		if err := wstore.UpdateObjectMeta(ctx, oref, newMeta, false); err != nil {
+			log.Printf("migrateWslBlocks: error updating block %s: %v\n", block.OID, err)
+		} else {
+			log.Printf("migrateWslBlocks: migrated block %s (wsl://%s -> shell:profile=%s)\n", block.OID, distro, profileId)
+		}
+	}
+}
+
 func main() {
-	log.SetFlags(0) // disable timestamp since electron's winston logger already wraps with timestamp
+	log.SetFlags(0)
 	log.SetPrefix("[wavesrv] ")
 	wavebase.WaveVersion = WaveVersion
 	wavebase.BuildTime = BuildTime
@@ -307,7 +331,6 @@ func main() {
 		log.Printf("error initializing wstore: %v\n", err)
 		return
 	}
-	// Telemetry removed - no panic telemetry handler
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("InitCustomShellStartupFiles", recover())
@@ -317,6 +340,7 @@ func main() {
 			log.Printf("error initializing wsh and shell-integration files: %v\n", err)
 		}
 	}()
+	migrateWslBlocks()
 	firstLaunch, err := wcore.EnsureInitialData()
 	if err != nil {
 		log.Printf("error ensuring initial data: %v\n", err)
@@ -325,7 +349,6 @@ func main() {
 	if firstLaunch {
 		log.Printf("first launch detected")
 	}
-	// cache the clientId for use in wstore.GetClientId()
 	ctx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
 	clientData, err := wstore.DBGetSingleton[*waveobj.Client](ctx)
 	cancelFn()
@@ -349,7 +372,6 @@ func main() {
 	if err != nil {
 		log.Printf("error fixing up wave zsh history: %v\n", err)
 	}
-	// Auto-detect shells on startup and merge with existing profiles
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("AutoDetectShells", recover())
@@ -365,7 +387,6 @@ func main() {
 			log.Printf("error detecting shells: %v\n", err)
 			return
 		}
-		// Convert to ShellProfileType for merging
 		profiles := make([]wconfig.ShellProfileType, len(detectedShells))
 		for i, shell := range detectedShells {
 			profiles[i] = wconfig.ShellProfileType{
@@ -397,7 +418,6 @@ func main() {
 	go stdinReadWatch()
 	go diagnosticLoop()
 	go backupCleanupLoop()
-	// Telemetry removed - no startup activity update, telemetry loops, or counts loops
 	blocklogger.InitBlockLogger()
 	jobcontroller.InitJobController()
 	wcore.InitTabIndicatorStore()
@@ -428,10 +448,9 @@ func main() {
 		if BuildTime == "" {
 			BuildTime = "0"
 		}
-		// use fmt instead of log here to make sure it goes directly to stderr
 		fmt.Fprintf(os.Stderr, "WAVESRV-ESTART ws:%s web:%s version:%s buildtime:%s\n", wsListener.Addr(), webListener.Addr(), WaveVersion, BuildTime)
 	}()
 	go wshutil.RunWshRpcOverListener(unixListener)
-	web.RunWebServer(webListener) // blocking
+	web.RunWebServer(webListener)
 	runtime.KeepAlive(waveLock)
 }

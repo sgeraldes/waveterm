@@ -26,6 +26,7 @@ This is a personal fork with experimental features. Key differences from upstrea
 - **Remote Debugging in Dev Mode** - In dev mode (`WAVETERM_DEV` set), Electron automatically enables Chrome DevTools Protocol on port 9222. This allows Electron MCP tools and other CDP clients to connect for automated testing.
 - **PowerShell Profile Loading** - User's `$PROFILE` is now sourced automatically after Wave's shell integration.
 - **Windows PowerShell 7** - Build scripts require `pwsh` (PowerShell 7+), not Windows PowerShell 5.1.
+- **WSL as Local Shell Profiles** - WSL distributions are treated as local shell profiles (not remote connections). Discovered via `wsl.exe -l`, launched with `wsl.exe -d <distro>`. Shell profiles with `shell:iswsl=true` are validated using UNC paths (`\\wsl.localhost\<distro>\path`). See `pkg/wslutil/` for path translation utilities.
 
 ## Build System
 
