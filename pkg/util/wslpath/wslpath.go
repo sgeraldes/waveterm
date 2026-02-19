@@ -43,6 +43,24 @@ func UNCToLinux(uncPath string) (distro, linuxPath string, ok bool) {
 	return distro, linuxPath, true
 }
 
+func WindowsToMnt(winPath string) (string, bool) {
+	if len(winPath) < 2 || winPath[1] != ':' {
+		return "", false
+	}
+	drive := winPath[0]
+	if drive >= 'A' && drive <= 'Z' {
+		drive = drive + ('a' - 'A')
+	} else if drive < 'a' || drive > 'z' {
+		return "", false
+	}
+	suffix := winPath[2:]
+	linuxPath := strings.ReplaceAll(suffix, `\`, "/")
+	if linuxPath == "" {
+		linuxPath = "/"
+	}
+	return "/mnt/" + string(drive) + linuxPath, true
+}
+
 func MntToWindows(linuxPath string) (string, bool) {
 	if !strings.HasPrefix(linuxPath, "/mnt/") {
 		return "", false

@@ -1,8 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import * as electron from "electron";
 import * as child_process from "node:child_process";
+import path from "path";
 import * as readline from "readline";
 import { WebServerEndpointVarName, WSServerEndpointVarName } from "../frontend/util/endpoints";
 import { AuthKey, WaveAuthKeyEnv } from "./authkey";
@@ -28,15 +26,16 @@ import { updater } from "./updater";
 
 let isWaveSrvDead = false;
 let waveSrvProc: child_process.ChildProcessWithoutNullStreams | null = null;
-let WaveVersion = "unknown"; // set by WAVESRV-ESTART
-let WaveBuildTime = 0; // set by WAVESRV-ESTART
+let WaveVersion = "unknown";
+let WaveBuildTime = 0;
 
 export function getWaveVersion(): { version: string; buildTime: number } {
     return { version: WaveVersion, buildTime: WaveBuildTime };
 }
 
-let waveSrvReadyResolve = (value: boolean) => {};
-const waveSrvReady: Promise<boolean> = new Promise((resolve, _) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+let waveSrvReadyResolve = (_value: boolean) => {};
+const waveSrvReady: Promise<boolean> = new Promise((resolve) => {
     waveSrvReadyResolve = resolve;
 });
 
@@ -54,7 +53,7 @@ export function getIsWaveSrvDead(): boolean {
 
 export function runWaveSrv(handleWSEvent: (evtMsg: WSEventType) => void): Promise<boolean> {
     let pResolve: (value: boolean) => void;
-    let pReject: (reason?: any) => void;
+    let pReject: (reason?: unknown) => void;
     const rtnPromise = new Promise<boolean>((argResolve, argReject) => {
         pResolve = argResolve;
         pReject = argReject;
@@ -70,13 +69,16 @@ export function runWaveSrv(handleWSEvent: (evtMsg: WSEventType) => void): Promis
     envCopy[WaveAuthKeyEnv] = AuthKey;
     envCopy[WaveDataHomeVarName] = getWaveDataDir();
     envCopy[WaveConfigHomeVarName] = getWaveConfigDir();
+    if (!electron.app.isPackaged && !envCopy["WAVETERM_ENVFILE"]) {
+        envCopy["WAVETERM_ENVFILE"] = path.resolve(getElectronAppResourcesPath(), "..", ".env");
+    }
     const waveSrvCmd = getWaveSrvPath();
     console.log("trying to run local server", waveSrvCmd);
     const proc = child_process.spawn(getWaveSrvPath(), {
         cwd: getWaveSrvCwd(),
         env: envCopy,
     });
-    proc.on("exit", (e) => {
+    proc.on("exit", () => {
         if (updater?.status == "installing") {
             return;
         }
@@ -85,7 +87,7 @@ export function runWaveSrv(handleWSEvent: (evtMsg: WSEventType) => void): Promis
         isWaveSrvDead = true;
         electron.app.quit();
     });
-    proc.on("spawn", (e) => {
+    proc.on("spawn", () => {
         console.log("spawned wavesrv");
         waveSrvProc = proc;
         pResolve(true);
@@ -107,9 +109,7 @@ export function runWaveSrv(handleWSEvent: (evtMsg: WSEventType) => void): Promis
     });
     rlStderr.on("line", (line) => {
         if (line.includes("WAVESRV-ESTART")) {
-            const startParams = /ws:([a-z0-9.:]+) web:([a-z0-9.:]+) version:([a-z0-9.\-]+) buildtime:(\d+)/gm.exec(
-                line
-            );
+            const startParams = /ws:([a-z0-9.:]+) web:([a-z0-9.:]+) version:([a-z0-9.-]+) buildtime:(\d+)/gm.exec(line);
             if (startParams == null) {
                 console.log("error parsing WAVESRV-ESTART line", line);
                 setUserConfirmedQuit(true);

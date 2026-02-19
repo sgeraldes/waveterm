@@ -506,6 +506,8 @@ func StartLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, cmdS
 	}
 	if cwdErr := checkCwd(ecmd.Dir); cwdErr != nil {
 		ecmd.Dir = wavebase.GetHomeDir()
+	} else if cmdOpts.Cwd != "" {
+		shellutil.UpdateCmdEnv(ecmd, map[string]string{"WAVETERM_FORCE_CWD": "1"})
 	}
 	envToAdd := shellutil.WaveshellLocalEnvVars(shellutil.DefaultTermType)
 	if os.Getenv("LANG") == "" {

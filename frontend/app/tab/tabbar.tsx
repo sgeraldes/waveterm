@@ -1,22 +1,22 @@
-import { Button } from "@/app/element/button";
-import { modalsModel } from "@/app/store/modalmodel";
+import { addRecentlyClosed } from "@/app/store/recently-closed";
 import { cleanupOsc7DebounceForTab } from "@/app/view/term/termwrap";
-import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
 import { deleteLayoutModelForTab } from "@/layout/index";
-import { atoms, createTab, getApi, globalStore, setActiveTab } from "@/store/global";
+import { atoms, createTab, getApi, globalStore } from "@/store/global";
+import * as WOS from "@/store/wos";
 import { isMacOS, isWindows } from "@/util/platformutil";
-import { fireAndForget } from "@/util/util";
+import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { OverlayScrollbars, PartialOptions } from "overlayscrollbars";
 import { createRef, memo, useCallback, useEffect, useRef, useState } from "react";
 import { debounce } from "throttle-debounce";
 import { IconButton } from "../element/iconbutton";
-import { WorkspaceService } from "../store/services";
+import { ConfigErrorIcon } from "./config-error";
 import { Tab } from "./tab";
+import { TabManagementPanel, tabManagementPanelOpenAtom } from "./tab-management-panel";
 import "./tabbar.scss";
-import { TabListDropdown } from "./tablistdropdown";
 import { UpdateStatusBanner } from "./updatebanner";
-import { WorkspaceSwitcher } from "./workspaceswitcher";
+import { strArrayIsEqual, useTabDrag } from "./use-tab-drag";
+import { WaveAIButton } from "./wave-ai-button";
 
 type DragRegionStyle = React.CSSProperties & { WebkitAppRegion: "drag" | "no-drag" };
 
@@ -43,107 +43,8 @@ interface TabBarProps {
     workspace: Workspace;
 }
 
-const WaveAIButton = memo(() => {
-    const aiPanelOpen = useAtomValue(WorkspaceLayoutModel.getInstance().panelVisibleAtom);
-
-    const onClick = () => {
-        const currentVisible = WorkspaceLayoutModel.getInstance().getAIPanelVisible();
-        WorkspaceLayoutModel.getInstance().setAIPanelVisible(!currentVisible);
-    };
-
-    return (
-        <div
-            className={`flex h-[24px] px-1.5 justify-end items-center rounded-md mr-1 mb-0.5 box-border cursor-pointer hover:bg-white/5 transition-colors text-[12px] ${aiPanelOpen ? "text-accent" : "text-secondary"}`}
-            style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
-            onClick={onClick}
-        >
-            <i className="fa fa-sparkles" />
-            <span className="font-bold ml-1 -top-px font-mono">AI</span>
-        </div>
-    );
-});
-WaveAIButton.displayName = "WaveAIButton";
-
-const ConfigErrorMessage = () => {
-    const fullConfig = useAtomValue(atoms.fullConfigAtom);
-
-    if (fullConfig?.configerrors == null || fullConfig?.configerrors.length == 0) {
-        return (
-            <div className="max-w-[500px] p-5">
-                <h3 className="font-bold text-base mb-2.5">Configuration Clean</h3>
-                <p>There are no longer any errors detected in your config.</p>
-            </div>
-        );
-    }
-    if (fullConfig?.configerrors.length == 1) {
-        const singleError = fullConfig.configerrors[0];
-        return (
-            <div className="max-w-[500px] p-5">
-                <h3 className="font-bold text-base mb-2.5">Configuration Error</h3>
-                <div>
-                    {singleError.file}: {singleError.err}
-                </div>
-            </div>
-        );
-    }
-    return (
-        <div className="max-w-[500px] p-5">
-            <h3 className="font-bold text-base mb-2.5">Configuration Error</h3>
-            <ul>
-                {fullConfig.configerrors.map((error, index) => (
-                    <li key={index}>
-                        {error.file}: {error.err}
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-};
-
-const ConfigErrorIcon = ({ buttonRef }: { buttonRef: React.RefObject<HTMLElement> }) => {
-    const fullConfig = useAtomValue(atoms.fullConfigAtom);
-
-    function handleClick() {
-        modalsModel.pushModal("MessageModal", { children: <ConfigErrorMessage /> });
-    }
-
-    if (fullConfig?.configerrors == null || fullConfig?.configerrors.length == 0) {
-        return null;
-    }
-    return (
-        <Button
-            ref={buttonRef as React.RefObject<HTMLButtonElement>}
-            className="text-black flex-[0_0_fit-content] !h-full !px-3 red"
-            onClick={handleClick}
-        >
-            <i className="fa fa-solid fa-exclamation-triangle" />
-            Config Error
-        </Button>
-    );
-};
-
-function strArrayIsEqual(a: string[], b: string[]) {
-    if (a == null && b == null) {
-        return true;
-    }
-    if (a == null || b == null) {
-        return false;
-    }
-    if (a.length !== b.length) {
-        return false;
-    }
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] !== b[i]) {
-            return false;
-        }
-    }
-    return true;
-}
-
 const TabBar = memo(({ workspace }: TabBarProps) => {
     const [tabIds, setTabIds] = useState<string[]>([]);
-    const [dragStartPositions, setDragStartPositions] = useState<number[]>([]);
-    const [draggingTab, setDraggingTab] = useState<string>();
     const [tabsLoaded, setTabsLoaded] = useState({});
     const [newTabId, setNewTabId] = useState<string | null>(null);
     const [canScrollLeft, setCanScrollLeft] = useState<boolean>(false);
@@ -155,21 +56,10 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
     const tabsWrapperRef = useRef<HTMLDivElement>(null);
     const tabRefs = useRef<React.RefObject<HTMLDivElement>[]>([]);
     const addBtnRef = useRef<HTMLButtonElement>(null);
-    const draggingRemovedRef = useRef(false);
-    const draggingTabDataRef = useRef({
-        tabId: "",
-        ref: { current: null },
-        tabStartX: 0,
-        tabStartIndex: 0,
-        tabIndex: 0,
-        initialOffsetX: null,
-        totalScrollOffset: null,
-        dragged: false,
-    });
     const osInstanceRef = useRef<OverlayScrollbars>(null);
     const draggerLeftRef = useRef<HTMLDivElement>(null);
     const draggerRightRef = useRef<HTMLDivElement>(null);
-    const workspaceSwitcherRef = useRef<HTMLDivElement>(null);
+    const tabManagementBtnRef = useRef<HTMLDivElement>(null);
     const tabWidthRef = useRef<number>(TabDefaultWidth);
     const scrollableRef = useRef<boolean>(false);
     const scrollLeftBtnRef = useRef<HTMLButtonElement>(null);
@@ -181,42 +71,23 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
     const isFullScreen = useAtomValue(atoms.isFullScreen);
     const zoomFactor = useAtomValue(atoms.zoomFactorAtom);
 
-    let prevDelta: number;
-    let prevDragDirection: string;
+    const { draggingTab, saveTabsPosition, saveTabsPositionDebounced, handleDragStart, handleSelectTab } = useTabDrag(
+        tabIds,
+        workspace?.oid,
+        { tabRefs, tabBarRef, tabsWrapperRef, tabWidthRef, scrollableRef, osInstanceRef }
+    );
 
     useEffect(() => {
         tabRefs.current = tabIds.map((_, index) => tabRefs.current[index] || createRef());
     }, [tabIds]);
 
     useEffect(() => {
-        if (!workspace) {
-            return;
-        }
+        if (!workspace) return;
         const newTabIdsArr = workspace.tabids ?? [];
-
-        const areEqual = strArrayIsEqual(tabIds, newTabIdsArr);
-
-        if (!areEqual) {
+        if (!strArrayIsEqual(tabIds, newTabIdsArr)) {
             setTabIds(newTabIdsArr);
         }
     }, [workspace, tabIds]);
-
-    const saveTabsPosition = useCallback(() => {
-        const tabs = tabRefs.current;
-        if (tabs === null) return;
-
-        const newStartPositions: number[] = [];
-        let cumulativeLeft = 0;
-
-        tabRefs.current.forEach((ref) => {
-            if (ref.current) {
-                newStartPositions.push(cumulativeLeft);
-                cumulativeLeft += ref.current.getBoundingClientRect().width;
-            }
-        });
-
-        setDragStartPositions(newStartPositions);
-    }, []);
 
     const setSizeAndPosition = (animate?: boolean) => {
         const tabBar = tabBarRef.current;
@@ -228,7 +99,7 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         const addBtnWidth = addBtnRef.current.getBoundingClientRect().width;
         const updateStatusLabelWidth = updateStatusBannerRef.current?.getBoundingClientRect().width ?? 0;
         const configErrorWidth = configErrorButtonRef.current?.getBoundingClientRect().width ?? 0;
-        const workspaceSwitcherWidth = workspaceSwitcherRef.current?.getBoundingClientRect().width ?? 0;
+        const tabManagementBtnWidth = tabManagementBtnRef.current?.getBoundingClientRect().width ?? 0;
         const scrollLeftBtnWidth = scrollLeftBtnRef.current?.getBoundingClientRect().width ?? 0;
         const scrollRightBtnWidth = scrollRightBtnRef.current?.getBoundingClientRect().width ?? 0;
 
@@ -238,15 +109,13 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
             addBtnWidth +
             updateStatusLabelWidth +
             configErrorWidth +
-            workspaceSwitcherWidth +
+            tabManagementBtnWidth +
             scrollLeftBtnWidth +
             scrollRightBtnWidth;
         const spaceForTabs = tabbarWrapperWidth - nonTabElementsWidth;
 
         const numberOfTabs = tabIds.length;
-
         let idealTabWidth = spaceForTabs / numberOfTabs;
-
         idealTabWidth = Math.max(TabMinWidth, Math.min(idealTabWidth, TabDefaultWidth));
 
         const newScrollable = idealTabWidth * numberOfTabs > spaceForTabs;
@@ -282,11 +151,6 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
             }
         }
     };
-
-    const saveTabsPositionDebounced = useCallback(
-        debounce(100, () => saveTabsPosition()),
-        [saveTabsPosition]
-    );
 
     const handleResizeTabs = useCallback(() => {
         setSizeAndPosition();
@@ -328,13 +192,8 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         const updateScrollButtonStates = () => {
             const viewport = osInstanceRef.current?.elements().viewport;
             if (!viewport) return;
-
-            const scrollLeft = viewport.scrollLeft;
-            const scrollWidth = viewport.scrollWidth;
-            const clientWidth = viewport.clientWidth;
-
-            setCanScrollLeft(scrollLeft > 0);
-            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+            setCanScrollLeft(viewport.scrollLeft > 0);
+            setCanScrollRight(viewport.scrollLeft < viewport.scrollWidth - viewport.clientWidth - 1);
         };
 
         const viewport = osInstanceRef.current.elements().viewport;
@@ -373,203 +232,6 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         }
     }, [activeTabId, isScrollable, tabIds]);
 
-    const getDragDirection = (currentX: number) => {
-        let dragDirection: string;
-        if (currentX - prevDelta > 0) {
-            dragDirection = "+";
-        } else if (currentX - prevDelta === 0) {
-            dragDirection = prevDragDirection;
-        } else {
-            dragDirection = "-";
-        }
-        prevDelta = currentX;
-        prevDragDirection = dragDirection;
-        return dragDirection;
-    };
-
-    const getNewTabIndex = (currentX: number, tabIndex: number, dragDirection: string) => {
-        let newTabIndex = tabIndex;
-        const tabWidth = tabWidthRef.current;
-        if (dragDirection === "+") {
-            for (let i = tabIndex + 1; i < tabIds.length; i++) {
-                const otherTabStart = dragStartPositions[i];
-                if (currentX + tabWidth > otherTabStart + tabWidth / 2) {
-                    newTabIndex = i;
-                }
-            }
-        } else {
-            for (let i = tabIndex - 1; i >= 0; i--) {
-                const otherTabEnd = dragStartPositions[i] + tabWidth;
-                if (currentX < otherTabEnd - tabWidth / 2) {
-                    newTabIndex = i;
-                }
-            }
-        }
-        return newTabIndex;
-    };
-
-    const handleMouseMove = (event: MouseEvent) => {
-        const { tabId, ref, tabStartX } = draggingTabDataRef.current;
-
-        let initialOffsetX = draggingTabDataRef.current.initialOffsetX;
-        let totalScrollOffset = draggingTabDataRef.current.totalScrollOffset;
-        if (initialOffsetX === null) {
-            initialOffsetX = event.clientX - tabStartX;
-            draggingTabDataRef.current.initialOffsetX = initialOffsetX;
-        }
-        let currentX = event.clientX - initialOffsetX - totalScrollOffset;
-        let tabBarRectWidth = tabBarRef.current.getBoundingClientRect().width;
-        const tabBarRectLeftOffset = tabBarRef.current.getBoundingClientRect().left;
-        const incrementDecrement = tabBarRectLeftOffset * 0.05;
-        const dragDirection = getDragDirection(currentX);
-        const scrollable = scrollableRef.current;
-        const tabWidth = tabWidthRef.current;
-
-        if (scrollable) {
-            const { viewport } = osInstanceRef.current.elements();
-            const currentScrollLeft = viewport.scrollLeft;
-
-            if (event.clientX <= tabBarRectLeftOffset) {
-                viewport.scrollLeft = Math.max(0, currentScrollLeft - incrementDecrement);
-                if (viewport.scrollLeft !== currentScrollLeft) {
-                    draggingTabDataRef.current.totalScrollOffset += currentScrollLeft - viewport.scrollLeft;
-                }
-            } else if (event.clientX >= tabBarRectWidth + tabBarRectLeftOffset) {
-                viewport.scrollLeft = Math.min(viewport.scrollWidth, currentScrollLeft + incrementDecrement);
-                if (viewport.scrollLeft !== currentScrollLeft) {
-                    draggingTabDataRef.current.totalScrollOffset -= viewport.scrollLeft - currentScrollLeft;
-                }
-            }
-        }
-
-        initialOffsetX = draggingTabDataRef.current.initialOffsetX;
-        totalScrollOffset = draggingTabDataRef.current.totalScrollOffset;
-        currentX = event.clientX - initialOffsetX - totalScrollOffset;
-
-        setDraggingTab((prev) => (prev !== tabId ? tabId : prev));
-
-        if (Math.abs(currentX - tabStartX) >= 50) {
-            draggingTabDataRef.current.dragged = true;
-        }
-
-        if (tabBarRef.current) {
-            const numberOfTabs = tabIds.length;
-            const totalDefaultTabWidth = numberOfTabs * TabDefaultWidth;
-            if (totalDefaultTabWidth < tabBarRectWidth) {
-                tabBarRectWidth = totalDefaultTabWidth;
-            } else if (scrollable) {
-                tabBarRectWidth = tabsWrapperRef.current.scrollWidth;
-            }
-
-            const minLeft = 0;
-            const maxRight = tabBarRectWidth - tabWidth;
-
-            currentX = Math.min(Math.max(currentX, minLeft), maxRight);
-        }
-
-        ref.current!.style.transform = `translate3d(${currentX}px,0,0)`;
-        ref.current!.style.zIndex = "100";
-
-        const tabIndex = draggingTabDataRef.current.tabIndex;
-        const newTabIndex = getNewTabIndex(currentX, tabIndex, dragDirection);
-
-        if (newTabIndex !== tabIndex) {
-            if (!draggingRemovedRef.current) {
-                tabIds.splice(tabIndex, 1);
-                draggingRemovedRef.current = true;
-            }
-
-            const currentIndexOfDraggingTab = tabIds.indexOf(tabId);
-
-            if (currentIndexOfDraggingTab !== -1) {
-                tabIds.splice(currentIndexOfDraggingTab, 1);
-            }
-            tabIds.splice(newTabIndex, 0, tabId);
-
-            tabIds.forEach((localTabId, index) => {
-                const ref = tabRefs.current.find((ref) => ref.current.dataset.tabId === localTabId);
-                if (ref.current && localTabId !== tabId) {
-                    ref.current.style.transform = `translate3d(${index * tabWidth}px,0,0)`;
-                    ref.current.classList.add("animate");
-                }
-            });
-
-            draggingTabDataRef.current.tabIndex = newTabIndex;
-        }
-    };
-
-    const setUpdatedTabsDebounced = useCallback(
-        debounce(300, (tabIds: string[]) => {
-            tabRefs.current.forEach((ref) => {
-                ref.current.style.zIndex = "0";
-                ref.current.classList.remove("animate");
-            });
-            setDraggingTab(null);
-            fireAndForget(() => WorkspaceService.UpdateTabIds(workspace.oid, tabIds));
-        }),
-        []
-    );
-
-    const handleMouseUp = () => {
-        const { tabIndex, dragged } = draggingTabDataRef.current;
-
-        const draggingTab = tabIds[tabIndex];
-        const tabWidth = tabWidthRef.current;
-        const finalLeftPosition = tabIndex * tabWidth;
-        const ref = tabRefs.current.find((ref) => ref.current.dataset.tabId === draggingTab);
-        if (ref.current) {
-            ref.current.classList.add("animate");
-            ref.current.style.transform = `translate3d(${finalLeftPosition}px,0,0)`;
-        }
-
-        if (dragged) {
-            setUpdatedTabsDebounced(tabIds);
-        } else {
-            tabRefs.current.forEach((ref) => {
-                ref.current.style.zIndex = "0";
-                ref.current.classList.remove("animate");
-            });
-            setDraggingTab(null);
-        }
-
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.removeEventListener("mousemove", handleMouseMove);
-        draggingRemovedRef.current = false;
-    };
-
-    const handleDragStart = useCallback(
-        (event: React.MouseEvent<HTMLDivElement, MouseEvent>, tabId: string, ref: React.RefObject<HTMLDivElement>) => {
-            if (event.button !== 0) return;
-
-            const tabIndex = tabIds.indexOf(tabId);
-            const tabStartX = dragStartPositions[tabIndex];
-
-            console.log("handleDragStart", tabId, tabIndex, tabStartX);
-            if (ref.current) {
-                draggingTabDataRef.current = {
-                    tabId: ref.current.dataset.tabId,
-                    ref,
-                    tabStartX,
-                    tabIndex,
-                    tabStartIndex: tabIndex,
-                    initialOffsetX: null,
-                    totalScrollOffset: 0,
-                    dragged: false,
-                };
-
-                document.addEventListener("mousemove", handleMouseMove);
-                document.addEventListener("mouseup", handleMouseUp);
-            }
-        },
-        [tabIds, dragStartPositions]
-    );
-
-    const handleSelectTab = (tabId: string) => {
-        if (!draggingTabDataRef.current.dragged) {
-            setActiveTab(tabId);
-        }
-    };
-
     const updateScrollDebounced = useCallback(
         debounce(30, () => {
             if (scrollableRef.current) {
@@ -591,20 +253,29 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         createTab();
         void tabsWrapperRef.current.style.transition;
         tabsWrapperRef.current.style.setProperty("--tabs-wrapper-transition", "width 0.1s ease");
-
         updateScrollDebounced();
-
         setNewTabIdDebounced(null);
     };
 
     const handleCloseTab = (event: React.MouseEvent<HTMLButtonElement, MouseEvent> | null, tabId: string) => {
         event?.stopPropagation();
+        const tabData = WOS.getObjectValue<Tab>(WOS.makeORef("tab", tabId));
+        if (tabData) {
+            addRecentlyClosed(tabData);
+        }
         const ws = globalStore.get(atoms.workspace);
         cleanupOsc7DebounceForTab(tabId);
         getApi().closeTab(ws.oid, tabId);
         tabsWrapperRef.current.style.setProperty("--tabs-wrapper-transition", "width 0.3s ease");
         deleteLayoutModelForTab(tabId);
     };
+
+    const handleCloseTabFromPanel = useCallback(
+        (tabId: string) => {
+            handleCloseTab(null, tabId);
+        },
+        [tabIds]
+    );
 
     const handleTabLoaded = useCallback((tabId: string) => {
         setTabsLoaded((prev) => {
@@ -624,8 +295,7 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         const viewport = osInstanceRef.current.elements().viewport;
         const currentScrollLeft = viewport.scrollLeft;
         const scrollAmount = tabWidthRef.current;
-        const newScrollLeft = Math.max(0, currentScrollLeft - scrollAmount);
-        viewport.scrollTo({ left: newScrollLeft, behavior: "smooth" });
+        viewport.scrollTo({ left: Math.max(0, currentScrollLeft - scrollAmount), behavior: "smooth" });
     }, []);
 
     const handleScrollRight = useCallback(() => {
@@ -634,28 +304,23 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         const currentScrollLeft = viewport.scrollLeft;
         const scrollAmount = tabWidthRef.current;
         const maxScrollLeft = viewport.scrollWidth - viewport.clientWidth;
-        const newScrollLeft = Math.min(maxScrollLeft, currentScrollLeft + scrollAmount);
-        viewport.scrollTo({ left: newScrollLeft, behavior: "smooth" });
+        viewport.scrollTo({ left: Math.min(maxScrollLeft, currentScrollLeft + scrollAmount), behavior: "smooth" });
+    }, []);
+
+    const handleTogglePanel = useCallback(() => {
+        globalStore.set(tabManagementPanelOpenAtom, (prev) => !prev);
     }, []);
 
     const tabsWrapperWidth = tabIds.length * tabWidthRef.current;
 
     let windowDragLeftWidth = 10;
     if (isMacOS() && !isFullScreen) {
-        if (zoomFactor > 0) {
-            windowDragLeftWidth = 74 / zoomFactor;
-        } else {
-            windowDragLeftWidth = 74;
-        }
+        windowDragLeftWidth = zoomFactor > 0 ? 74 / zoomFactor : 74;
     }
 
     let windowDragRightWidth = 6;
     if (isWindows()) {
-        if (zoomFactor > 0) {
-            windowDragRightWidth = 139 / zoomFactor;
-        } else {
-            windowDragRightWidth = 139;
-        }
+        windowDragRightWidth = zoomFactor > 0 ? 139 / zoomFactor : 139;
     }
 
     const addtabButtonDecl: IconButtonDecl = {
@@ -689,7 +354,19 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
                 style={{ width: windowDragLeftWidth, WebkitAppRegion: "drag" } as DragRegionStyle}
             />
             <WaveAIButton />
-            <WorkspaceSwitcher ref={workspaceSwitcherRef} />
+            <div
+                ref={tabManagementBtnRef}
+                className="tab-management-btn"
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
+                onClick={handleTogglePanel}
+                title="Tab Management (Ctrl+Shift+T)"
+            >
+                <i
+                    className={makeIconClass(workspace.icon || "globe", true)}
+                    style={workspace.color ? { color: workspace.color } : undefined}
+                />
+            </div>
+            <TabManagementPanel anchorRef={tabManagementBtnRef} tabIds={tabIds} onCloseTab={handleCloseTabFromPanel} />
             {isScrollable && (
                 <IconButton className="scroll-left-btn" ref={scrollLeftBtnRef} decl={scrollLeftButtonDecl} />
             )}
@@ -719,7 +396,6 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
             {isScrollable && (
                 <IconButton className="scroll-right-btn" ref={scrollRightBtnRef} decl={scrollRightButtonDecl} />
             )}
-            <TabListDropdown tabIds={tabIds} />
             <IconButton className="add-tab" ref={addBtnRef} decl={addtabButtonDecl} />
             <div className="tab-bar-right">
                 <UpdateStatusBanner ref={updateStatusBannerRef} />

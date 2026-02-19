@@ -1,10 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import type { BlockNodeModel } from "@/app/block/blocktypes";
+import { globalStore, pushNotification, WOS } from "@/app/store/global";
 import type { TabModel } from "@/app/store/tab-model";
-import { globalStore, WOS } from "@/app/store/global";
-import { pushNotification } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { handleImagePaste } from "@/app/util/image-paste";
@@ -24,26 +20,19 @@ export class TodoViewModel implements ViewModel {
     viewIcon = atom("check-square");
     viewName = atom("TODO");
     viewComponent = TodoComponent;
+    endIconButtons: Atom<IconButtonDecl[]>;
 
-    // File content (raw markdown)
     fileContent: PrimitiveAtom<string>;
-    // Loading state
     isLoading: PrimitiveAtom<boolean>;
-    // Error state
     error: PrimitiveAtom<string | null>;
-    // View mode: "view" = interactive checklist, "edit" = raw markdown
     mode: PrimitiveAtom<"view" | "edit">;
-    // Save status
     saveStatus: PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
-    // New task input value
     newTaskText: PrimitiveAtom<string>;
 
-    // Connection from block meta
     connection: Atom<string>;
     // TODO file path
     todoPath: Atom<string>;
 
-    // Monaco editor ref
     monacoRef: React.MutableRefObject<MonacoTypes.editor.IStandaloneCodeEditor | null>;
 
     private saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -72,6 +61,20 @@ export class TodoViewModel implements ViewModel {
             const metaFile = blockData?.meta?.file ?? null;
             return getTodoFilePath(tabBasedir ?? "", metaFile);
         });
+
+        this.endIconButtons = atom((get) => {
+            const currentMode = get(this.mode);
+            return [
+                {
+                    elemtype: "iconbutton" as const,
+                    icon: currentMode === "view" ? "pen-to-square" : "list-check",
+                    title: currentMode === "view" ? "Edit markdown" : "View checklist",
+                    click: () => {
+                        globalStore.set(this.mode, currentMode === "view" ? "edit" : "view");
+                    },
+                },
+            ];
+        });
     }
 
     async loadContent(): Promise<void> {
@@ -89,7 +92,6 @@ export class TodoViewModel implements ViewModel {
         } catch (e) {
             const errStr = String(e);
             if (errStr.includes("not found") || errStr.includes("ENOENT") || errStr.includes("no such file")) {
-                // File doesn't exist yet - start with empty content
                 globalStore.set(this.fileContent, "");
             } else {
                 globalStore.set(this.error, errStr);
@@ -106,14 +108,13 @@ export class TodoViewModel implements ViewModel {
         globalStore.set(this.saveStatus, "saving");
 
         try {
-            // Ensure parent directory exists
             const parentDir = todoPath.substring(0, todoPath.lastIndexOf("/"));
             if (parentDir) {
                 const parentRemotePath = formatRemoteUri(parentDir, conn || "local");
                 try {
                     await RpcApi.FileMkdirCommand(TabRpcClient, { info: { path: parentRemotePath } });
-                } catch {
-                    // Directory may already exist
+                } catch (_) {
+                    void _;
                 }
             }
 

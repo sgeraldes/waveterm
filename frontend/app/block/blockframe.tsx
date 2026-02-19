@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { BlockModel } from "@/app/block/block-model";
 import { blockViewToIcon, blockViewToName, ConnectionButton, getBlockHeaderIcon, Input } from "@/app/block/blockutil";
 import { Button } from "@/app/element/button";
@@ -18,8 +15,8 @@ import {
     useBlockAtom,
     WOS,
 } from "@/app/store/global";
-import { useTabModel } from "@/app/store/tab-model";
 import { uxCloseBlock } from "@/app/store/keymodel";
+import { useTabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
@@ -57,17 +54,6 @@ function handleHeaderContextMenu(
                 onMagnifyToggle();
             },
         },
-        // {
-        //     label: "Move to New Window",
-        //     click: () => {
-        //         const currentTabId = globalStore.get(atoms.staticTabId);
-        //         try {
-        //             services.WindowService.MoveBlockToNewWindow(currentTabId, blockData.oid);
-        //         } catch (e) {
-        //             console.error("error moving block to new window", e);
-        //         }
-        //     },
-        // },
         { type: "separator" },
         {
             label: "Copy BlockId",
@@ -203,9 +189,9 @@ const BlockFrame_Header = ({
     const wshProblem = connName && !connStatus?.wshenabled && connStatus?.status == "connected";
     const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
 
-    // Determine if this is a local connection (no connection or local)
-    // For local connections, make the view name clickable to open shell selector
     const isLocalConn = util.isLocalConnection(connName, fullConfig?.connections);
+    const isTermView = blockData?.meta?.view === "term";
+    const showShellSelector = manageConnection && isLocalConn && isTermView;
 
     React.useEffect(() => {
         if (!magnified || preview || prevMagifiedState.current) {
@@ -281,15 +267,11 @@ const BlockFrame_Header = ({
             {preIconButtonElem}
             <div
                 className={clsx("block-frame-default-header-iconview", {
-                    clickable: manageConnection && isLocalConn,
+                    clickable: showShellSelector,
                 })}
-                onClick={
-                    manageConnection && isLocalConn
-                        ? () => globalStore.set(changeShellModalAtom, true)
-                        : undefined
-                }
-                ref={manageConnection && isLocalConn ? shellBtnRef : undefined}
-                title={manageConnection && isLocalConn ? "Click to change shell" : undefined}
+                onClick={showShellSelector ? () => globalStore.set(changeShellModalAtom, true) : undefined}
+                ref={showShellSelector ? shellBtnRef : undefined}
+                title={showShellSelector ? "Click to change shell" : undefined}
             >
                 {viewIconElem}
                 <div className="block-frame-view-type">{viewName}</div>
@@ -400,8 +382,6 @@ const ConnStatusOverlay = React.memo(
         }, [connName]);
 
         const handleDisableWsh = React.useCallback(async () => {
-            // using unknown is a hack. we need proper types for the
-            // connection config on the frontend
             const metamaptype: unknown = {
                 "conn:wshenabled": false,
             };
@@ -470,8 +450,6 @@ const ConnStatusOverlay = React.memo(
             [showError, showWshError, connStatus.error, connStatus.wsherror]
         );
 
-        // Don't show overlay for local connections (including local shell profiles)
-        // They don't have reconnection semantics like SSH connections
         const isLocalConn = util.isLocalConnection(connName, fullConfig.connections);
         if (isLocalConn) {
             return null;
@@ -632,7 +610,6 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
         };
     }, [manageConnection]);
     React.useEffect(() => {
-        // on mount, if manageConnection, call ConnEnsure
         if (!manageConnection || blockData == null || preview) {
             return;
         }
@@ -687,7 +664,7 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
                 } as React.CSSProperties
             }
             // @ts-ignore: inert does exist in the DOM, just not in react
-            inert={preview ? "1" : undefined} //
+            inert={preview ? "1" : undefined}
         >
             <BlockMask nodeModel={nodeModel} />
             {preview || viewModel == null ? null : (

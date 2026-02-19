@@ -1,7 +1,4 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-const TODO_FILENAME = ".wave/TODO.md";
+export const TODO_FILENAME = ".wave/TODO.md";
 
 export interface TodoItem {
     text: string;
@@ -65,4 +62,11 @@ export function toggleTodoItem(content: string, lineIndex: number): string {
  */
 export function serializeTodoItems(items: TodoItem[]): string {
     return items.map((item) => `- [${item.checked ? "x" : " "}] ${item.text}`).join("\n") + "\n";
+}
+
+/**
+ * Returns true if the todo path is the default (.wave/TODO.md).
+ */
+export function isDefaultTodoPath(todoPath: string): boolean {
+    return todoPath.endsWith(TODO_FILENAME);
 }

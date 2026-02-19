@@ -98,6 +98,10 @@ type MetaTSType struct {
 	TabWslDistro        string  `json:"tab:wsldistro,omitempty"`
 	TabColor            string  `json:"tab:color,omitempty"`
 	TabTermStatus       string  `json:"tab:termstatus,omitempty"`
+	TabGroup            string  `json:"tab:group,omitempty"`
+	TabGroupColor       string  `json:"tab:groupcolor,omitempty"`
+	TabFavorite         bool    `json:"tab:favorite,omitempty"`
+	TabIcon             string  `json:"tab:icon,omitempty"`
 
 	WaveAiPanelOpen     bool   `json:"waveai:panelopen,omitempty"`
 	WaveAiPanelWidth    int    `json:"waveai:panelwidth,omitempty"`

@@ -1,24 +1,30 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { fireAndForget } from "@/util/util";
 import { app, dialog, ipcMain, shell } from "electron";
 import envPaths from "env-paths";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync, mkdirSync, readFileSync } from "fs";
 import os from "os";
 import path from "path";
 import { WaveDevVarName, WaveDevViteVarName } from "../frontend/util/isdev";
 import * as keyutil from "../frontend/util/keyutil";
 
-// This is a little trick to ensure that Electron puts all its runtime data into a subdirectory to avoid conflicts with our own data.
-// On macOS, it will store to ~/Library/Application \Support/waveterm/electron
-// On Linux, it will store to ~/.config/waveterm/electron
-// On Windows, it will store to %LOCALAPPDATA%/waveterm/electron
-app.setName("waveterm/electron");
-
 const isDev = !app.isPackaged;
+
+app.setName(isDev ? "waveterm-dev/electron" : "waveterm/electron");
+
+if (isDev && !process.env.ELECTRON_RENDERER_URL) {
+    const devUrlPath = path.join(path.dirname(import.meta.dirname), ".dev-server-url");
+    if (existsSync(devUrlPath)) {
+        const url = readFileSync(devUrlPath, "utf-8").trim();
+        if (url) {
+            console.log(`[dev] read ELECTRON_RENDERER_URL from file: ${url}`);
+            process.env.ELECTRON_RENDERER_URL = url;
+        }
+    }
+}
+
 const isDevVite = isDev && process.env.ELECTRON_RENDERER_URL;
 console.log(`Running in ${isDev ? "development" : "production"} mode`);
+console.log(`ELECTRON_RENDERER_URL=${process.env.ELECTRON_RENDERER_URL ?? "(not set)"}, isDevVite=${!!isDevVite}`);
 if (isDev) {
     process.env[WaveDevVarName] = "1";
 }
@@ -53,7 +59,6 @@ export function checkIfRunningUnderARM64Translation(fullConfig: FullConfigType) 
 
         const choice = dialog.showMessageBoxSync(null, dialogOpts);
         if (choice === 1) {
-            // Open the documentation URL
             console.log("User chose to learn more");
             fireAndForget(() =>
                 shell.openExternal(
@@ -79,7 +84,6 @@ function getWaveHomeDir(): string {
             home = path.join(homeDir, `.${waveDirName}`);
         }
     }
-    // If home exists and it has `wave.lock` in it, we know it has valid data from Wave >=v0.8. Otherwise, it could be for WaveLegacy (<v0.8)
     if (home && existsSync(home) && existsSync(path.join(home, "wave.lock"))) {
         return home;
     }
@@ -104,7 +108,6 @@ function ensurePathExists(path: string): string {
  * @returns The path where configurations should be stored.
  */
 function getWaveConfigDir(): string {
-    // If wave home dir exists, use it for backwards compatibility
     const waveHomeDir = getWaveHomeDir();
     if (waveHomeDir) {
         return path.join(waveHomeDir, "config");
@@ -129,7 +132,6 @@ function getWaveConfigDir(): string {
  * @returns The path where data should be stored.
  */
 function getWaveDataDir(): string {
-    // If wave home dir exists, use it for backwards compatibility
     const waveHomeDir = getWaveHomeDir();
     if (waveHomeDir) {
         return waveHomeDir;
@@ -149,7 +151,6 @@ function getWaveDataDir(): string {
 }
 
 function getElectronAppBasePath(): string {
-    // import.meta.dirname in dev points to waveterm/dist/main
     return path.dirname(import.meta.dirname);
 }
 
@@ -159,7 +160,6 @@ function getElectronAppUnpackedBasePath(): string {
 
 function getElectronAppResourcesPath(): string {
     if (isDev) {
-        // import.meta.dirname in dev points to waveterm/dist/main
         return path.dirname(import.meta.dirname);
     }
     return process.resourcesPath;
@@ -183,7 +183,7 @@ function getWaveSrvCwd(): string {
 ipcMain.on("get-is-dev", (event) => {
     event.returnValue = isDev;
 });
-ipcMain.on("get-platform", (event, url) => {
+ipcMain.on("get-platform", (event) => {
     event.returnValue = unamePlatform;
 });
 ipcMain.on("get-user-name", (event) => {

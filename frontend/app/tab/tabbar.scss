@@ -48,6 +48,25 @@
         margin-left: auto;
     }
 
+    .tab-management-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        flex-shrink: 0;
+        margin-right: 2px;
+        background: rgba(255, 255, 255, 0.06);
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+    }
+
     .add-tab {
         padding: 0 10px;
         height: 27px;

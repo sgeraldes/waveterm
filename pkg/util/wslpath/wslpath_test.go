@@ -56,6 +56,36 @@ func TestUNCToLinux(t *testing.T) {
 	}
 }
 
+func TestWindowsToMnt(t *testing.T) {
+	tests := []struct {
+		winPath  string
+		expected string
+		ok       bool
+	}{
+		{`G:\Code\Project`, "/mnt/g/Code/Project", true},
+		{`C:\Users\user`, "/mnt/c/Users/user", true},
+		{`D:\`, "/mnt/d/", true},
+		{`c:\lowercase`, "/mnt/c/lowercase", true},
+		{`C:`, "/mnt/c/", true},
+		{"/home/user", "", false},
+		{"", "", false},
+		{"X", "", false},
+		{`1:\invalid`, "", false},
+	}
+	for _, tc := range tests {
+		t.Run(tc.winPath, func(t *testing.T) {
+			result, ok := WindowsToMnt(tc.winPath)
+			if ok != tc.ok {
+				t.Errorf("WindowsToMnt(%q) ok = %v, want %v", tc.winPath, ok, tc.ok)
+				return
+			}
+			if ok && result != tc.expected {
+				t.Errorf("WindowsToMnt(%q) = %q, want %q", tc.winPath, result, tc.expected)
+			}
+		})
+	}
+}
+
 func TestMntToWindows(t *testing.T) {
 	tests := []struct {
 		linuxPath string

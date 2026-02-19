@@ -33,13 +33,33 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 	}
 	shellutil.InitCustomShellStartupFiles()
 
+	wslCwd := ""
+	if cmdOpts.Cwd != "" {
+		if linuxPath, ok := wslpath.WindowsToMnt(cmdOpts.Cwd); ok {
+			wslCwd = linuxPath
+			blocklogger.Debugf(logCtx, "[conndebug] converted Windows cwd %q to WSL path %q\n", cmdOpts.Cwd, wslCwd)
+		} else {
+			wslCwd = cmdOpts.Cwd
+		}
+	}
+
 	var ecmd *exec.Cmd
 	if cmdStr == "" {
-		ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "--login", "-i")
-		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s -- bash --login -i\n", wslDistro)
+		if wslCwd != "" {
+			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--cd", wslCwd, "--", "bash", "--login", "-i")
+			blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s --cd %s -- bash --login -i\n", wslDistro, wslCwd)
+		} else {
+			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "--login", "-i")
+			blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s -- bash --login -i\n", wslDistro)
+		}
 	} else {
-		ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "-c", cmdStr)
-		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s -- bash -c %q\n", wslDistro, cmdStr)
+		if wslCwd != "" {
+			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--cd", wslCwd, "--", "bash", "-c", cmdStr)
+			blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s --cd %s -- bash -c %q\n", wslDistro, wslCwd, cmdStr)
+		} else {
+			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "-c", cmdStr)
+			blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s -- bash -c %q\n", wslDistro, cmdStr)
+		}
 	}
 	ecmd.Env = os.Environ()
 

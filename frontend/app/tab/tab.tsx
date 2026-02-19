@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import {
     atoms,
     clearAllTabIndicators,
@@ -26,7 +23,6 @@ import { makeORef, useWaveObjectValue } from "../store/wos";
 import { addPresetSubmenu } from "./tab-menu";
 import "./tab.scss";
 
-// Tab color palette for the context menu
 const TAB_COLORS = [
     { name: "Red", value: "#ef4444" },
     { name: "Orange", value: "#f97316" },
@@ -58,7 +54,7 @@ const Tab = memo(
             { id, active, isBeforeActive, isDragging, tabWidth, isNew, onLoaded, onSelect, onClose, onDragStart },
             ref
         ) => {
-            const [tabData, _] = useWaveObjectValue<Tab>(makeORef("tab", id));
+            const [tabData] = useWaveObjectValue<Tab>(makeORef("tab", id));
             const [originalName, setOriginalName] = useState("");
             const [isEditable, setIsEditable] = useState(false);
             const indicator = useAtomValue(getTabIndicatorAtom(id));
@@ -68,14 +64,8 @@ const Tab = memo(
             const loadedRef = useRef(false);
             const tabRef = useRef<HTMLDivElement>(null);
 
-            // Read terminal status from tab metadata (synced across webviews)
-            // Status shown on ALL tabs including active
             const tabStatus = (tabData?.meta?.["tab:termstatus"] as TabStatusType) || null;
 
-            // Clear status after a delay when tab becomes active AND webview is visible
-            // "finished" clears after 2 seconds, "stopped" clears after 3 seconds
-            // We must check document.visibilityState because each tab has its own webview,
-            // and the "active" prop is always true for the owning webview even when in background
             const [isDocVisible, setIsDocVisible] = useState(document.visibilityState === "visible");
             useEffect(() => {
                 const handleVisibilityChange = () => {
@@ -86,14 +76,9 @@ const Tab = memo(
             }, []);
 
             useEffect(() => {
-                // Only clear status when:
-                // 1. This tab is marked as active (matches this webview's staticTabId)
-                // 2. This webview is actually visible to the user (not a background webview)
-                // 3. Status is finished or stopped
                 if (active && isDocVisible && (tabStatus === "finished" || tabStatus === "stopped")) {
                     const delay = tabStatus === "stopped" ? 3000 : 2000;
                     const timer = setTimeout(() => {
-                        // Use fireAndForget to avoid unhandled promise rejection
                         fireAndForget(() =>
                             ObjectService.UpdateObjectMeta(makeORef("tab", id), {
                                 "tab:termstatus": null,
@@ -155,7 +140,6 @@ const Tab = memo(
                     selectEditableText();
                     return;
                 }
-                // this counts glyphs, not characters
                 const curLen = Array.from(editableRef.current.innerText).length;
                 if (event.key === "Enter") {
                     event.preventDefault();
@@ -169,7 +153,7 @@ const Tab = memo(
                     editableRef.current.blur();
                     event.preventDefault();
                     event.stopPropagation();
-                } else if (curLen >= 14 && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+                } else if (curLen >= 128 && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
@@ -190,7 +174,6 @@ const Tab = memo(
                 }
             }, [isNew, tabWidth]);
 
-            // Prevent drag from being triggered on mousedown
             const handleMouseDownOnClose = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
                 event.stopPropagation();
             };
@@ -282,7 +265,6 @@ const Tab = memo(
                 [id]
             );
 
-            // Tab indicator click handler - clear indicator on focus if configured
             const handleTabClick = () => {
                 const currentIndicator = globalStore.get(getTabIndicatorAtom(id));
                 if (currentIndicator?.clearonfocus) {
@@ -297,9 +279,8 @@ const Tab = memo(
                     const currentBaseDir = tabData?.meta?.["tab:basedir"];
                     const isLocked = tabData?.meta?.["tab:basedirlock"] || false;
 
-                    let menu: ContextMenuItem[] = [];
+                    const menu: ContextMenuItem[] = [];
 
-                    // Tab indicator menu items (upstream feature)
                     const currentIndicator = globalStore.get(getTabIndicatorAtom(id));
                     if (currentIndicator) {
                         menu.push(
@@ -324,7 +305,6 @@ const Tab = memo(
                         { type: "separator" }
                     );
 
-                    // Base Directory submenu (fork feature)
                     const baseDirSubmenu: ContextMenuItem[] = [
                         {
                             label: "Set Base Directory...",
@@ -344,9 +324,11 @@ const Tab = memo(
                         });
                     }
 
-                    menu.push({ label: "Base Directory", type: "submenu", submenu: baseDirSubmenu }, { type: "separator" });
+                    menu.push(
+                        { label: "Base Directory", type: "submenu", submenu: baseDirSubmenu },
+                        { type: "separator" }
+                    );
 
-                    // Tab Color submenu
                     const currentTabColor = tabData?.meta?.["tab:color"];
                     const colorSubmenu: ContextMenuItem[] = TAB_COLORS.map((color) => ({
                         label: color.name,
@@ -365,13 +347,11 @@ const Tab = memo(
                     const fullConfig = globalStore.get(atoms.fullConfigAtom);
                     const oref = makeORef("tab", id);
 
-                    // Tab Variables presets
                     addPresetSubmenu(menu, fullConfig, oref, "Tab Variables", {
                         prefix: "tabvar@",
                         stripPrefixFromLabel: true,
                     });
 
-                    // Background presets
                     addPresetSubmenu(menu, fullConfig, oref, "Backgrounds", {
                         prefix: "bg@",
                         sortByOrder: true,
@@ -383,7 +363,16 @@ const Tab = memo(
                     menu.push({ label: "Close Tab", click: () => onClose(null) });
                     ContextMenuModel.showContextMenu(menu, e);
                 },
-                [handleRenameTab, id, onClose, tabData, handleSetBaseDir, handleClearBaseDir, handleToggleLock, handleSetTabColor]
+                [
+                    handleRenameTab,
+                    id,
+                    onClose,
+                    tabData,
+                    handleSetBaseDir,
+                    handleClearBaseDir,
+                    handleToggleLock,
+                    handleSetTabColor,
+                ]
             );
 
             const tabColor = tabData?.meta?.["tab:color"];

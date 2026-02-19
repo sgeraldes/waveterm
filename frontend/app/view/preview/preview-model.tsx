@@ -1,9 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { BlockNodeModel } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import { ContextMenuModel } from "@/app/store/contextmenu";
+import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { getConnStatusAtom, getOverrideConfigAtom, getSettingsKeyAtom, globalStore, refocusNode } from "@/store/global";
@@ -30,8 +27,8 @@ const BOOKMARKS: { label: string; path: string }[] = [
     { label: "Root", path: "/" },
 ];
 
-const MaxFileSize = 1024 * 1024 * 10; // 10MB
-const MaxCSVSize = 1024 * 1024 * 1; // 1MB
+const MaxFileSize = 1024 * 1024 * 10;
+const MaxCSVSize = 1024 * 1024 * 1;
 
 const textApplicationMimetypes = [
     "application/sql",
@@ -172,7 +169,7 @@ export class PreviewModel implements ViewModel {
         this.blockId = blockId;
         this.nodeModel = nodeModel;
         this.tabModel = tabModel;
-        let showHiddenFiles = globalStore.get(getSettingsKeyAtom("preview:showhiddenfiles")) ?? true;
+        const showHiddenFiles = globalStore.get(getSettingsKeyAtom("preview:showhiddenfiles")) ?? true;
         this.showHiddenFiles = atom<boolean>(showHiddenFiles);
         this.refreshVersion = atom(0);
         this.directorySearchActive = atom(false);
@@ -203,7 +200,7 @@ export class PreviewModel implements ViewModel {
                 return {
                     elemtype: "iconbutton",
                     icon: "folder-open",
-                    longClick: (e: React.MouseEvent<any>) => {
+                    longClick: (e: React.MouseEvent<HTMLElement>) => {
                         const menuItems: ContextMenuItem[] = BOOKMARKS.map((bookmark) => ({
                             label: `Go to ${bookmark.label} (${bookmark.path})`,
                             click: () => this.goHistory(bookmark.path),
@@ -280,21 +277,6 @@ export class PreviewModel implements ViewModel {
                         onClick: () => fireAndForget(this.handleFileSave.bind(this)),
                     });
                 }
-                if (get(this.canPreview)) {
-                    viewTextChildren.push({
-                        elemtype: "textbutton",
-                        text: "Preview",
-                        className: "grey rounded-[4px] !py-[2px] !px-[10px] text-[11px] font-[500]",
-                        onClick: () => fireAndForget(() => this.setEditMode(false)),
-                    });
-                }
-            } else if (get(this.canPreview)) {
-                viewTextChildren.push({
-                    elemtype: "textbutton",
-                    text: "Edit",
-                    className: "grey rounded-[4px] !py-[2px] !px-[10px] text-[11px] font-[500]",
-                    onClick: () => fireAndForget(() => this.setEditMode(true)),
-                });
             }
             return [
                 {
@@ -327,24 +309,20 @@ export class PreviewModel implements ViewModel {
             const mimeType = jotaiLoadableValue(get(this.fileMimeTypeLoadable), "");
             const loadableSV = get(this.loadableSpecializedView);
             const isCeView = loadableSV.state == "hasData" && loadableSV.data.specializedView == "codeedit";
+            const canPrev = get(this.canPreview);
+            const buttons: IconButtonDecl[] = [];
             if (mimeType == "directory") {
                 const showHiddenFiles = get(this.showHiddenFiles);
-                return [
+                buttons.push(
                     {
                         elemtype: "iconbutton",
                         icon: showHiddenFiles ? "eye" : "eye-slash",
-                        click: () => {
-                            globalStore.set(this.showHiddenFiles, (prev) => !prev);
-                        },
+                        click: () => globalStore.set(this.showHiddenFiles, (prev) => !prev),
                     },
-                    {
-                        elemtype: "iconbutton",
-                        icon: "arrows-rotate",
-                        click: () => this.refreshCallback?.(),
-                    },
-                ] as IconButtonDecl[];
+                    { elemtype: "iconbutton", icon: "arrows-rotate", click: () => this.refreshCallback?.() }
+                );
             } else if (!isCeView && isMarkdownLike(mimeType)) {
-                return [
+                buttons.push(
                     {
                         elemtype: "iconbutton",
                         icon: "book",
@@ -356,20 +334,25 @@ export class PreviewModel implements ViewModel {
                         icon: "arrows-rotate",
                         title: "Refresh",
                         click: () => this.refreshCallback?.(),
-                    },
-                ] as IconButtonDecl[];
+                    }
+                );
             } else if (!isCeView && mimeType) {
-                // For all other file types (text, code, etc.), add refresh button
-                return [
-                    {
-                        elemtype: "iconbutton",
-                        icon: "arrows-rotate",
-                        title: "Refresh",
-                        click: () => this.refreshCallback?.(),
-                    },
-                ] as IconButtonDecl[];
+                buttons.push({
+                    elemtype: "iconbutton",
+                    icon: "arrows-rotate",
+                    title: "Refresh",
+                    click: () => this.refreshCallback?.(),
+                });
             }
-            return null;
+            if (canPrev) {
+                buttons.push({
+                    elemtype: "iconbutton",
+                    icon: isCeView ? "eye" : "pen-to-square",
+                    title: isCeView ? "Preview" : "Edit",
+                    click: () => fireAndForget(() => this.setEditMode(!isCeView)),
+                });
+            }
+            return buttons.length > 0 ? buttons : null;
         });
         this.metaFilePath = atom<string>((get) => {
             const file = get(this.blockAtom)?.meta?.file;
@@ -425,7 +408,7 @@ export class PreviewModel implements ViewModel {
         this.goParentDirectory = this.goParentDirectory.bind(this);
 
         const fullFileAtom = atom<Promise<FileData>>(async (get) => {
-            get(this.refreshVersion); // Subscribe to refreshVersion to trigger re-fetch
+            get(this.refreshVersion);
             const fileName = get(this.metaFilePath);
             const path = await this.formatRemoteUri(fileName, get);
             if (fileName == null) {
@@ -584,13 +567,11 @@ export class PreviewModel implements ViewModel {
         const blockOref = WOS.makeORef("block", this.blockId);
         await services.ObjectService.UpdateObjectMeta(blockOref, updateMeta);
 
-        // Clear the saved file buffers
         globalStore.set(this.fileContentSaved, null);
         globalStore.set(this.newFileContent, null);
     }
 
     async goParentDirectory({ fileInfo = null }: { fileInfo?: FileInfo | null }) {
-        // optional parameter needed for recursive case
         const defaultFileInfo = await globalStore.get(this.statFile);
         if (fileInfo === null) {
             fileInfo = defaultFileInfo;
@@ -709,10 +690,8 @@ export class PreviewModel implements ViewModel {
                     }
                     const conn = await globalStore.get(this.connection);
                     if (conn) {
-                        // remote path
                         await navigator.clipboard.writeText(formatRemoteUri(filePath, conn));
                     } else {
-                        // local path
                         await navigator.clipboard.writeText(filePath);
                     }
                 }),
@@ -818,7 +797,6 @@ export class PreviewModel implements ViewModel {
             return true;
         }
         if (checkKeyPressed(e, "Cmd:ArrowUp")) {
-            // handle up directory
             fireAndForget(() => this.goParentDirectory({}));
             return true;
         }

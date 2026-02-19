@@ -1,14 +1,12 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { globalStore } from "@/app/store/global";
+import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
 import { useEffect } from "react";
 import type { NotesViewModel } from "./notes-model";
+import { isDefaultNotesPath } from "./notes-util";
 import "./notes.scss";
 
 type NotesComponentProps = {
@@ -27,7 +25,6 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     const connection = useAtomValue(model.connection);
     const isLocal = !connection || connection === "local";
 
-    // Load content when notesPath changes
     useEffect(() => {
         model.loadContent();
     }, [notesPath]);
@@ -35,10 +32,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     function onMount(editor: MonacoTypes.editor.IStandaloneCodeEditor): () => void {
         model.monacoRef.current = editor;
 
-        // Handle paste events for images
         const pasteDisposer = editor.onDidPaste(async () => {
-            // Check clipboard for images after paste
-            // Use a small delay to let the paste event fully process
             setTimeout(async () => {
                 try {
                     const clipboardItems = await navigator.clipboard.read();
@@ -51,15 +45,13 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
                             dataTransfer.items.add(file);
                             const markdownRef = await model.handlePasteImage(dataTransfer);
                             if (markdownRef) {
-                                // The paste already happened, but we need to replace the pasted content
-                                // For now, insert at cursor position
                                 model.insertTextAtCursor(markdownRef);
                             }
                             break;
                         }
                     }
                 } catch {
-                    // Clipboard access may be denied - ignore
+                    /* clipboard access may be denied */
                 }
             }, 50);
         });
@@ -95,20 +87,27 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
         );
     }
 
+    const isDefaultPath = isDefaultNotesPath(notesPath);
+    const hasStatusContent = saveStatus != null || !isDefaultPath || !isLocal;
+
     return (
         <div className="notes-container">
-            <div className="notes-status-bar">
-                <span className="notes-path" title={notesPath}>
-                    {notesPath.split("/").pop() || notesPath}
-                </span>
-                {saveStatus === "saving" && <span className="notes-saving">Saving...</span>}
-                {saveStatus === "saved" && <span className="notes-saved">Saved</span>}
-                {!isLocal && (
-                    <span className="notes-remote-hint" title="Image paste is only available for local connections">
-                        Remote
-                    </span>
-                )}
-            </div>
+            {hasStatusContent && (
+                <div className="notes-status-bar">
+                    {!isDefaultPath && (
+                        <span className="notes-path" title={notesPath}>
+                            {notesPath.split("/").pop() || notesPath}
+                        </span>
+                    )}
+                    {saveStatus === "saving" && <span className="notes-saving">Saving...</span>}
+                    {saveStatus === "saved" && <span className="notes-saved">Saved</span>}
+                    {!isLocal && (
+                        <span className="notes-remote-hint" title="Image paste is only available for local connections">
+                            Remote
+                        </span>
+                    )}
+                </div>
+            )}
             <div className="notes-editor">
                 <CodeEditor
                     blockId={blockId}

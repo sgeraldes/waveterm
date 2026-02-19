@@ -1,8 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
-import { getTodoFilePath, parseTodoItems, toggleTodoItem, serializeTodoItems } from "./todo-util";
+import { getTodoFilePath, isDefaultTodoPath, parseTodoItems, toggleTodoItem, serializeTodoItems } from "./todo-util";
 
 describe("getTodoFilePath", () => {
     it("should return basedir TODO.md when basedir set", () => {
@@ -23,6 +21,18 @@ describe("getTodoFilePath", () => {
     it("should use custom file when meta.file is set", () => {
         const path = getTodoFilePath("/home/user/project", "/home/user/project/custom.md");
         expect(path).toBe("/home/user/project/custom.md");
+    });
+});
+
+describe("isDefaultTodoPath", () => {
+    it("should return true for default paths", () => {
+        expect(isDefaultTodoPath("~/.wave/TODO.md")).toBe(true);
+        expect(isDefaultTodoPath("/home/user/project/.wave/TODO.md")).toBe(true);
+    });
+
+    it("should return false for custom paths", () => {
+        expect(isDefaultTodoPath("/custom/todo.md")).toBe(false);
+        expect(isDefaultTodoPath("TODO.md")).toBe(false);
     });
 });
 

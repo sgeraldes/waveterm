@@ -1017,6 +1017,10 @@ declare global {
         "tab:wsldistro"?: string;
         "tab:color"?: string;
         "tab:termstatus"?: string;
+        "tab:group"?: string;
+        "tab:groupcolor"?: string;
+        "tab:favorite"?: boolean;
+        "tab:icon"?: string;
         "waveai:panelopen"?: boolean;
         "waveai:panelwidth"?: number;
         "waveai:model"?: string;

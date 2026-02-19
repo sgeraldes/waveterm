@@ -1,16 +1,12 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { globalStore } from "@/app/store/global";
+import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { makeIconClass } from "@/util/util";
-import clsx from "clsx";
 import { useAtomValue, useSetAtom } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
 import { useEffect } from "react";
 import type { TodoViewModel } from "./todo-model";
-import { parseTodoItems } from "./todo-util";
+import { isDefaultTodoPath, parseTodoItems } from "./todo-util";
 import "./todo.scss";
 
 type TodoComponentProps = {
@@ -68,9 +64,7 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
                         ))}
                     </>
                 )}
-                {items.length === 0 && (
-                    <div className="todo-empty">No tasks yet. Add one below.</div>
-                )}
+                {items.length === 0 && <div className="todo-empty">No tasks yet. Add one below.</div>}
             </div>
             <div className="todo-add-task">
                 <i className={makeIconClass("plus", false)} />
@@ -113,7 +107,7 @@ function TodoEditMode({ blockId, model }: { blockId: string; model: TodoViewMode
                         }
                     }
                 } catch {
-                    // Clipboard access may be denied
+                    /* clipboard access may be denied */
                 }
             }, 50);
         });
@@ -154,7 +148,6 @@ export function TodoComponent({ blockId, model }: TodoComponentProps) {
 
     const handleDoubleClick = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
-        // Don't switch to edit mode when clicking checkboxes or the add-task input
         if (target.closest(".todo-item") || target.closest(".todo-add-task")) return;
         if (mode === "view") {
             globalStore.set(model.mode, "edit");
@@ -180,28 +173,24 @@ export function TodoComponent({ blockId, model }: TodoComponentProps) {
         );
     }
 
+    const isDefaultPath = isDefaultTodoPath(todoPath);
+    const hasStatusContent = saveStatus != null || !isDefaultPath;
+
     return (
         <div className="todo-container" onDoubleClick={handleDoubleClick}>
-            <div className="todo-status-bar">
-                <span className="todo-path" title={todoPath}>
-                    {todoPath.split("/").pop() || todoPath}
-                </span>
-                <button
-                    className={clsx("todo-mode-toggle", { active: mode === "edit" })}
-                    onClick={() => globalStore.set(model.mode, mode === "view" ? "edit" : "view")}
-                    title={mode === "view" ? "Switch to edit mode" : "Switch to view mode"}
-                >
-                    <i className={makeIconClass(mode === "view" ? "pen" : "eye", false)} />
-                </button>
-                {saveStatus === "saving" && <span className="todo-saving">Saving...</span>}
-                {saveStatus === "saved" && <span className="todo-saved">Saved</span>}
-            </div>
+            {hasStatusContent && (
+                <div className="todo-status-bar">
+                    {!isDefaultPath && (
+                        <span className="todo-path" title={todoPath}>
+                            {todoPath.split("/").pop() || todoPath}
+                        </span>
+                    )}
+                    {saveStatus === "saving" && <span className="todo-saving">Saving...</span>}
+                    {saveStatus === "saved" && <span className="todo-saved">Saved</span>}
+                </div>
+            )}
             <div className="todo-content">
-                {mode === "view" ? (
-                    <TodoViewMode model={model} />
-                ) : (
-                    <TodoEditMode blockId={blockId} model={model} />
-                )}
+                {mode === "view" ? <TodoViewMode model={model} /> : <TodoEditMode blockId={blockId} model={model} />}
             </div>
         </div>
     );
