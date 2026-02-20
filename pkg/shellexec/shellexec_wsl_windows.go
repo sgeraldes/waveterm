@@ -4,10 +4,12 @@ package shellexec
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +26,30 @@ import (
 
 var wslDistroPattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
+func DetectWslShellAndHome(wslDistro string) (shellPath string, homeDir string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	out, err := exec.CommandContext(ctx, "wsl.exe", "-d", wslDistro, "--", "sh", "-c",
+		"getent passwd $(whoami) | cut -d: -f6,7").Output()
+	if err != nil {
+		log.Printf("DetectWslShellAndHome: error detecting shell for WSL distro %q: %v\n", wslDistro, err)
+		return "", ""
+	}
+	line := strings.TrimSpace(string(out))
+	parts := strings.SplitN(line, ":", 2)
+	if len(parts) == 2 {
+		homeDir = parts[0]
+		shellPath = parts[1]
+	}
+	if homeDir == "" {
+		homeDir = "/root"
+	}
+	if shellPath == "" {
+		shellPath = "/bin/bash"
+	}
+	return shellPath, homeDir
+}
+
 func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, cmdStr string, cmdOpts CommandOptsType, wslDistro string) (*ShellProc, error) {
 	if wslDistro == "" {
 		return nil, fmt.Errorf("WSL distro name is required")
@@ -32,6 +58,12 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		return nil, fmt.Errorf("invalid WSL distro name: %q", wslDistro)
 	}
 	shellutil.InitCustomShellStartupFiles()
+
+	shellPath := cmdOpts.ShellPath
+	if shellPath == "" {
+		shellPath = "/bin/bash"
+	}
+	shellType := shellutil.GetShellTypeFromShellPath(shellPath)
 
 	wslCwd := ""
 	if cmdOpts.Cwd != "" {
@@ -43,25 +75,55 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		}
 	}
 
-	var ecmd *exec.Cmd
+	var cmdArgs []string
+	cmdArgs = append(cmdArgs, "-d", wslDistro)
+	if wslCwd != "" {
+		cmdArgs = append(cmdArgs, "--cd", wslCwd)
+	}
+	cmdArgs = append(cmdArgs, "--")
+
 	if cmdStr == "" {
-		if wslCwd != "" {
-			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--cd", wslCwd, "--", "bash", "--login", "-i")
-			blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s --cd %s -- bash --login -i\n", wslDistro, wslCwd)
-		} else {
-			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "--login", "-i")
-			blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s -- bash --login -i\n", wslDistro)
+		waveHomeLinux := ""
+		if cmdOpts.HomeDir != "" {
+			waveHomeLinux = cmdOpts.HomeDir + "/.waveterm"
 		}
+		cmdArgs = append(cmdArgs, shellPath)
+		switch shellType {
+		case shellutil.ShellType_bash:
+			if waveHomeLinux != "" {
+				cmdArgs = append(cmdArgs, "--rcfile", waveHomeLinux+"/shell/bash/.bashrc")
+			} else {
+				cmdArgs = append(cmdArgs, "--login")
+			}
+			cmdArgs = append(cmdArgs, "-i")
+		case shellutil.ShellType_zsh:
+			cmdArgs = append(cmdArgs, "--login", "-i")
+		case shellutil.ShellType_fish:
+			cmdArgs = append(cmdArgs, "-l")
+			if waveHomeLinux != "" {
+				cmdArgs = append(cmdArgs, "-C", "source "+waveHomeLinux+"/shell/fish/wave.fish")
+			}
+		default:
+			cmdArgs = append(cmdArgs, "--login", "-i")
+		}
+		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe %s\n", strings.Join(cmdArgs, " "))
 	} else {
-		if wslCwd != "" {
-			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--cd", wslCwd, "--", "bash", "-c", cmdStr)
-			blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s --cd %s -- bash -c %q\n", wslDistro, wslCwd, cmdStr)
-		} else {
-			ecmd = exec.Command("wsl.exe", "-d", wslDistro, "--", "bash", "-c", cmdStr)
-			blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s -- bash -c %q\n", wslDistro, cmdStr)
+		cmdArgs = append(cmdArgs, shellPath, "-c", cmdStr)
+		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe %s\n", strings.Join(cmdArgs, " "))
+	}
+
+	ecmd := exec.Command("wsl.exe", cmdArgs...)
+	ecmd.Env = os.Environ()
+
+	if cmdStr == "" && shellType == shellutil.ShellType_zsh {
+		waveHomeLinux := ""
+		if cmdOpts.HomeDir != "" {
+			waveHomeLinux = cmdOpts.HomeDir + "/.waveterm"
+		}
+		if waveHomeLinux != "" {
+			shellutil.UpdateCmdEnv(ecmd, map[string]string{"ZDOTDIR": waveHomeLinux + "/shell/zsh"})
 		}
 	}
-	ecmd.Env = os.Environ()
 
 	packedToken, err := cmdOpts.SwapToken.PackForClient()
 	if err != nil {

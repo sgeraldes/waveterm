@@ -41,6 +41,7 @@ type CommandOptsType struct {
 	ShellOpts   []string                  `json:"shellOpts,omitempty"`
 	SwapToken   *shellutil.TokenSwapEntry `json:"swapToken,omitempty"`
 	ForceJwt    bool                      `json:"forcejwt,omitempty"`
+	HomeDir     string                    `json:"homeDir,omitempty"`
 }
 
 type ShellProc struct {

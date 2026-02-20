@@ -54,29 +54,20 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
             automaticLayout: true,
         });
 
-        const pasteDisposer = editor.onDidPaste(async () => {
-            setTimeout(async () => {
-                try {
-                    const clipboardItems = await navigator.clipboard.read();
-                    for (const item of clipboardItems) {
-                        const imageType = item.types.find((t) => t.startsWith("image/"));
-                        if (imageType && isLocal) {
-                            const blob = await item.getType(imageType);
-                            const dataTransfer = new DataTransfer();
-                            const file = new File([blob], "pasted.png", { type: imageType });
-                            dataTransfer.items.add(file);
-                            const markdownRef = await model.handlePasteImage(dataTransfer);
-                            if (markdownRef) {
-                                model.insertTextAtCursor(markdownRef);
-                            }
-                            break;
-                        }
-                    }
-                } catch {
-                    /* clipboard access may be denied */
-                }
-            }, 50);
-        });
+        const domNode = editor.getDomNode();
+        const handleDomPaste = async (e: ClipboardEvent) => {
+            if (!e.clipboardData) return;
+            const hasImage = Array.from(e.clipboardData.items).some((item) => item.type.startsWith("image/"));
+            if (!hasImage) return;
+            e.preventDefault();
+            const markdownRef = await model.handlePasteImage(e.clipboardData);
+            if (markdownRef) {
+                model.insertTextAtCursor(markdownRef);
+            }
+        };
+        if (domNode) {
+            domNode.addEventListener("paste", handleDomPaste as EventListener);
+        }
 
         const focusAtom = model.nodeModel.isFocused;
         const isFocused = globalStore.get(focusAtom);
@@ -85,7 +76,9 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
         }
 
         return () => {
-            pasteDisposer.dispose();
+            if (domNode) {
+                domNode.removeEventListener("paste", handleDomPaste as EventListener);
+            }
             model.monacoRef.current = null;
         };
     }
