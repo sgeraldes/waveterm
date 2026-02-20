@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { MonacoCodeEditor } from "@/app/monaco/monaco-react";
 import { useOverrideConfigAtom } from "@/app/store/global";
 import { boundNumber } from "@/util/util";
@@ -37,9 +34,19 @@ interface CodeEditorProps {
     fileName?: string;
     onChange?: (text: string) => void;
     onMount?: (monacoPtr: MonacoTypes.editor.IStandaloneCodeEditor, monaco: typeof MonacoModule) => () => void;
+    optionOverrides?: Partial<MonacoTypes.editor.IEditorOptions>;
 }
 
-export function CodeEditor({ blockId, text, language, fileName, readonly, onChange, onMount }: CodeEditorProps) {
+export function CodeEditor({
+    blockId,
+    text,
+    language,
+    fileName,
+    readonly,
+    onChange,
+    onMount,
+    optionOverrides,
+}: CodeEditorProps) {
     const divRef = useRef<HTMLDivElement>(null);
     const unmountRef = useRef<() => void>(null);
     const minimapEnabled = useOverrideConfigAtom(blockId, "editor:minimapenabled") ?? false;
@@ -57,7 +64,6 @@ export function CodeEditor({ blockId, text, language, fileName, readonly, onChan
 
     React.useEffect(() => {
         return () => {
-            // unmount function
             if (unmountRef.current) {
                 unmountRef.current();
             }
@@ -87,8 +93,20 @@ export function CodeEditor({ blockId, text, language, fileName, readonly, onChan
         opts.wordWrap = wordWrap ? "on" : "off";
         opts.fontSize = fontSize;
         opts.copyWithSyntaxHighlighting = false;
+        if (optionOverrides) {
+            const {
+                minimap: mo,
+                scrollbar: so,
+                stickyScroll: ss,
+                ...flat
+            } = optionOverrides as MonacoTypes.editor.IEditorOptions;
+            Object.assign(opts, flat);
+            if (mo !== undefined) opts.minimap = { ...opts.minimap, ...mo };
+            if (so !== undefined) opts.scrollbar = { ...opts.scrollbar, ...so };
+            if (ss !== undefined) opts.stickyScroll = { ...opts.stickyScroll, ...ss };
+        }
         return opts;
-    }, [minimapEnabled, stickyScrollEnabled, wordWrap, fontSize, readonly]);
+    }, [minimapEnabled, stickyScrollEnabled, wordWrap, fontSize, readonly, optionOverrides]);
 
     return (
         <div className="flex flex-col w-full h-full overflow-hidden items-center justify-center">

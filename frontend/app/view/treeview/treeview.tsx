@@ -1,160 +1,10 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { makeIconClass } from "@/util/util";
-import clsx from "clsx";
 import { useAtomValue } from "jotai";
 import * as React from "react";
-import { useEffect } from "react";
-import type { TreeNode, TreeViewModel } from "./treeview-model";
+import { useEffect, useRef, useState } from "react";
+import type { TreeViewModel } from "./treeview-model";
+import { renderNodes, searchNodes, SearchResultRow } from "./treeview-nodes";
 import "./treeview.scss";
-
-function getFileIcon(node: TreeNode): string {
-    if (node.isDir) {
-        return node.isExpanded ? "folder-open" : "folder";
-    }
-    const ext = node.name.split(".").pop()?.toLowerCase();
-    switch (ext) {
-        case "ts":
-        case "tsx":
-            return "file-code";
-        case "js":
-        case "jsx":
-            return "file-code";
-        case "md":
-            return "file-lines";
-        case "json":
-            return "file-code";
-        case "png":
-        case "jpg":
-        case "jpeg":
-        case "gif":
-        case "svg":
-            return "file-image";
-        case "pdf":
-            return "file-pdf";
-        default:
-            return "file";
-    }
-}
-
-type TreeNodeProps = {
-    node: TreeNode;
-    model: TreeViewModel;
-    onToggle: (node: TreeNode) => void;
-    onOpen: (node: TreeNode) => void;
-    selectedPath: string | null;
-    onSelect: (path: string) => void;
-};
-
-function TreeNodeRow({ node, onToggle, onOpen, selectedPath, onSelect }: TreeNodeProps) {
-    const isSelected = selectedPath === node.path;
-    const indentPx = node.depth * 16;
-
-    const handleClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        onSelect(node.path);
-        if (node.isDir) {
-            onToggle(node);
-        }
-    };
-
-    const handleDoubleClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!node.isDir) {
-            onOpen(node);
-        }
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (node.isDir) {
-                onToggle(node);
-            } else {
-                onOpen(node);
-            }
-        }
-    };
-
-    return (
-        <div
-            className={clsx("treeview-node", {
-                "treeview-node-selected": isSelected,
-                "treeview-node-dir": node.isDir,
-                "treeview-node-file": !node.isDir,
-            })}
-            style={{ paddingLeft: `${indentPx + 4}px` }}
-            onClick={handleClick}
-            onDoubleClick={handleDoubleClick}
-            onKeyDown={handleKeyDown}
-            tabIndex={0}
-            role="treeitem"
-            aria-expanded={node.isDir ? node.isExpanded : undefined}
-        >
-            {node.isDir && (
-                <span
-                    className={clsx("treeview-expand-icon", makeIconClass("chevron-right", false), {
-                        "treeview-expanded": node.isExpanded,
-                    })}
-                />
-            )}
-            {node.isLoading ? (
-                <span className={clsx("treeview-file-icon", makeIconClass("spinner", false), "fa-spin")} />
-            ) : (
-                <span
-                    className={clsx("treeview-file-icon", makeIconClass(getFileIcon(node), false), {
-                        "treeview-symlink": node.isSymlink,
-                    })}
-                />
-            )}
-            <span className="treeview-node-name">{node.name}</span>
-            {node.isSymlink && <span className="treeview-symlink-badge" title="Symbolic link">↪</span>}
-        </div>
-    );
-}
-
-function renderNodes(
-    nodes: TreeNode[],
-    model: TreeViewModel,
-    onToggle: (node: TreeNode) => void,
-    onOpen: (node: TreeNode) => void,
-    selectedPath: string | null,
-    onSelect: (path: string) => void
-): React.ReactNode[] {
-    const result: React.ReactNode[] = [];
-    for (const node of nodes) {
-        result.push(
-            <TreeNodeRow
-                key={node.path}
-                node={node}
-                model={model}
-                onToggle={onToggle}
-                onOpen={onOpen}
-                selectedPath={selectedPath}
-                onSelect={onSelect}
-            />
-        );
-        if (node.isExpanded && node.children && node.children.length > 0) {
-            result.push(...renderNodes(node.children, model, onToggle, onOpen, selectedPath, onSelect));
-        }
-        if (node.isExpanded && node.error) {
-            result.push(
-                <div key={`${node.path}-error`} className="treeview-error" style={{ paddingLeft: `${(node.depth + 1) * 16 + 4}px` }}>
-                    {node.error}
-                </div>
-            );
-        }
-        if (node.isExpanded && node.children && node.children.length === 0 && !node.isLoading && !node.error) {
-            result.push(
-                <div key={`${node.path}-empty`} className="treeview-empty" style={{ paddingLeft: `${(node.depth + 1) * 16 + 4}px` }}>
-                    (empty)
-                </div>
-            );
-        }
-    }
-    return result;
-}
 
 export function TreeViewComponent({
     model,
@@ -169,17 +19,22 @@ export function TreeViewComponent({
     const error = useAtomValue(model.error);
     const rootPath = useAtomValue(model.rootPath);
     const selectedPath = useAtomValue(model.selectedPath);
+    const [searchQuery, setSearchQuery] = useState("");
+    const searchInputRef = useRef<HTMLInputElement>(null);
 
-    // Load root when rootPath changes
+    useEffect(() => {
+        setSearchQuery("");
+    }, [rootPath]);
+
     useEffect(() => {
         model.loadRoot();
     }, [rootPath]);
 
-    const handleToggle = (node: TreeNode) => {
+    const handleToggle = (node: Parameters<typeof model.toggleExpand>[0]) => {
         model.toggleExpand(node);
     };
 
-    const handleOpen = (node: TreeNode) => {
+    const handleOpen = (node: Parameters<typeof model.openInPreview>[0]) => {
         model.openInPreview(node);
     };
 
@@ -211,19 +66,59 @@ export function TreeViewComponent({
     }
 
     const isHomeDir = rootPath === "~";
+    const trimmedQuery = searchQuery.trim();
+    const searchResults = trimmedQuery ? searchNodes(rootNodes, trimmedQuery) : null;
 
     return (
         <div className="treeview-container" role="tree">
-            {isHomeDir && (
-                <div className="treeview-info-banner">
-                    Set a tab base directory to focus on a project
-                </div>
-            )}
-            <div className="treeview-root-label">
-                <i className={makeIconClass("folder", false)} />
-                <span title={rootPath}>{rootPath === "~" ? "Home" : rootPath.split("/").pop() || rootPath}</span>
+            {isHomeDir && <div className="treeview-info-banner">Set a tab base directory to focus on a project</div>}
+            <div className="treeview-search-bar">
+                <i className={makeIconClass("magnifying-glass", false)} />
+                <input
+                    ref={searchInputRef}
+                    type="text"
+                    className="treeview-search-input"
+                    placeholder="Search files..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") setSearchQuery("");
+                    }}
+                />
+                {searchQuery && (
+                    <button
+                        className="treeview-search-clear"
+                        onClick={() => {
+                            setSearchQuery("");
+                            searchInputRef.current?.focus();
+                        }}
+                        tabIndex={-1}
+                        title="Clear search"
+                    >
+                        <i className={makeIconClass("xmark", false)} />
+                    </button>
+                )}
             </div>
-            {renderNodes(rootNodes, model, handleToggle, handleOpen, selectedPath, handleSelect)}
+            {searchResults ? (
+                <div className="treeview-search-results">
+                    {searchResults.length === 0 ? (
+                        <div className="treeview-search-empty">No matches in loaded files</div>
+                    ) : (
+                        searchResults.map((node) => (
+                            <SearchResultRow
+                                key={node.path}
+                                node={node}
+                                rootPath={rootPath}
+                                selectedPath={selectedPath}
+                                onSelect={handleSelect}
+                                onOpen={handleOpen}
+                            />
+                        ))
+                    )}
+                </div>
+            ) : (
+                renderNodes(rootNodes, model, handleToggle, handleOpen, selectedPath, handleSelect)
+            )}
         </div>
     );
 }

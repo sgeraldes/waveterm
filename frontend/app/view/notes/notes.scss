@@ -33,6 +33,17 @@
     white-space: nowrap;
 }
 
+.notes-status-loading {
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+    flex-shrink: 0;
+    font-style: italic;
+}
+
+.notes-status-error {
+    color: var(--error-color, #f44747);
+    flex-shrink: 0;
+}
+
 .notes-saving {
     color: var(--warning-color, #f0a500);
     flex-shrink: 0;

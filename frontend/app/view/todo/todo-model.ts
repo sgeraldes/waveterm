@@ -176,6 +176,33 @@ export class TodoViewModel implements ViewModel {
         this.saveContent(newContent);
     }
 
+    editTask(lineIndex: number, newText: string): void {
+        const trimmed = newText.trim();
+        const content = globalStore.get(this.fileContent);
+        const lines = content.split("\n");
+        const line = lines[lineIndex];
+        if (line.startsWith("- [ ] ")) {
+            lines[lineIndex] = trimmed ? `- [ ] ${trimmed}` : "";
+        } else if (line.startsWith("- [x] ")) {
+            lines[lineIndex] = trimmed ? `- [x] ${trimmed}` : "";
+        }
+        const newContent = lines.filter((l, i) => i !== lineIndex || l !== "").join("\n");
+        globalStore.set(this.fileContent, newContent);
+        this.saveContent(newContent);
+    }
+
+    reorderTasks(fromLineIndex: number, toLineIndex: number): void {
+        if (fromLineIndex === toLineIndex) return;
+        const content = globalStore.get(this.fileContent);
+        const lines = content.split("\n");
+        const [removed] = lines.splice(fromLineIndex, 1);
+        const adjustedTo = toLineIndex > fromLineIndex ? toLineIndex - 1 : toLineIndex;
+        lines.splice(adjustedTo, 0, removed);
+        const newContent = lines.join("\n");
+        globalStore.set(this.fileContent, newContent);
+        this.saveContent(newContent);
+    }
+
     async handlePasteImage(clipboardData: DataTransfer): Promise<string | null> {
         const conn = globalStore.get(this.connection);
         const tabBasedir = globalStore.get(this.tabModel.getTabMetaAtom("tab:basedir")) as string | undefined;

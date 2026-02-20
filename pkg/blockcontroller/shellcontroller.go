@@ -182,7 +182,7 @@ func (sc *ShellController) UpdateControllerAndSendUpdate(updateFn func() bool) {
 	}
 }
 
-func (sc *ShellController) resetTerminalState(logCtx context.Context) {
+func (sc *ShellController) resetTerminalState(logCtx context.Context, termRows int) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancelFn()
 	wfile, statErr := filestore.WFS.Stat(ctx, sc.BlockId, wavebase.BlockFile_Term)
@@ -204,7 +204,15 @@ func (sc *ShellController) resetTerminalState(logCtx context.Context) {
 	buf.WriteString("\x1b[?1007l")
 	buf.WriteString("\x1b[?2004l")
 	buf.WriteString(shellutil.FormatOSC(16162, "R"))
-	buf.WriteString("\r\n\r\n")
+	buf.WriteString("\x1b[r")
+	rows := termRows
+	if rows <= 0 {
+		rows = shellutil.DefaultTermRows
+	}
+	buf.WriteString(fmt.Sprintf("\x1b[%dB", rows))
+	for i := 0; i < rows; i++ {
+		buf.WriteString("\r\n")
+	}
 	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, buf.Bytes())
 	if err != nil {
 		log.Printf("error appending to blockfile (terminal reset): %v\n", err)
@@ -317,6 +325,14 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 		rtn.ConnType = ConnType_Wsl
 		rtn.WslDistro = wslDistro
 		rtn.WshEnabled = wshEnabled
+		detectedShell, homeDir := shellexec.DetectWslShellAndHome(wslDistro)
+		if detectedShell != "" {
+			rtn.ShellPath = detectedShell
+			rtn.ShellType = shellutil.GetShellTypeFromShellPath(detectedShell)
+		}
+		if homeDir != "" {
+			rtn.HomeDir = homeDir
+		}
 		return rtn, nil
 	}
 	if conncontroller.IsLocalConnName(remoteName) {
@@ -356,7 +372,7 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 		return nil, fmt.Errorf("error creating blockfile: %w", fsErr)
 	}
 	if fsErr == fs.ErrExist {
-		bc.resetTerminalState(logCtx)
+		bc.resetTerminalState(logCtx, rc.TermSize.Rows)
 	}
 	bcInitStatus := bc.GetRuntimeStatus()
 	if bcInitStatus.ShellProcStatus == Status_Running {
@@ -484,6 +500,8 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 			swapToken.RpcContext = &rpcContext
 			swapToken.Env[wshutil.WaveJwtTokenVarName] = jwtStr
 		}
+		cmdOpts.ShellPath = connUnion.ShellPath
+		cmdOpts.HomeDir = connUnion.HomeDir
 		cmdOpts.ShellOpts = getLocalShellOpts(blockMeta)
 		if connUnion.WshEnabled {
 			shellProc, err = shellexec.StartWslLocalShellProcWithWsh(logCtx, rc.TermSize, cmdStr, cmdOpts, connUnion.WslDistro)

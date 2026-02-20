@@ -4,7 +4,7 @@ import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import type { NotesViewModel } from "./notes-model";
 import { isDefaultNotesPath } from "./notes-util";
 import "./notes.scss";
@@ -23,7 +23,21 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     const saveStatus = useAtomValue(model.saveStatus);
     const notesPath = useAtomValue(model.notesPath);
     const connection = useAtomValue(model.connection);
+    const hasEverLoaded = useAtomValue(model.hasEverLoaded);
     const isLocal = !connection || connection === "local";
+
+    // Notes-specific Monaco overrides: word wrap on, always-visible scrollbar
+    const notesEditorOverrides = useMemo<Partial<MonacoTypes.editor.IEditorOptions>>(
+        () => ({
+            wordWrap: "on",
+            scrollbar: {
+                vertical: "visible",
+                verticalScrollbarSize: 10,
+                useShadows: true,
+            },
+        }),
+        []
+    );
 
     useEffect(() => {
         model.loadContent();
@@ -31,6 +45,14 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
 
     function onMount(editor: MonacoTypes.editor.IStandaloneCodeEditor): () => void {
         model.monacoRef.current = editor;
+
+        editor.updateOptions({
+            lineNumbers: "off",
+            glyphMargin: false,
+            folding: false,
+            lineDecorationsWidth: 4,
+            automaticLayout: true,
+        });
 
         const pasteDisposer = editor.onDidPaste(async () => {
             setTimeout(async () => {
@@ -68,16 +90,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
         };
     }
 
-    if (isLoading) {
-        return (
-            <div className="notes-loading">
-                <i className={makeIconClass("spinner", false) + " fa-spin"} />
-                <span>Loading...</span>
-            </div>
-        );
-    }
-
-    if (error) {
+    if (error && !hasEverLoaded) {
         return (
             <div className="notes-error">
                 <i className={makeIconClass("triangle-exclamation", false)} />
@@ -88,7 +101,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     }
 
     const isDefaultPath = isDefaultNotesPath(notesPath);
-    const hasStatusContent = saveStatus != null || !isDefaultPath || !isLocal;
+    const hasStatusContent = isLoading || (error && hasEverLoaded) || saveStatus != null || !isDefaultPath || !isLocal;
 
     return (
         <div className="notes-container">
@@ -97,6 +110,12 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
                     {!isDefaultPath && (
                         <span className="notes-path" title={notesPath}>
                             {notesPath.split("/").pop() || notesPath}
+                        </span>
+                    )}
+                    {isLoading && <span className="notes-status-loading">Loading...</span>}
+                    {error && hasEverLoaded && !isLoading && (
+                        <span className="notes-status-error" title={error}>
+                            <i className={makeIconClass("triangle-exclamation", false)} /> Error
                         </span>
                     )}
                     {saveStatus === "saving" && <span className="notes-saving">Saving...</span>}
@@ -117,6 +136,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
                     readonly={false}
                     onChange={(text) => model.scheduleAutoSave(text)}
                     onMount={onMount}
+                    optionOverrides={notesEditorOverrides}
                 />
             </div>
         </div>

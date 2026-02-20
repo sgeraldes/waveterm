@@ -275,8 +275,8 @@ function handleOsc7Command(data: string, blockId: string, tabId: string, loaded:
                             return;
                         }
 
-                        if (currentBasedir && currentBasedir !== "~") {
-                            dlog("OSC 7: Skipping update - tab basedir already explicitly set:", currentBasedir);
+                        if (currentBasedir === validatedPath) {
+                            dlog("OSC 7: Skipping update - tab basedir unchanged:", currentBasedir);
                             return;
                         }
 
@@ -916,7 +916,6 @@ export class TermWrap {
         e?.stopPropagation();
 
         try {
-            // Check if this terminal is running in WSL
             const blockORef = WOS.makeORef("block", this.blockId);
             const block = WOS.getObjectValue<Block>(blockORef);
             const shellProfile = block?.meta?.["shell:profile"] as string | undefined;
@@ -931,7 +930,6 @@ export class TermWrap {
                     }
                     let tempPath = await createTempFileFromBlob(data.image);
 
-                    // Convert Windows path to WSL path if this is a WSL terminal
                     if (isWsl) {
                         const wslPath = windowsToWslPath(tempPath);
                         if (wslPath) {

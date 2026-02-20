@@ -105,6 +105,37 @@
     font-size: 13px;
     color: var(--primary-text-color, white);
     word-break: break-word;
+    cursor: text;
+
+    strong { font-weight: 600; }
+    em { font-style: italic; }
+    code {
+        font-family: monospace;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0 3px;
+        border-radius: 3px;
+    }
+    a {
+        color: var(--accent-color, #3b82f6);
+        text-decoration: underline;
+    }
+}
+
+.todo-inline-edit {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--accent-color, #3b82f6);
+    border-radius: 3px;
+    color: var(--primary-text-color, white);
+    font-size: 13px;
+    padding: 0 4px;
+    outline: none;
+    font-family: inherit;
+}
+
+.todo-item-drag-over {
+    border-top: 2px solid var(--accent-color, #3b82f6);
 }
 
 .todo-section-divider {

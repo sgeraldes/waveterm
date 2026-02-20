@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import * as React from "react";
 
 interface MouseNavigableViewModel {
@@ -17,13 +14,17 @@ function createMouseNavigationHandler(viewModel: MouseNavigableViewModel | null)
     return (e: React.MouseEvent | MouseEvent) => {
         if (!viewModel) return;
         if (e.button === 3) {
-            e.preventDefault();
-            e.stopPropagation();
-            viewModel.goHistoryBack?.();
+            if (viewModel.goHistoryBack) {
+                e.preventDefault();
+                e.stopPropagation();
+                viewModel.goHistoryBack();
+            }
         } else if (e.button === 4) {
-            e.preventDefault();
-            e.stopPropagation();
-            viewModel.goHistoryForward?.();
+            if (viewModel.goHistoryForward) {
+                e.preventDefault();
+                e.stopPropagation();
+                viewModel.goHistoryForward();
+            }
         }
     };
 }
@@ -44,7 +45,6 @@ function useMouseNavigation(
 
         const handler = createMouseNavigationHandler(viewModel);
 
-        // Use mousedown for immediate response, before any platform or OS intercepts auxclick
         el.addEventListener("mousedown", handler as EventListener);
         return () => {
             el.removeEventListener("mousedown", handler as EventListener);

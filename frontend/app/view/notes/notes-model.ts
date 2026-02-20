@@ -1,10 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import type { BlockNodeModel } from "@/app/block/blocktypes";
+import { globalStore, pushNotification, WOS } from "@/app/store/global";
 import type { TabModel } from "@/app/store/tab-model";
-import { globalStore, WOS } from "@/app/store/global";
-import { pushNotification } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { handleImagePaste } from "@/app/util/image-paste";
@@ -25,23 +21,17 @@ export class NotesViewModel implements ViewModel {
     viewName = atom("Notes");
     viewComponent = NotesComponent;
 
-    // File content (loaded from disk)
     fileContent: PrimitiveAtom<string>;
-    // Pending unsaved content
     pendingContent: PrimitiveAtom<string | null>;
-    // Loading state
     isLoading: PrimitiveAtom<boolean>;
-    // Error state
     error: PrimitiveAtom<string | null>;
-    // Save status: "saved" | "saving" | "unsaved" | null
     saveStatus: PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
+    hasEverLoaded: PrimitiveAtom<boolean>;
 
-    // Connection from block meta
     connection: Atom<string>;
     // Notes file path (derived)
     notesPath: Atom<string>;
 
-    // Monaco editor ref for programmatic access
     monacoRef: React.MutableRefObject<MonacoTypes.editor.IStandaloneCodeEditor | null>;
 
     private saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -57,6 +47,7 @@ export class NotesViewModel implements ViewModel {
         this.isLoading = atom(false) as PrimitiveAtom<boolean>;
         this.error = atom(null) as PrimitiveAtom<string | null>;
         this.saveStatus = atom(null) as PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
+        this.hasEverLoaded = atom(false) as PrimitiveAtom<boolean>;
 
         this.connection = atom((get) => {
             const blockData = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));
@@ -76,20 +67,35 @@ export class NotesViewModel implements ViewModel {
         const conn = globalStore.get(this.connection);
         const remotePath = formatRemoteUri(notesPath, conn || "local");
 
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = null;
+        }
+        globalStore.set(this.pendingContent, null);
+        globalStore.set(this.saveStatus, null);
+
         globalStore.set(this.isLoading, true);
         globalStore.set(this.error, null);
 
         try {
             const fileData = await RpcApi.FileReadCommand(TabRpcClient, { info: { path: remotePath } }, null);
             const content = fileData?.data64 ? atob(fileData.data64) : "";
-            globalStore.set(this.fileContent, content);
-            globalStore.set(this.pendingContent, null);
+
+            const currentPath = globalStore.get(this.notesPath);
+            if (currentPath === notesPath) {
+                globalStore.set(this.fileContent, content);
+                globalStore.set(this.pendingContent, null);
+                globalStore.set(this.hasEverLoaded, true);
+            }
         } catch (e) {
             const errStr = String(e);
             if (errStr.includes("not found") || errStr.includes("ENOENT") || errStr.includes("no such file")) {
-                // File doesn't exist yet - start with empty content
-                globalStore.set(this.fileContent, "");
-                globalStore.set(this.pendingContent, null);
+                const currentPath = globalStore.get(this.notesPath);
+                if (currentPath === notesPath) {
+                    globalStore.set(this.fileContent, "");
+                    globalStore.set(this.pendingContent, null);
+                    globalStore.set(this.hasEverLoaded, true);
+                }
             } else {
                 globalStore.set(this.error, errStr);
             }
@@ -117,15 +123,12 @@ export class NotesViewModel implements ViewModel {
         globalStore.set(this.saveStatus, "saving");
 
         try {
-            // Ensure parent directory exists
             const parentDir = notesPath.substring(0, notesPath.lastIndexOf("/"));
             if (parentDir) {
                 const parentRemotePath = formatRemoteUri(parentDir, conn || "local");
-                try {
-                    await RpcApi.FileMkdirCommand(TabRpcClient, { info: { path: parentRemotePath } });
-                } catch {
-                    // Directory may already exist
-                }
+                await RpcApi.FileMkdirCommand(TabRpcClient, { info: { path: parentRemotePath } }).catch(
+                    () => undefined
+                );
             }
 
             const remotePath = formatRemoteUri(notesPath, conn || "local");
@@ -138,7 +141,6 @@ export class NotesViewModel implements ViewModel {
             globalStore.set(this.pendingContent, null);
             globalStore.set(this.saveStatus, "saved");
 
-            // Clear "saved" indicator after 2 seconds
             setTimeout(() => {
                 const currentStatus = globalStore.get(this.saveStatus);
                 if (currentStatus === "saved") {

@@ -1,12 +1,14 @@
 import { globalStore } from "@/app/store/global";
 import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { makeIconClass } from "@/util/util";
+import clsx from "clsx";
 import { useAtomValue, useSetAtom } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import { renderInlineMarkdown } from "./todo-markdown";
 import type { TodoViewModel } from "./todo-model";
-import { isDefaultTodoPath, parseTodoItems } from "./todo-util";
+import { isDefaultTodoPath, parseTodoItems, type TodoItem } from "./todo-util";
 import "./todo.scss";
 
 type TodoComponentProps = {
@@ -20,13 +22,86 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
     const content = useAtomValue(model.fileContent);
     const newTaskText = useAtomValue(model.newTaskText);
     const setNewTaskText = useSetAtom(model.newTaskText);
+    const [editingLineIndex, setEditingLineIndex] = useState<number | null>(null);
+    const [editingText, setEditingText] = useState("");
+    const draggingLineIndex = useRef<number | null>(null);
+    const [dragOverLineIndex, setDragOverLineIndex] = useState<number | null>(null);
 
     const items = parseTodoItems(content);
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter") {
-            model.addTask(newTaskText);
+    const startEdit = (item: TodoItem) => {
+        setEditingLineIndex(item.lineIndex);
+        setEditingText(item.text);
+    };
+
+    const commitEdit = () => {
+        if (editingLineIndex !== null) {
+            model.editTask(editingLineIndex, editingText);
         }
+        setEditingLineIndex(null);
+    };
+
+    const handleEditKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") commitEdit();
+        if (e.key === "Escape") setEditingLineIndex(null);
+    };
+
+    const handleNewTaskKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter") model.addTask(newTaskText);
+    };
+
+    const renderItem = (item: TodoItem) => {
+        const isEditing = editingLineIndex === item.lineIndex;
+        const isDragOver = dragOverLineIndex === item.lineIndex;
+
+        return (
+            <div
+                key={item.lineIndex}
+                className={clsx("todo-item", {
+                    "todo-item-unchecked": !item.checked,
+                    "todo-item-checked": item.checked,
+                    "todo-item-drag-over": isDragOver,
+                })}
+                draggable
+                onDragStart={() => {
+                    draggingLineIndex.current = item.lineIndex;
+                }}
+                onDragEnd={() => {
+                    draggingLineIndex.current = null;
+                    setDragOverLineIndex(null);
+                }}
+                onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverLineIndex(item.lineIndex);
+                }}
+                onDragLeave={() => setDragOverLineIndex(null)}
+                onDrop={() => {
+                    if (draggingLineIndex.current !== null && draggingLineIndex.current !== item.lineIndex) {
+                        model.reorderTasks(draggingLineIndex.current, item.lineIndex);
+                    }
+                    draggingLineIndex.current = null;
+                    setDragOverLineIndex(null);
+                }}
+            >
+                <span className="todo-checkbox" onClick={() => model.toggleCheckbox(item.lineIndex)}>
+                    <i className={makeIconClass(item.checked ? "square-check" : "square", false)} />
+                </span>
+                {isEditing ? (
+                    <input
+                        className="todo-inline-edit"
+                        autoFocus
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onBlur={commitEdit}
+                        onKeyDown={handleEditKeyDown}
+                    />
+                ) : (
+                    <span className="todo-text" onClick={() => startEdit(item)}>
+                        {renderInlineMarkdown(item.text)}
+                    </span>
+                )}
+            </div>
+        );
     };
 
     const unchecked = items.filter((i) => !i.checked);
@@ -35,33 +110,11 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
     return (
         <div className="todo-view">
             <div className="todo-items">
-                {unchecked.map((item) => (
-                    <div
-                        key={item.lineIndex}
-                        className="todo-item todo-item-unchecked"
-                        onClick={() => model.toggleCheckbox(item.lineIndex)}
-                    >
-                        <span className="todo-checkbox">
-                            <i className={makeIconClass("square", false)} />
-                        </span>
-                        <span className="todo-text">{item.text}</span>
-                    </div>
-                ))}
+                {unchecked.map(renderItem)}
                 {checked.length > 0 && (
                     <>
                         {unchecked.length > 0 && <div className="todo-section-divider" />}
-                        {checked.map((item) => (
-                            <div
-                                key={item.lineIndex}
-                                className="todo-item todo-item-checked"
-                                onClick={() => model.toggleCheckbox(item.lineIndex)}
-                            >
-                                <span className="todo-checkbox">
-                                    <i className={makeIconClass("square-check", false)} />
-                                </span>
-                                <span className="todo-text">{item.text}</span>
-                            </div>
-                        ))}
+                        {checked.map(renderItem)}
                     </>
                 )}
                 {items.length === 0 && <div className="todo-empty">No tasks yet. Add one below.</div>}
@@ -73,7 +126,7 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
                     placeholder="Add a task..."
                     value={newTaskText}
                     onChange={(e) => setNewTaskText(e.target.value)}
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleNewTaskKeyDown}
                 />
             </div>
         </div>
