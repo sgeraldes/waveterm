@@ -87,9 +87,9 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		if cmdOpts.HomeDir != "" {
 			waveHomeLinux = cmdOpts.HomeDir + "/.waveterm"
 		}
-		cmdArgs = append(cmdArgs, shellPath)
 		switch shellType {
 		case shellutil.ShellType_bash:
+			cmdArgs = append(cmdArgs, shellPath)
 			if waveHomeLinux != "" {
 				cmdArgs = append(cmdArgs, "--rcfile", waveHomeLinux+"/shell/bash/.bashrc")
 			} else {
@@ -97,14 +97,19 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 			}
 			cmdArgs = append(cmdArgs, "-i")
 		case shellutil.ShellType_zsh:
-			cmdArgs = append(cmdArgs, "--login", "-i")
-		case shellutil.ShellType_fish:
-			cmdArgs = append(cmdArgs, "-l")
 			if waveHomeLinux != "" {
-				cmdArgs = append(cmdArgs, "-C", "source "+waveHomeLinux+"/shell/fish/wave.fish")
+				cmdArgs = append(cmdArgs, "env", "ZDOTDIR="+waveHomeLinux+"/shell/zsh", shellPath, "--login", "-i")
+			} else {
+				cmdArgs = append(cmdArgs, shellPath, "--login", "-i")
+			}
+		case shellutil.ShellType_fish:
+			cmdArgs = append(cmdArgs, shellPath, "-l")
+			if waveHomeLinux != "" {
+				fishPath := shellutil.HardQuoteFish(waveHomeLinux + "/shell/fish/wave.fish")
+				cmdArgs = append(cmdArgs, "-C", "source "+fishPath)
 			}
 		default:
-			cmdArgs = append(cmdArgs, "--login", "-i")
+			cmdArgs = append(cmdArgs, shellPath, "--login", "-i")
 		}
 		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe %s\n", strings.Join(cmdArgs, " "))
 	} else {
@@ -114,16 +119,6 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 
 	ecmd := exec.Command("wsl.exe", cmdArgs...)
 	ecmd.Env = os.Environ()
-
-	if cmdStr == "" && shellType == shellutil.ShellType_zsh {
-		waveHomeLinux := ""
-		if cmdOpts.HomeDir != "" {
-			waveHomeLinux = cmdOpts.HomeDir + "/.waveterm"
-		}
-		if waveHomeLinux != "" {
-			shellutil.UpdateCmdEnv(ecmd, map[string]string{"ZDOTDIR": waveHomeLinux + "/shell/zsh"})
-		}
-	}
 
 	packedToken, err := cmdOpts.SwapToken.PackForClient()
 	if err != nil {

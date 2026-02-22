@@ -1,9 +1,6 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import type { BlockNodeModel } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import { globalStore, WOS } from "@/app/store/global";
+import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { isBlank } from "@/util/util";
@@ -21,7 +18,6 @@ export type TreeNode = {
     error?: string;
     children?: TreeNode[];
     depth: number;
-    // Track visited paths for symlink cycle detection
     visitedAncestors: Set<string>;
 };
 
@@ -36,17 +32,11 @@ export class TreeViewModel implements ViewModel {
     viewName = atom("Tree View");
     viewComponent = TreeViewComponent;
 
-    // Root path for the tree (derived from tab:basedir or home dir)
     rootPath: Atom<string>;
-    // Tree nodes state
     rootNodes: PrimitiveAtom<TreeNode[]>;
-    // Loading state for initial load
     isLoading: PrimitiveAtom<boolean>;
-    // Error state
     error: PrimitiveAtom<string | null>;
-    // Connection from block meta
     connection: Atom<string>;
-    // Selected node path
     selectedPath: PrimitiveAtom<string | null>;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
@@ -87,14 +77,13 @@ export class TreeViewModel implements ViewModel {
 
         if (files.length === 0) return [];
 
-        // Sort: directories first, then files, both alphabetically
         files.sort((a, b) => {
             if (a.isdir !== b.isdir) return a.isdir ? -1 : 1;
             return a.name.localeCompare(b.name);
         });
 
         return files
-            .filter((f) => f.name && !f.name.startsWith(".")) // hide dotfiles by default
+            .filter((f) => f.name && !f.name.startsWith("."))
             .map((f) => ({
                 name: f.name,
                 path: f.path,
@@ -130,7 +119,6 @@ export class TreeViewModel implements ViewModel {
         const nodes = globalStore.get(this.rootNodes);
 
         if (node.isExpanded) {
-            // Collapse: remove children
             const updated = this.updateNodeInTree(nodes, node.path, (n) => ({
                 ...n,
                 isExpanded: false,
@@ -138,8 +126,6 @@ export class TreeViewModel implements ViewModel {
             }));
             globalStore.set(this.rootNodes, updated);
         } else {
-            // Expand: load children
-            // Mark as loading
             const loading = this.updateNodeInTree(nodes, node.path, (n) => ({
                 ...n,
                 isLoading: true,
@@ -147,7 +133,6 @@ export class TreeViewModel implements ViewModel {
             globalStore.set(this.rootNodes, loading);
 
             try {
-                // Check for symlink cycles
                 if (node.visitedAncestors.has(node.path)) {
                     const cycleUpdated = this.updateNodeInTree(globalStore.get(this.rootNodes), node.path, (n) => ({
                         ...n,
@@ -195,8 +180,45 @@ export class TreeViewModel implements ViewModel {
         });
     }
 
+    getNodeContextMenu(node: TreeNode): ContextMenuItem[] {
+        const menu: ContextMenuItem[] = [
+            {
+                label: node.path,
+                enabled: false,
+            },
+            { type: "separator" },
+            {
+                label: "Copy Full Path",
+                click: () => navigator.clipboard.writeText(node.path),
+            },
+            {
+                label: "Copy Filename",
+                click: () => navigator.clipboard.writeText(node.name),
+            },
+        ];
+        if (!node.isDir) {
+            menu.push({ type: "separator" });
+            menu.push({
+                label: "Open in Preview",
+                click: () => this.openInPreview(node),
+            });
+        }
+        if (node.isDir) {
+            menu.push({ type: "separator" });
+            menu.push({
+                label: "Set as Tab Base Directory",
+                click: () => {
+                    RpcApi.SetMetaCommand(TabRpcClient, {
+                        oref: WOS.makeORef("tab", this.tabModel.tabId),
+                        meta: { "tab:basedir": node.path, "tab:basedirlock": true },
+                    }).catch((e) => console.error("[TreeView] Failed to set tab basedir:", e));
+                },
+            });
+        }
+        return menu;
+    }
+
     openInPreview(node: TreeNode) {
-        // Open the file/directory in a new preview block
         const blockDef: BlockDef = {
             meta: {
                 view: "preview",

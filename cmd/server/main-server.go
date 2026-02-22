@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -248,7 +247,7 @@ func migrateWslBlocks() {
 		if distro == "" {
 			continue
 		}
-		profileId := "wsl:" + strings.ToLower(distro)
+		profileId := "wsl:" + wconfig.SanitizeProfileId(distro)
 		oref := waveobj.ORef{OType: waveobj.OType_Block, OID: block.OID}
 		newMeta := waveobj.MetaMapType{
 			waveobj.MetaKey_Connection:   nil,
