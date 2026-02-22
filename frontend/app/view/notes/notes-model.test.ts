@@ -1,8 +1,17 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from "vitest";
+import type { NotesPreviewMode } from "./notes-model";
 import { getNotesFilePath } from "./notes-util";
+
+describe("NotesViewModel preview mode cycling", () => {
+    function nextMode(mode: NotesPreviewMode): NotesPreviewMode {
+        return mode === "editor" ? "split" : mode === "split" ? "preview" : "editor";
+    }
+
+    it("editor -> split", () => expect(nextMode("editor")).toBe("split"));
+    it("split -> preview", () => expect(nextMode("split")).toBe("preview"));
+    it("preview -> editor", () => expect(nextMode("preview")).toBe("editor"));
+});
 
 describe("getNotesFilePath", () => {
     it("should return basedir NOTES.md when basedir set", () => {

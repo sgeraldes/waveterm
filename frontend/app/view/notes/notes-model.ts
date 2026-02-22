@@ -10,6 +10,8 @@ import type * as MonacoTypes from "monaco-editor";
 import { NotesComponent } from "./notes";
 import { getNotesFilePath } from "./notes-util";
 
+export type NotesPreviewMode = "editor" | "split" | "preview";
+
 export { getNotesFilePath };
 
 export class NotesViewModel implements ViewModel {
@@ -27,6 +29,9 @@ export class NotesViewModel implements ViewModel {
     error: PrimitiveAtom<string | null>;
     saveStatus: PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
     hasEverLoaded: PrimitiveAtom<boolean>;
+    previewMode: PrimitiveAtom<NotesPreviewMode>;
+    liveContent: Atom<string>;
+    endIconButtons: Atom<IconButtonDecl[]>;
 
     connection: Atom<string>;
     // Notes file path (derived)
@@ -48,6 +53,26 @@ export class NotesViewModel implements ViewModel {
         this.error = atom(null) as PrimitiveAtom<string | null>;
         this.saveStatus = atom(null) as PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
         this.hasEverLoaded = atom(false) as PrimitiveAtom<boolean>;
+        this.previewMode = atom("editor") as PrimitiveAtom<NotesPreviewMode>;
+        this.liveContent = atom((get) => get(this.pendingContent) ?? get(this.fileContent));
+        this.endIconButtons = atom((get): IconButtonDecl[] => {
+            const mode = get(this.previewMode);
+            const nextMode: NotesPreviewMode = mode === "editor" ? "split" : mode === "split" ? "preview" : "editor";
+            const iconMap = { editor: "eye", split: "columns-3", preview: "pencil" };
+            const titleMap = {
+                editor: "Show Preview (split)",
+                split: "Preview only",
+                preview: "Back to editor",
+            };
+            return [
+                {
+                    elemtype: "iconbutton",
+                    icon: iconMap[mode],
+                    title: titleMap[mode],
+                    click: () => globalStore.set(this.previewMode, nextMode),
+                },
+            ];
+        });
 
         this.connection = atom((get) => {
             const blockData = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));

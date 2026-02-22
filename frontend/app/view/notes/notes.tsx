@@ -1,5 +1,6 @@
 import { globalStore } from "@/app/store/global";
 import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
+import { Markdown } from "@/element/markdown";
 import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
@@ -24,7 +25,15 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     const notesPath = useAtomValue(model.notesPath);
     const connection = useAtomValue(model.connection);
     const hasEverLoaded = useAtomValue(model.hasEverLoaded);
+    const previewMode = useAtomValue(model.previewMode);
     const isLocal = !connection || connection === "local";
+    const resolveOpts: MarkdownResolveOpts = useMemo(
+        () => ({
+            connName: connection || "local",
+            baseDir: notesPath ? notesPath.substring(0, notesPath.lastIndexOf("/")) : "",
+        }),
+        [connection, notesPath]
+    );
 
     // Notes-specific Monaco overrides: word wrap on, always-visible scrollbar
     const notesEditorOverrides = useMemo<Partial<MonacoTypes.editor.IEditorOptions>>(
@@ -96,8 +105,33 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     const isDefaultPath = isDefaultNotesPath(notesPath);
     const hasStatusContent = isLoading || (error && hasEverLoaded) || saveStatus != null || !isDefaultPath || !isLocal;
 
+    const editorPane = (
+        <div className="notes-editor">
+            <CodeEditor
+                blockId={blockId}
+                text={fileContent}
+                fileName={notesPath}
+                language="markdown"
+                readonly={false}
+                onChange={(text) => model.scheduleAutoSave(text)}
+                onMount={onMount}
+                optionOverrides={notesEditorOverrides}
+            />
+        </div>
+    );
+
+    const previewPane = (
+        <div className="notes-preview-panel">
+            <Markdown
+                textAtom={model.liveContent}
+                resolveOpts={resolveOpts}
+                contentClassName="pt-[5px] pr-[15px] pb-[10px] pl-[15px]"
+            />
+        </div>
+    );
+
     return (
-        <div className="notes-container">
+        <div className={`notes-container notes-mode-${previewMode}`}>
             {hasStatusContent && (
                 <div className="notes-status-bar">
                     {!isDefaultPath && (
@@ -120,17 +154,9 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
                     )}
                 </div>
             )}
-            <div className="notes-editor">
-                <CodeEditor
-                    blockId={blockId}
-                    text={fileContent}
-                    fileName={notesPath}
-                    language="markdown"
-                    readonly={false}
-                    onChange={(text) => model.scheduleAutoSave(text)}
-                    onMount={onMount}
-                    optionOverrides={notesEditorOverrides}
-                />
+            <div className="notes-content-area">
+                {previewMode !== "preview" && editorPane}
+                {previewMode !== "editor" && previewPane}
             </div>
         </div>
     );
