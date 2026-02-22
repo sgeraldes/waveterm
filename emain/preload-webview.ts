@@ -1,7 +1,4 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
-const { ipcRenderer } = require("electron");
+import { ipcRenderer } from "electron";
 
 document.addEventListener("contextmenu", (event) => {
     console.log("contextmenu event", event);
@@ -9,7 +6,6 @@ document.addEventListener("contextmenu", (event) => {
         return;
     }
     const targetElement = event.target as HTMLElement;
-    // Check if the right-click is on an image
     if (targetElement.tagName === "IMG") {
         setTimeout(() => {
             if (event.defaultPrevented) {
@@ -22,7 +18,16 @@ document.addEventListener("contextmenu", (event) => {
         }, 50);
         return;
     }
-    // do nothing
+});
+
+document.addEventListener("mousedown", (event) => {
+    if (event.button === 3) {
+        event.preventDefault();
+        ipcRenderer.sendToHost("wave-mouse-navigate", "back");
+    } else if (event.button === 4) {
+        event.preventDefault();
+        ipcRenderer.sendToHost("wave-mouse-navigate", "forward");
+    }
 });
 
 console.log("loaded wave preload-webview.ts");
