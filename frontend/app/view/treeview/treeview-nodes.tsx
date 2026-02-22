@@ -1,3 +1,4 @@
+import { ContextMenuModel } from "@/app/store/contextmenu";
 import { makeIconClass } from "@/util/util";
 import clsx from "clsx";
 import * as React from "react";
@@ -55,7 +56,7 @@ type TreeNodeProps = {
     onSelect: (path: string) => void;
 };
 
-export function TreeNodeRow({ node, onToggle, onOpen, selectedPath, onSelect }: TreeNodeProps) {
+export function TreeNodeRow({ node, model, onToggle, onOpen, selectedPath, onSelect }: TreeNodeProps) {
     const isSelected = selectedPath === node.path;
     const indentPx = node.depth * 16;
 
@@ -78,6 +79,12 @@ export function TreeNodeRow({ node, onToggle, onOpen, selectedPath, onSelect }: 
         }
     };
 
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ContextMenuModel.showContextMenu(model.getNodeContextMenu(node), e);
+    };
+
     return (
         <div
             className={clsx("treeview-node", {
@@ -86,9 +93,11 @@ export function TreeNodeRow({ node, onToggle, onOpen, selectedPath, onSelect }: 
                 "treeview-node-file": !node.isDir,
             })}
             style={{ paddingLeft: `${indentPx + 4}px` }}
+            title={node.path}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
             onKeyDown={handleKeyDown}
+            onContextMenu={handleContextMenu}
             tabIndex={0}
             role="treeitem"
             aria-expanded={node.isDir ? node.isExpanded : undefined}
