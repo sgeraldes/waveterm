@@ -120,11 +120,10 @@ export function saveSessionSnapshot(ctx: SessionHistoryCtx, reason: string): voi
     }
     ctx.lastSnapshotTime = Date.now();
     const meta = getSessionMeta(ctx);
-    const encodedContent = btoa(content);
     fireAndForget(() =>
         services.SessionHistoryService.SaveSnapshotSegment(
             ctx.blockId,
-            encodedContent,
+            content,
             ctx.tabId,
             meta.tabBaseDir,
             meta.connection,
@@ -151,11 +150,10 @@ export function saveRollingCapture(ctx: SessionHistoryCtx): void {
     }
     ctx.lastRollingLength = content.length;
     const meta = getSessionMeta(ctx);
-    const encodedContent = btoa(content);
     fireAndForget(() =>
         services.SessionHistoryService.SaveRollingSegment(
             ctx.blockId,
-            encodedContent,
+            content,
             ctx.tabId,
             meta.tabBaseDir,
             meta.connection,

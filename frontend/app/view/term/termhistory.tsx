@@ -2,8 +2,8 @@ import { WOS } from "@/store/global";
 import * as services from "@/store/services";
 import { base64ToArray, fireAndForget } from "@/util/util";
 import { FitAddon } from "@xterm/addon-fit";
+import { SearchAddon } from "@xterm/addon-search";
 import { Terminal } from "@xterm/xterm";
-import * as jotai from "jotai";
 import * as React from "react";
 import type { TermHistoryViewModel } from "./termhistory-model";
 import { computeTheme } from "./termutil";
@@ -15,6 +15,7 @@ export const TermHistoryView = ({ blockId }: ViewComponentProps<TermHistoryViewM
     const containerRef = React.useRef<HTMLDivElement>(null);
     const termRef = React.useRef<Terminal>(null);
     const fitAddonRef = React.useRef<FitAddon>(null);
+    const searchAddonRef = React.useRef<SearchAddon>(null);
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
     const sourceBlockId = blockData?.meta?.["termhistory:blockid"] as string;
 
@@ -32,10 +33,18 @@ export const TermHistoryView = ({ blockId }: ViewComponentProps<TermHistoryViewM
             fontSize: 12,
         });
 
-        term.attachCustomKeyEventHandler(() => false);
+        term.attachCustomKeyEventHandler((ev) => {
+            if (ev.type === "keydown" && ev.ctrlKey && ev.key === "f") {
+                return true;
+            }
+            return false;
+        });
 
         const fitAddon = new FitAddon();
+        const searchAddon = new SearchAddon();
         term.loadAddon(fitAddon);
+        term.loadAddon(searchAddon);
+        searchAddonRef.current = searchAddon;
         term.open(containerRef.current);
         fitAddon.fit();
 
@@ -63,6 +72,7 @@ export const TermHistoryView = ({ blockId }: ViewComponentProps<TermHistoryViewM
             term.dispose();
             termRef.current = null;
             fitAddonRef.current = null;
+            searchAddonRef.current = null;
         };
     }, [sourceBlockId]);
 
@@ -79,5 +89,3 @@ export const TermHistoryView = ({ blockId }: ViewComponentProps<TermHistoryViewM
         <div ref={containerRef} style={{ width: "100%", height: "100%", overflow: "hidden" }} data-blockid={blockId} />
     );
 };
-
-void jotai.atom;

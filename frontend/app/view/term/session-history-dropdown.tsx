@@ -61,15 +61,16 @@ function SessionEntry({ session, onOpen }: SessionEntryProps) {
 
 interface SessionHistoryFlyoverProps {
     blockId: string;
+    tabId?: string;
 }
 
-export function SessionHistoryFlyover({ blockId }: SessionHistoryFlyoverProps) {
+export function SessionHistoryFlyover({ blockId, tabId }: SessionHistoryFlyoverProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
-    const tabBaseDir = (blockData?.meta?.["tab:basedir"] as string) ?? "";
+    const [tabData] = WOS.useWaveObjectValue<Tab>(WOS.makeORef("tab", tabId ?? ""));
+    const tabBaseDir = (tabData?.meta?.["tab:basedir"] as string) ?? "";
 
     const { refs, floatingStyles, context } = useFloating({
         open: isOpen,
@@ -91,6 +92,9 @@ export function SessionHistoryFlyover({ blockId }: SessionHistoryFlyoverProps) {
             try {
                 const result = await services.SessionHistoryService.ListSessionHistory(blockId, tabBaseDir);
                 setSessions(result ?? []);
+            } catch (e) {
+                console.error("Failed to load session history:", e);
+                setSessions([]);
             } finally {
                 setLoading(false);
             }

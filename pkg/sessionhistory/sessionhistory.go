@@ -72,6 +72,16 @@ func (s *Store) getBlockMu(blockId string) *sync.Mutex {
 	return s.blockMu[blockId]
 }
 
+func (s *Store) pruneBlockMu() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for blockId := range s.blockMu {
+		if _, err := os.Stat(filepath.Join(s.root, blockId)); os.IsNotExist(err) {
+			delete(s.blockMu, blockId)
+		}
+	}
+}
+
 func (s *Store) blockDir(blockId string) string {
 	return filepath.Join(s.root, blockId)
 }
@@ -88,6 +98,9 @@ func (s *Store) writeMeta(blockId string, meta SessionMeta) error {
 			return err
 		}
 		existing.LastUpdatedAt = time.Now().UnixMilli()
+		existing.Cwd = meta.Cwd
+		existing.TabBaseDir = meta.TabBaseDir
+		existing.Connection = meta.Connection
 		return s.flushMeta(metaPath, existing)
 	}
 	now := time.Now().UnixMilli()

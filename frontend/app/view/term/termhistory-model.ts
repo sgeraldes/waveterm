@@ -26,7 +26,10 @@ export class TermHistoryViewModel implements ViewModel {
         this.viewName = jotai.atom("Session History");
         this.viewText = jotai.atom((get) => {
             const block = get(this.blockAtom);
-            return block?.meta?.["cmd:cwd"] ?? "";
+            const sourceBlockId = block?.meta?.["termhistory:blockid"] as string;
+            if (!sourceBlockId) return "";
+            const sourceBlock = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", sourceBlockId)));
+            return (sourceBlock?.meta?.["cmd:cwd"] as string) ?? "";
         });
         this.noPadding = jotai.atom<boolean>(true);
         this.viewComponent = TermHistoryView as ViewComponent;

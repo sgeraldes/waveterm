@@ -119,7 +119,8 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
         endIconsElem.push(...endIconButtons.map((button, idx) => <IconButton key={idx} decl={button} />));
     }
     if (isTerminalBlock) {
-        endIconsElem.push(<SessionHistoryFlyover key="session-history" blockId={blockId} />);
+        const vm = viewModel as ViewModel & { tabModel?: { tabId?: string } };
+        endIconsElem.push(<SessionHistoryFlyover key="session-history" blockId={blockId} tabId={vm.tabModel?.tabId} />);
     }
     const settingsDecl: IconButtonDecl = {
         elemtype: "iconbutton",

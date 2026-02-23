@@ -89,6 +89,7 @@ func (s *Store) Cleanup(maxAge time.Duration, maxSizeBytes int64) error {
 	}
 
 	s.pruneEmptyDirs()
+	s.pruneBlockMu()
 	return nil
 }
 

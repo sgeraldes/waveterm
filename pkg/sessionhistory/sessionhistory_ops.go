@@ -10,7 +10,27 @@ import (
 	"time"
 )
 
+func validateBlockId(blockId string) error {
+	if blockId == "" {
+		return fmt.Errorf("sessionhistory: empty blockId")
+	}
+	if strings.ContainsAny(blockId, "/\\") || strings.Contains(blockId, "..") {
+		return fmt.Errorf("sessionhistory: invalid blockId %q", blockId)
+	}
+	return nil
+}
+
+func validateReason(reason string) error {
+	if strings.ContainsAny(reason, "/\\.") {
+		return fmt.Errorf("sessionhistory: invalid reason %q", reason)
+	}
+	return nil
+}
+
 func (s *Store) SaveRollingSegment(blockId string, content []byte, meta SessionMeta) error {
+	if err := validateBlockId(blockId); err != nil {
+		return err
+	}
 	mu := s.getBlockMu(blockId)
 	mu.Lock()
 	defer mu.Unlock()
@@ -26,6 +46,12 @@ func (s *Store) SaveRollingSegment(blockId string, content []byte, meta SessionM
 }
 
 func (s *Store) SaveSnapshotSegment(blockId string, content []byte, meta SessionMeta, reason string) error {
+	if err := validateBlockId(blockId); err != nil {
+		return err
+	}
+	if err := validateReason(reason); err != nil {
+		return err
+	}
 	mu := s.getBlockMu(blockId)
 	mu.Lock()
 	defer mu.Unlock()
@@ -121,6 +147,9 @@ func (s *Store) buildSessionInfo(blockId string) (SessionInfo, error) {
 }
 
 func (s *Store) ReadSegment(blockId, filename string) ([]byte, error) {
+	if err := validateBlockId(blockId); err != nil {
+		return nil, err
+	}
 	if strings.ContainsAny(filename, "/\\") {
 		return nil, fmt.Errorf("sessionhistory: invalid filename %q", filename)
 	}
@@ -137,6 +166,9 @@ func (s *Store) ReadSegment(blockId, filename string) ([]byte, error) {
 }
 
 func (s *Store) ReadLatestSegments(blockId string, maxBytes int64) ([]byte, []string, error) {
+	if err := validateBlockId(blockId); err != nil {
+		return nil, nil, err
+	}
 	mu := s.getBlockMu(blockId)
 	mu.Lock()
 	defer mu.Unlock()
