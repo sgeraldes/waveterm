@@ -14,6 +14,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/eventbus"
 	"github.com/wavetermdev/waveterm/pkg/filestore"
 	"github.com/wavetermdev/waveterm/pkg/service"
+	"github.com/wavetermdev/waveterm/pkg/sessionhistory"
 	"github.com/wavetermdev/waveterm/pkg/tsgen/tsgenmeta"
 	"github.com/wavetermdev/waveterm/pkg/userinput"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
@@ -49,6 +50,8 @@ var ExtraTypes = []any{
 	wshrpc.TabIndicatorEventData{},
 	wshrpc.BlockJobStatusData{},
 	wshrpc.CommandTermUpdateAttachedJobData{},
+	sessionhistory.SessionInfo{},
+	sessionhistory.SegmentInfo{},
 }
 
 // add extra type unions to generate here

@@ -102,6 +102,41 @@ class ObjectServiceType {
 
 export const ObjectService = new ObjectServiceType();
 
+// sessionhistoryservice.SessionHistoryService (sessionhistory)
+class SessionHistoryServiceType {
+    // run cleanup: delete segments older than 30 days and enforce 500MB cap
+    CleanupSessionHistory(): Promise<void> {
+        return WOS.callBackendService("sessionhistory", "CleanupSessionHistory", Array.from(arguments))
+    }
+
+    // list session history entries, optionally filtered by blockId or tabBaseDir
+    ListSessionHistory(blockId: string, tabBaseDir: string): Promise<SessionInfo[]> {
+        return WOS.callBackendService("sessionhistory", "ListSessionHistory", Array.from(arguments))
+    }
+
+    // read the most recent segments up to maxBytes, returns base64-encoded concatenated content
+    ReadLatestSegments(blockId: string, maxBytes: number): Promise<string> {
+        return WOS.callBackendService("sessionhistory", "ReadLatestSegments", Array.from(arguments))
+    }
+
+    // read a single .ansi segment file, returns base64-encoded content
+    ReadSessionSegment(blockId: string, filename: string): Promise<string> {
+        return WOS.callBackendService("sessionhistory", "ReadSessionSegment", Array.from(arguments))
+    }
+
+    // save rolling (overwrite) terminal capture segment
+    SaveRollingSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string): Promise<void> {
+        return WOS.callBackendService("sessionhistory", "SaveRollingSegment", Array.from(arguments))
+    }
+
+    // save immutable snapshot terminal segment (on clear/close)
+    SaveSnapshotSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string, reason: string): Promise<void> {
+        return WOS.callBackendService("sessionhistory", "SaveSnapshotSegment", Array.from(arguments))
+    }
+}
+
+export const SessionHistoryService = new SessionHistoryServiceType();
+
 // userinputservice.UserInputService (userinput)
 class UserInputServiceType {
     SendUserInputResponse(arg1: UserInputResponse): Promise<void> {

@@ -1253,6 +1253,28 @@ declare global {
         winsize?: WinSize;
     };
 
+    // sessionhistory.SegmentInfo
+    type SegmentInfo = {
+        filename: string;
+        sizeBytes: number;
+        modTimeMs: number;
+        isRolling: boolean;
+    };
+
+    // sessionhistory.SessionInfo
+    type SessionInfo = {
+        blockId: string;
+        tabId: string;
+        tabBaseDir: string;
+        connection?: string;
+        cwd?: string;
+        createdAt: number;
+        lastUpdatedAt: number;
+        totalBytes: number;
+        segmentCount: number;
+        segments: SegmentInfo[];
+    };
+
     // wconfig.SettingsType
     type SettingsType = {
         "app:*"?: boolean;
