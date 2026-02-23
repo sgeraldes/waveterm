@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package waveobj
 
@@ -9,9 +7,7 @@ import (
 
 const Entity_Any = "any"
 
-// for typescript typing
 type MetaTSType struct {
-	// shared
 	View           string   `json:"view,omitempty"`
 	Controller     string   `json:"controller,omitempty"`
 	File           string   `json:"file,omitempty"`
@@ -48,12 +44,11 @@ type MetaTSType struct {
 	CmdCloseOnExitForce bool     `json:"cmd:closeonexitforce,omitempty"`
 	CmdCloseOnExitDelay float64  `json:"cmd:closeonexitdelay,omitempty"`
 	CmdNoWsh            bool     `json:"cmd:nowsh,omitempty"`
-	CmdArgs             []string `json:"cmd:args,omitempty"`  // args for cmd (only if cmd:shell is false)
-	CmdShell            bool     `json:"cmd:shell,omitempty"` // shell expansion for cmd+args (defaults to true)
+	CmdArgs             []string `json:"cmd:args,omitempty"`
+	CmdShell            bool     `json:"cmd:shell,omitempty"`
 	CmdAllowConnChange  bool     `json:"cmd:allowconnchange,omitempty"`
-	CmdJwt              bool     `json:"cmd:jwt,omitempty"` // force adding JWT to environment
+	CmdJwt              bool     `json:"cmd:jwt,omitempty"`
 
-	// these can be nested under "[conn]"
 	CmdEnv            map[string]string `json:"cmd:env,omitempty"`
 	CmdCwd            string            `json:"cmd:cwd,omitempty"`
 	CmdInitScript     string            `json:"cmd:initscript,omitempty"`
@@ -63,7 +58,6 @@ type MetaTSType struct {
 	CmdInitScriptPwsh string            `json:"cmd:initscript.pwsh,omitempty"`
 	CmdInitScriptFish string            `json:"cmd:initscript.fish,omitempty"`
 
-	// AI options match settings
 	AiClear      bool    `json:"ai:*,omitempty"`
 	AiPresetKey  string  `json:"ai:preset,omitempty"`
 	AiApiType    string  `json:"ai:apitype,omitempty"`
@@ -91,42 +85,42 @@ type MetaTSType struct {
 
 	SysinfoType string `json:"sysinfo:type,omitempty"`
 
-	// for tabs
 	BgClear             bool    `json:"bg:*,omitempty"`
 	Bg                  string  `json:"bg,omitempty"`
 	BgOpacity           float64 `json:"bg:opacity,omitempty"`
 	BgBlendMode         string  `json:"bg:blendmode,omitempty"`
-	BgBorderColor       string  `json:"bg:bordercolor,omitempty"`       // frame:bordercolor
-	BgActiveBorderColor string  `json:"bg:activebordercolor,omitempty"` // frame:activebordercolor
-	BgText              string  `json:"bg:text,omitempty"`              // text color for background presets
-	TabBaseDir          string  `json:"tab:basedir,omitempty"`          // base directory for tab context
-	TabBaseDirLock      bool    `json:"tab:basedirlock,omitempty"`      // lock basedir to prevent smart auto-detection
-	TabColor            string  `json:"tab:color,omitempty"`            // custom color for tab (hex value)
-	TabTermStatus       string  `json:"tab:termstatus,omitempty"`       // terminal status: running, stopped, finished
+	BgBorderColor       string  `json:"bg:bordercolor,omitempty"`
+	BgActiveBorderColor string  `json:"bg:activebordercolor,omitempty"`
+	BgText              string  `json:"bg:text,omitempty"`
+	TabBaseDir          string  `json:"tab:basedir,omitempty"`
+	TabBaseDirLock      bool    `json:"tab:basedirlock,omitempty"`
+	TabColor            string  `json:"tab:color,omitempty"`
+	TabTermStatus       string  `json:"tab:termstatus,omitempty"`
 
-	// for tabs+waveai
 	WaveAiPanelOpen     bool   `json:"waveai:panelopen,omitempty"`
 	WaveAiPanelWidth    int    `json:"waveai:panelwidth,omitempty"`
 	WaveAiModel         string `json:"waveai:model,omitempty"`
 	WaveAiChatId        string `json:"waveai:chatid,omitempty"`
-	WaveAiWidgetContext *bool  `json:"waveai:widgetcontext,omitempty"` // default is true
+	WaveAiWidgetContext *bool  `json:"waveai:widgetcontext,omitempty"`
 
 	TermClear               bool     `json:"term:*,omitempty"`
 	TermFontSize            int      `json:"term:fontsize,omitempty"`
 	TermFontFamily          string   `json:"term:fontfamily,omitempty"`
 	TermMode                string   `json:"term:mode,omitempty"`
 	TermTheme               string   `json:"term:theme,omitempty"`
-	TermLocalShellPath      string   `json:"term:localshellpath,omitempty"` // matches settings
-	TermLocalShellOpts      []string `json:"term:localshellopts,omitempty"` // matches settings
+	TermLocalShellPath      string   `json:"term:localshellpath,omitempty"`
+	TermLocalShellOpts      []string `json:"term:localshellopts,omitempty"`
 	TermScrollback   *int     `json:"term:scrollback,omitempty"`
-	TermTransparency *float64 `json:"term:transparency,omitempty"` // default 0.5
+	TermTransparency *float64 `json:"term:transparency,omitempty"`
 	TermAllowBracketedPaste *bool    `json:"term:allowbracketedpaste,omitempty"`
 	TermShiftEnterNewline   *bool    `json:"term:shiftenternewline,omitempty"`
 	TermMacOptionIsMeta     *bool    `json:"term:macoptionismeta,omitempty"`
-	TermConnDebug           string   `json:"term:conndebug,omitempty"` // null, info, debug
+	TermConnDebug           string   `json:"term:conndebug,omitempty"`
 	TermBellSound           *bool    `json:"term:bellsound,omitempty"`
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
 	TermDurable             *bool    `json:"term:durable,omitempty"`
+
+	TermHistoryBlockId string `json:"termhistory:blockid,omitempty"`
 
 	WebZoom          float64 `json:"web:zoom,omitempty"`
 	WebHideNav       *bool   `json:"web:hidenav,omitempty"`
@@ -136,38 +130,35 @@ type MetaTSType struct {
 	MarkdownFontSize      float64 `json:"markdown:fontsize,omitempty"`
 	MarkdownFixedFontSize float64 `json:"markdown:fixedfontsize,omitempty"`
 
-	OnboardingGithubStar  bool   `json:"onboarding:githubstar,omitempty"`  // for client
-	OnboardingLastVersion string `json:"onboarding:lastversion,omitempty"` // for client (tracks semver of last 'onboarding' shown)
+	OnboardingGithubStar  bool   `json:"onboarding:githubstar,omitempty"`
+	OnboardingLastVersion string `json:"onboarding:lastversion,omitempty"`
 
-	Count int `json:"count,omitempty"` // temp for cpu plot. will remove later
+	Count int `json:"count,omitempty"`
 }
 
 type MetaDataDecl struct {
 	Key        string   `json:"key"`
 	Desc       string   `json:"desc,omitempty"`
-	Type       string   `json:"type"` // string, int, float, bool, array, object
+	Type       string   `json:"type"`
 	Default    any      `json:"default,omitempty"`
 	StrOptions []string `json:"stroptions,omitempty"`
-	NumRange   []*int   `json:"numrange,omitempty"` // inclusive, null means no limit
-	Entity     []string `json:"entity"`             // what entities this applies to, e.g. "block", "tab", "any", etc.
-	Special    []string `json:"special,omitempty"`  // special handling.  things that need to happen if this gets updated
+	NumRange   []*int   `json:"numrange,omitempty"`
+	Entity     []string `json:"entity"`
+	Special    []string `json:"special,omitempty"`
 }
 
 type MetaPresetDecl struct {
 	Preset string   `json:"preset"`
 	Desc   string   `json:"desc,omitempty"`
 	Keys   []string `json:"keys"`
-	Entity []string `json:"entity"` // what entities this applies to, e.g. "block", "tab", etc.
+	Entity []string `json:"entity"`
 }
 
-// returns a clean copy of meta with mergeMeta merged in
-// if mergeSpecial is false, then special keys will not be merged (like display:*)
 func MergeMeta(meta MetaMapType, metaUpdate MetaMapType, mergeSpecial bool) MetaMapType {
 	rtn := make(MetaMapType)
 	for k, v := range meta {
 		rtn[k] = v
 	}
-	// deal with "section:*" keys
 	for k := range metaUpdate {
 		if !strings.HasSuffix(k, ":*") {
 			continue
@@ -179,7 +170,6 @@ func MergeMeta(meta MetaMapType, metaUpdate MetaMapType, mergeSpecial bool) Meta
 		if prefix == "" {
 			continue
 		}
-		// delete "[prefix]" and all keys that start with "[prefix]:"
 		prefixColon := prefix + ":"
 		for k2 := range rtn {
 			if k2 == prefix || strings.HasPrefix(k2, prefixColon) {
@@ -187,7 +177,6 @@ func MergeMeta(meta MetaMapType, metaUpdate MetaMapType, mergeSpecial bool) Meta
 			}
 		}
 	}
-	// now deal with regular keys
 	for k, v := range metaUpdate {
 		if !mergeSpecial && strings.HasPrefix(k, "display:") {
 			continue

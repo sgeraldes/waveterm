@@ -1,6 +1,3 @@
-// Copyright 2026, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import {
     blockViewToIcon,
     blockViewToName,
@@ -11,11 +8,12 @@ import {
 import { ConnectionButton } from "@/app/block/connectionbutton";
 import { DurableSessionFlyover } from "@/app/block/durable-session-flyover";
 import { ContextMenuModel } from "@/app/store/contextmenu";
-import { getConnStatusAtom, recordTEvent, WOS } from "@/app/store/global";
+import { recordTEvent, WOS } from "@/app/store/global";
 import { globalStore } from "@/app/store/jotaiStore";
 import { uxCloseBlock } from "@/app/store/keymodel";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
+import { SessionHistoryFlyover } from "@/app/view/term/session-history-dropdown";
 import { IconButton } from "@/element/iconbutton";
 import { NodeModel } from "@/layout/index";
 import * as util from "@/util/util";
@@ -33,7 +31,7 @@ function handleHeaderContextMenu(
     e.preventDefault();
     e.stopPropagation();
     const magnified = globalStore.get(nodeModel.isMagnified);
-    let menu: ContextMenuItem[] = [
+    const menu: ContextMenuItem[] = [
         {
             label: magnified ? "Un-Magnify Block" : "Magnify Block",
             click: () => {
@@ -105,9 +103,10 @@ type HeaderEndIconsProps = {
     viewModel: ViewModel;
     nodeModel: NodeModel;
     blockId: string;
+    isTerminalBlock?: boolean;
 };
 
-const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId }: HeaderEndIconsProps) => {
+const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBlock }: HeaderEndIconsProps) => {
     const endIconButtons = util.useAtomValueSafe(viewModel?.endIconButtons);
     const magnified = jotai.useAtomValue(nodeModel.isMagnified);
     const ephemeral = jotai.useAtomValue(nodeModel.isEphemeral);
@@ -118,6 +117,9 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId }: HeaderEndI
 
     if (endIconButtons && endIconButtons.length > 0) {
         endIconsElem.push(...endIconButtons.map((button, idx) => <IconButton key={idx} decl={button} />));
+    }
+    if (isTerminalBlock) {
+        endIconsElem.push(<SessionHistoryFlyover key="session-history" blockId={blockId} />);
     }
     const settingsDecl: IconButtonDecl = {
         elemtype: "iconbutton",
@@ -218,10 +220,21 @@ const BlockFrame_Header = ({
                 />
             )}
             {useTermHeader && termConfigedDurable != null && (
-                <DurableSessionFlyover key="durable-status" blockId={nodeModel.blockId} viewModel={viewModel} placement="bottom" divClassName="iconbutton disabled text-[13px] ml-[-4px]" />
+                <DurableSessionFlyover
+                    key="durable-status"
+                    blockId={nodeModel.blockId}
+                    viewModel={viewModel}
+                    placement="bottom"
+                    divClassName="iconbutton disabled text-[13px] ml-[-4px]"
+                />
             )}
             <HeaderTextElems viewModel={viewModel} blockData={blockData} preview={preview} error={error} />
-            <HeaderEndIcons viewModel={viewModel} nodeModel={nodeModel} blockId={nodeModel.blockId} />
+            <HeaderEndIcons
+                viewModel={viewModel}
+                nodeModel={nodeModel}
+                blockId={nodeModel.blockId}
+                isTerminalBlock={isTerminalBlock}
+            />
         </div>
     );
 };

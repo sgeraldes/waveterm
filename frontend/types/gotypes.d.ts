@@ -1042,6 +1042,7 @@ declare global {
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
         "term:durable"?: boolean;
+        "termhistory:blockid"?: string;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
         "web:partition"?: string;

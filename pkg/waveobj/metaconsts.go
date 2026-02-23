@@ -125,6 +125,8 @@ const (
 	MetaKey_TermBellIndicator                = "term:bellindicator"
 	MetaKey_TermDurable                      = "term:durable"
 
+	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
+
 	MetaKey_WebZoom                          = "web:zoom"
 	MetaKey_WebHideNav                       = "web:hidenav"
 	MetaKey_WebPartition                     = "web:partition"
