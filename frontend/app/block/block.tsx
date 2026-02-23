@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import {
     BlockComponentModel2,
     BlockNodeModel,
@@ -9,6 +6,8 @@ import {
     FullSubBlockProps,
     SubBlockProps,
 } from "@/app/block/blocktypes";
+import type { TabModel } from "@/app/store/tab-model";
+import { useTabModel } from "@/app/store/tab-model";
 import { AiFileDiffViewModel } from "@/app/view/aifilediff/aifilediff";
 import { LauncherViewModel } from "@/app/view/launcher/launcher";
 import { PreviewModel } from "@/app/view/preview/preview-model";
@@ -22,13 +21,12 @@ import {
     registerBlockComponentModel,
     unregisterBlockComponentModel,
 } from "@/store/global";
-import type { TabModel } from "@/app/store/tab-model";
-import { useTabModel } from "@/app/store/tab-model";
 import { getWaveObjectAtom, makeORef, useWaveObjectValue } from "@/store/wos";
 import { focusedBlockId } from "@/util/focusutil";
 import { isBlank, useAtomValueSafe } from "@/util/util";
 import { HelpViewModel } from "@/view/helpview/helpview";
 import { TermViewModel } from "@/view/term/term-model";
+import { TermHistoryViewModel } from "@/view/term/termhistory-model";
 import { WaveAiModel } from "@/view/waveai/waveai";
 import { WebViewModel } from "@/view/webview/webview";
 import clsx from "clsx";
@@ -52,6 +50,7 @@ BlockRegistry.set("help", HelpViewModel);
 BlockRegistry.set("launcher", LauncherViewModel);
 BlockRegistry.set("aifilediff", AiFileDiffViewModel);
 BlockRegistry.set("waveconfig", WaveConfigViewModel);
+BlockRegistry.set("termhistory", TermHistoryViewModel);
 
 function makeViewModel(blockId: string, blockView: string, nodeModel: BlockNodeModel, tabModel: TabModel): ViewModel {
     const ctor = BlockRegistry.get(blockView);
@@ -80,7 +79,7 @@ function getViewElem(
 
 function makeDefaultViewModel(blockId: string, viewType: string): ViewModel {
     const blockDataAtom = getWaveObjectAtom<Block>(makeORef("block", blockId));
-    let viewModel: ViewModel = {
+    const viewModel: ViewModel = {
         viewType: viewType,
         viewIcon: atom((get) => {
             const blockData = get(blockDataAtom);
@@ -232,7 +231,7 @@ const BlockFull = memo(({ nodeModel, viewModel }: FullBlockProps) => {
                     type="text"
                     value=""
                     ref={focusElemRef}
-                    id={`${nodeModel.blockId}-dummy-focus`} // don't change this name (used in refocusNode)
+                    id={`${nodeModel.blockId}-dummy-focus`}
                     className="dummy-focus"
                     onChange={() => {}}
                 />
