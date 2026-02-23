@@ -1,7 +1,7 @@
 # Terminal Session History Implementation Plan
 
 Created: 2026-02-23
-Status: PENDING
+Status: VERIFIED
 Approved: Yes
 Iterations: 0
 Worktree: Yes
@@ -114,10 +114,10 @@ Worktree: Yes
 - [x] Task 2: Go session history service (frontend API)
 - [x] Task 3: Frontend capture integration (TermWrap)
 - [x] Task 4: Session history header button and dropdown
-- [ ] Task 5: Read-only terminal history viewer block
-- [ ] Task 6: Cleanup policy and startup integration
+- [x] Task 5: Read-only terminal history viewer block
+- [x] Task 6: Cleanup policy and startup integration
 
-**Total Tasks:** 6 | **Completed:** 4 | **Remaining:** 2
+**Total Tasks:** 6 | **Completed:** 6 | **Remaining:** 0
 
 ## Implementation Tasks
 
