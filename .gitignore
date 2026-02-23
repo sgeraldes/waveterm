@@ -46,3 +46,4 @@ pr*.txt
 
 # Playwright MCP
 .playwright-mcp/
+.worktrees/

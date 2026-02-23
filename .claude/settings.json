@@ -5,8 +5,8 @@
         "matcher": "mcp__plugin_compound-engineering_pw__*",
         "hooks": [
           {
-            "type": "block",
-            "message": "BLOCKED: Do not use Playwright on this Electron project. Use Electron MCP tools instead (mcp__electron__take_screenshot, mcp__electron__send_command_to_electron, mcp__electron__read_electron_logs, mcp__electron__get_electron_window_info)."
+            "type": "command",
+            "command": "echo BLOCKED: Do not use Playwright on this Electron project. Use Electron MCP tools instead. && exit 1"
           }
         ]
       }
