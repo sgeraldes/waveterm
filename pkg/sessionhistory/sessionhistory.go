@@ -2,8 +2,10 @@
 package sessionhistory
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"sync"
@@ -113,4 +115,24 @@ func (s *Store) readMeta(blockId string) (SessionMeta, error) {
 		return SessionMeta{}, fmt.Errorf("sessionhistory: parse meta %s: %w", blockId, err)
 	}
 	return m, nil
+}
+
+func (s *Store) StartCleanupScheduler(ctx context.Context, maxAge time.Duration, maxSizeBytes int64) {
+	go func() {
+		if err := s.Cleanup(maxAge, maxSizeBytes); err != nil {
+			log.Printf("sessionhistory: startup cleanup: %v\n", err)
+		}
+		ticker := time.NewTicker(time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				if err := s.Cleanup(maxAge, maxSizeBytes); err != nil {
+					log.Printf("sessionhistory: periodic cleanup: %v\n", err)
+				}
+			}
+		}
+	}()
 }

@@ -134,3 +134,7 @@ func (s *SessionHistoryService) CleanupSessionHistory_Meta() tsgenmeta.MethodMet
 func (s *SessionHistoryService) CleanupSessionHistory(ctx context.Context) error {
 	return s.store.Cleanup(cleanupMaxAge, cleanupMaxSizeBytes)
 }
+
+func (s *SessionHistoryService) StartCleanupScheduler(ctx context.Context) {
+	s.store.StartCleanupScheduler(ctx, cleanupMaxAge, cleanupMaxSizeBytes)
+}

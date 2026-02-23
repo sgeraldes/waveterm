@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package main
 
@@ -26,6 +24,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/remote/fileshare/wshfs"
 	"github.com/wavetermdev/waveterm/pkg/secretstore"
 	"github.com/wavetermdev/waveterm/pkg/service"
+	"github.com/wavetermdev/waveterm/pkg/service/sessionhistoryservice"
 	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
 	"github.com/wavetermdev/waveterm/pkg/util/sigutil"
@@ -48,7 +47,6 @@ import (
 	_ "net/http/pprof"
 )
 
-// these are set at build time
 var WaveVersion = "0.0.0"
 var BuildTime = "0"
 
@@ -59,7 +57,6 @@ const DiagnosticTick = 10 * time.Minute
 
 var shutdownOnce sync.Once
 
-// Unused variable to satisfy imports (secretstore, conncontroller, wslconn are used for counting)
 var _ = secretstore.CountSecrets
 var _ = conncontroller.GetNumSSHHasConnected
 var _ = wslconn.GetNumWSLHasConnected
@@ -78,7 +75,6 @@ func doShutdown(reason string) {
 		ctx, cancelFn := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancelFn()
 		go blockcontroller.StopAllBlockControllersForShutdown()
-		// Telemetry removed - no shutdown telemetry
 		clearTempFiles()
 		filestore.WFS.FlushCache(ctx)
 		watcher := wconfig.GetWatcher()
@@ -91,7 +87,6 @@ func doShutdown(reason string) {
 	})
 }
 
-// watch stdin, kill server if stdin is closed
 func stdinReadWatch() {
 	defer func() {
 		panichandler.PanicHandler("stdinReadWatch", recover())
@@ -192,7 +187,6 @@ func grabAndRemoveEnvVars() error {
 		return err
 	}
 
-	// Remove WAVETERM env vars that leak from prod => dev
 	os.Unsetenv("WAVETERM_CLIENTID")
 	os.Unsetenv("WAVETERM_WORKSPACEID")
 	os.Unsetenv("WAVETERM_TABID")
@@ -239,7 +233,7 @@ func maybeStartPprofServer() {
 }
 
 func main() {
-	log.SetFlags(0) // disable timestamp since electron's winston logger already wraps with timestamp
+	log.SetFlags(0)
 	log.SetPrefix("[wavesrv] ")
 	wavebase.WaveVersion = WaveVersion
 	wavebase.BuildTime = BuildTime
@@ -307,7 +301,6 @@ func main() {
 		log.Printf("error initializing wstore: %v\n", err)
 		return
 	}
-	// Telemetry removed - no panic telemetry handler
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("InitCustomShellStartupFiles", recover())
@@ -325,7 +318,6 @@ func main() {
 	if firstLaunch {
 		log.Printf("first launch detected")
 	}
-	// cache the clientId for use in wstore.GetClientId()
 	ctx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
 	clientData, err := wstore.DBGetSingleton[*waveobj.Client](ctx)
 	cancelFn()
@@ -358,10 +350,10 @@ func main() {
 	go stdinReadWatch()
 	go diagnosticLoop()
 	go backupCleanupLoop()
-	// Telemetry removed - no startup activity update, telemetry loops, or counts loops
 	blocklogger.InitBlockLogger()
 	jobcontroller.InitJobController()
 	blockcontroller.InitBlockController()
+	sessionhistoryservice.GetSessionHistoryService().StartCleanupScheduler(context.Background())
 	wcore.InitTabIndicatorStore()
 	go func() {
 		defer func() {
@@ -390,10 +382,9 @@ func main() {
 		if BuildTime == "" {
 			BuildTime = "0"
 		}
-		// use fmt instead of log here to make sure it goes directly to stderr
 		fmt.Fprintf(os.Stderr, "WAVESRV-ESTART ws:%s web:%s version:%s buildtime:%s\n", wsListener.Addr(), webListener.Addr(), WaveVersion, BuildTime)
 	}()
 	go wshutil.RunWshRpcOverListener(unixListener)
-	web.RunWebServer(webListener) // blocking
+	web.RunWebServer(webListener)
 	runtime.KeepAlive(waveLock)
 }
