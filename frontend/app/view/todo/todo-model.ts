@@ -87,7 +87,7 @@ export class TodoViewModel implements ViewModel {
 
         try {
             const fileData = await RpcApi.FileReadCommand(TabRpcClient, { info: { path: remotePath } }, null);
-            const content = fileData?.data64 ? atob(fileData.data64) : "";
+            const content = fileData?.data64 ? decodeURIComponent(escape(atob(fileData.data64))) : "";
             globalStore.set(this.fileContent, content);
         } catch (e) {
             const errStr = String(e);
@@ -170,7 +170,8 @@ export class TodoViewModel implements ViewModel {
         if (!text.trim()) return;
         const content = globalStore.get(this.fileContent);
         const newLine = `- [ ] ${text.trim()}`;
-        const newContent = content ? content + newLine + "\n" : newLine + "\n";
+        const separator = content && !content.endsWith("\n") ? "\n" : "";
+        const newContent = content ? content + separator + newLine + "\n" : newLine + "\n";
         globalStore.set(this.fileContent, newContent);
         globalStore.set(this.newTaskText, "");
         this.saveContent(newContent);

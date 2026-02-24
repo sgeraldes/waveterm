@@ -46,7 +46,7 @@ const JsonEditorModal = memo(({ model, blockId, configFile, onClose }: JsonEdito
 
             const keyDownDisposer = editor.onKeyDown((e: MonacoTypes.IKeyboardEvent) => {
                 const waveEvent = adaptFromReactOrNativeKeyEvent(e.browserEvent);
-                if (e.keyCode === 27 /* Escape */) {
+                if (e.browserEvent.key === "Escape") {
                     onClose();
                     e.stopPropagation();
                     e.preventDefault();

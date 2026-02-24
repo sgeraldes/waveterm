@@ -104,7 +104,7 @@ export class NotesViewModel implements ViewModel {
 
         try {
             const fileData = await RpcApi.FileReadCommand(TabRpcClient, { info: { path: remotePath } }, null);
-            const content = fileData?.data64 ? atob(fileData.data64) : "";
+            const content = fileData?.data64 ? decodeURIComponent(escape(atob(fileData.data64))) : "";
 
             const currentPath = globalStore.get(this.notesPath);
             if (currentPath === notesPath) {

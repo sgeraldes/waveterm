@@ -43,20 +43,20 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
         dragged: false,
     });
 
-    let prevDelta: number;
-    let prevDragDirection: string;
+    const prevDeltaRef = useRef<number>(0);
+    const prevDragDirectionRef = useRef<string>("");
 
     const getDragDirection = (currentX: number) => {
         let dragDirection: string;
-        if (currentX - prevDelta > 0) {
+        if (currentX - prevDeltaRef.current > 0) {
             dragDirection = "+";
-        } else if (currentX - prevDelta === 0) {
-            dragDirection = prevDragDirection;
+        } else if (currentX - prevDeltaRef.current === 0) {
+            dragDirection = prevDragDirectionRef.current;
         } else {
             dragDirection = "-";
         }
-        prevDelta = currentX;
-        prevDragDirection = dragDirection;
+        prevDeltaRef.current = currentX;
+        prevDragDirectionRef.current = dragDirection;
         return dragDirection;
     };
 

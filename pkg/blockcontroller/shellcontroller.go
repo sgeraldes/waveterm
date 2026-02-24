@@ -128,7 +128,7 @@ func (sc *ShellController) GetRuntimeStatus() *BlockControllerRuntimeStatus {
 	return &rtn
 }
 
-func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) error {
+func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) (rtnErr error) {
 	var shellInputCh chan *BlockInputUnion
 	sc.WithLock(func() {
 		shellInputCh = sc.ShellInputCh
@@ -136,6 +136,11 @@ func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) error {
 	if shellInputCh == nil {
 		return fmt.Errorf("no shell input chan")
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			rtnErr = fmt.Errorf("shell input chan closed")
+		}
+	}()
 	shellInputCh <- inputUnion
 	return nil
 }

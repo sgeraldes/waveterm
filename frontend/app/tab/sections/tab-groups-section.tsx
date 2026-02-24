@@ -2,7 +2,7 @@ import { atoms, globalStore, setActiveTab } from "@/app/store/global";
 import { ObjectService } from "@/app/store/services";
 import { makeORef, useWaveObjectValue } from "@/app/store/wos";
 import { fireAndForget } from "@/util/util";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 const TAB_COLORS = [
     { name: "Red", value: "#ef4444" },
@@ -32,7 +32,9 @@ interface GroupInfo {
 const TabDataReader = memo(
     ({ tabId, onTabData }: { tabId: string; onTabData: (tabId: string, tab: Tab | null) => void }) => {
         const [tabData] = useWaveObjectValue<Tab>(makeORef("tab", tabId));
-        onTabData(tabId, tabData ?? null);
+        useEffect(() => {
+            onTabData(tabId, tabData ?? null);
+        }, [tabId, tabData, onTabData]);
         return null;
     }
 );
