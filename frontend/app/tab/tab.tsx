@@ -23,6 +23,8 @@ import { makeORef, useWaveObjectValue } from "../store/wos";
 import { addPresetSubmenu } from "./tab-menu";
 import "./tab.scss";
 
+const MAX_TAB_NAME_LENGTH = 128;
+
 const TAB_COLORS = [
     { name: "Red", value: "#ef4444" },
     { name: "Orange", value: "#f97316" },
@@ -150,7 +152,7 @@ const Tab = memo(
                     editableRef.current.blur();
                     event.preventDefault();
                     event.stopPropagation();
-                } else if (curLen >= 128 && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+                } else if (curLen >= MAX_TAB_NAME_LENGTH && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
                     event.preventDefault();
                     event.stopPropagation();
                 }

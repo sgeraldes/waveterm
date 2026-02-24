@@ -50,7 +50,7 @@ export const useLongClick = (ref, onClick, onLongClick, disabled = false, ms = 3
             element.removeEventListener("mouseleave", stopPress);
             element.removeEventListener("click", handleClick);
         };
-    }, [ref.current, startPress, stopPress, handleClick, disabled]);
+    }, [ref, startPress, stopPress, handleClick, disabled]);
 
     return ref;
 };

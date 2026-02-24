@@ -9,7 +9,9 @@ const IMAGES_DIR = ".wave/images";
 
 export function generateImageFilename(): string {
     const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const random = Math.random().toString(36).slice(2, 10).padEnd(8, "0"); // 8 chars
+    const bytes = new Uint8Array(6);
+    crypto.getRandomValues(bytes);
+    const random = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
     return `${date}-${random}.png`;
 }
 
