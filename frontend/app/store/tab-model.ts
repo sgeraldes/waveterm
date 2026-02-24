@@ -217,16 +217,20 @@ export class TabModel {
             newStatus = "finished";
         }
 
+        // Read previous status before updating atom
+        const prevStatus = globalStore.get(this.terminalStatusAtom);
+
         // Update local atom for immediate reactivity within this webview
         globalStore.set(this.terminalStatusAtom, newStatus);
 
-        // Persist to tab metadata for cross-webview sync
-        // This allows other tab webviews to see the status in the tabbar
-        ObjectService.UpdateObjectMeta(WOS.makeORef("tab", this.tabId), {
-            "tab:termstatus": newStatus,
-        }).catch((err) => {
-            console.error("Failed to persist tab terminal status:", err);
-        });
+        // Only persist to backend when status actually changed
+        if (newStatus !== prevStatus) {
+            ObjectService.UpdateObjectMeta(WOS.makeORef("tab", this.tabId), {
+                "tab:termstatus": newStatus,
+            }).catch((err) => {
+                console.error("Failed to persist tab terminal status:", err);
+            });
+        }
     }
 }
 

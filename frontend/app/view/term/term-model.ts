@@ -1,7 +1,7 @@
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
 import { BlockNodeModel } from "@/app/block/blocktypes";
 import { appHandleKeyDown } from "@/app/store/keymodel";
-import { activeTabIdAtom, type TabModel } from "@/app/store/tab-model";
+import { type TabModel } from "@/app/store/tab-model";
 import { waveEventSubscribe } from "@/app/store/wps";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { makeFeBlockRouteId } from "@/app/store/wshrouter";
@@ -401,16 +401,6 @@ export class TermViewModel implements ViewModel {
         }
         const curStatus = globalStore.get(this.shellProcFullStatus);
         if (curStatus == null || curStatus.version < fullStatus.version) {
-            const wasRunning = curStatus?.shellprocstatus === "running";
-            const isNowDone = fullStatus.shellprocstatus === "done";
-            if (wasRunning && isNowDone) {
-                const activeTabId = globalStore.get(activeTabIdAtom);
-                const isTabActive = activeTabId === this.tabModel?.tabId;
-                if (!isTabActive && this.tabModel) {
-                    this.tabModel.setFinishedUnread();
-                }
-            }
-
             globalStore.set(this.shellProcFullStatus, fullStatus);
 
             this.updateTabTerminalStatus();

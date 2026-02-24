@@ -18,7 +18,7 @@ import clsx from "clsx";
 import { useAtomValue } from "jotai";
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ObjectService } from "../store/services";
-import { TabStatusType } from "../store/tab-model";
+import { getTabModelByTabId, TabStatusType } from "../store/tab-model";
 import { makeORef, useWaveObjectValue } from "../store/wos";
 import { addPresetSubmenu } from "./tab-menu";
 import "./tab.scss";
@@ -79,11 +79,8 @@ const Tab = memo(
                 if (active && isDocVisible && (tabStatus === "finished" || tabStatus === "stopped")) {
                     const delay = tabStatus === "stopped" ? 3000 : 2000;
                     const timer = setTimeout(() => {
-                        fireAndForget(() =>
-                            ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                                "tab:termstatus": null,
-                            })
-                        );
+                        const tabModel = getTabModelByTabId(id);
+                        tabModel.clearFinishedUnread();
                     }, delay);
                     return () => clearTimeout(timer);
                 }
@@ -404,7 +401,6 @@ const Tab = memo(
                         dragging: isDragging,
                         "before-active": isBeforeActive,
                         "new-tab": isNew,
-                        "has-color": !!tabColor,
                     })}
                     role="tab"
                     aria-selected={active}

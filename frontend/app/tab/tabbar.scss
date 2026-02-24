@@ -96,3 +96,14 @@
         --os-handle-border-radius: 2px;
     }
 }
+
+// Light theme overrides
+[data-theme="light"] {
+    .tab-bar-wrapper .tab-management-btn {
+        background: rgba(0, 0, 0, 0.06);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+    }
+}
