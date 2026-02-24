@@ -21,6 +21,14 @@ import (
 // InvalidWslDistroNames are WSL distros that should be filtered out
 var InvalidWslDistroNames = []string{"docker-desktop", "docker-desktop-data", "rancher-desktop"}
 
+// InvalidShellPaths are shell paths that should be filtered out (Visual Studio, etc.)
+var InvalidShellPaths = []string{
+	"Visual Studio",
+	"Microsoft Visual Studio",
+	"Developer Command Prompt",
+	"Developer PowerShell",
+}
+
 // detectPlatformShells detects all available shells on Windows
 func detectPlatformShells(config *wconfig.FullConfigType, rescan bool) ([]DetectedShell, error) {
 	var shells []DetectedShell
@@ -112,6 +120,12 @@ func detectPowerShellCore() []DetectedShell {
 			continue
 		}
 
+		// Filter out Visual Studio and other invalid shell paths
+		if isInvalidShellPath(checkPath) {
+			log.Printf("debug: skipping invalid shell path: %s", checkPath)
+			continue
+		}
+
 		// Detect version
 		version := getShellVersionSafe(checkPath, ShellType_pwsh)
 		name := "PowerShell"
@@ -199,7 +213,7 @@ func detectGitBash(config *wconfig.FullConfigType, rescan bool) *DetectedShell {
 		ShellPath: gitBashPath,
 		ShellType: ShellType_bash,
 		Source:    ShellSource_File,
-		Icon:      ShellIcon_Terminal,
+		Icon:      ShellIcon_GitBash,
 	}
 }
 
@@ -224,21 +238,19 @@ func detectWslDistros() []DetectedShell {
 			continue
 		}
 
-		// WSL shells use wsl.exe with -d flag
-		// The path format is: wsl.exe -d <distroname>
-		// We store just the distro name in the path for identification
-		shellPath := fmt.Sprintf("wsl://%s", distroName)
-
+		// WSL shell is detected at runtime from within the distro.
+		// ShellPath is left empty — the actual shell comes from remoteInfo.Shell.
 		shell := DetectedShell{
-			ID:        GenerateShellID("wsl", shellPath),
+			ID:        GenerateShellID("wsl", distroName),
 			Name:      fmt.Sprintf("WSL: %s", distroName),
-			ShellPath: shellPath,
+			ShellPath: "",
 			ShellType: ShellType_bash, // Default to bash for WSL
 			Source:    ShellSource_Wsl,
-			Icon:      ShellIcon_Linux,
+			Icon:      getWslDistroIcon(distroName),
+			WslDistro: distroName,
 		}
 
-		// Check if this is the default distro (just update the name, keep wsl:// path format)
+		// Check if this is the default distro
 		defaultDistro, ok, _ := wsl.DefaultDistro(ctx)
 		if ok && defaultDistro.Name() == distroName {
 			shell.IsDefault = true
@@ -251,11 +263,37 @@ func detectWslDistros() []DetectedShell {
 	return shells
 }
 
+// getWslDistroIcon returns the appropriate icon for a WSL distribution
+func getWslDistroIcon(distroName string) string {
+	nameLower := strings.ToLower(distroName)
+	if strings.Contains(nameLower, "ubuntu") {
+		return ShellIcon_Ubuntu
+	}
+	if strings.Contains(nameLower, "debian") {
+		return ShellIcon_Debian
+	}
+	if strings.Contains(nameLower, "fedora") {
+		return ShellIcon_Fedora
+	}
+	return ShellIcon_Linux
+}
+
 // isInvalidWslDistro checks if a distro name should be filtered out
 func isInvalidWslDistro(name string) bool {
 	nameLower := strings.ToLower(name)
 	for _, invalid := range InvalidWslDistroNames {
 		if strings.HasPrefix(nameLower, strings.ToLower(invalid)) {
+			return true
+		}
+	}
+	return false
+}
+
+// isInvalidShellPath checks if a shell path should be filtered out (Visual Studio shells, etc.)
+func isInvalidShellPath(shellPath string) bool {
+	pathLower := strings.ToLower(shellPath)
+	for _, invalid := range InvalidShellPaths {
+		if strings.Contains(pathLower, strings.ToLower(invalid)) {
 			return true
 		}
 	}

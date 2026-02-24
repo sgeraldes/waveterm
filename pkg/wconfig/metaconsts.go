@@ -55,6 +55,7 @@ const (
 	ConfigKey_TermBellSound                  = "term:bellsound"
 	ConfigKey_TermBellIndicator              = "term:bellindicator"
 	ConfigKey_TermDurable                    = "term:durable"
+	ConfigKey_TermReportFocus                = "term:reportfocus"
 
 	ConfigKey_EditorMinimapEnabled           = "editor:minimapenabled"
 	ConfigKey_EditorStickyScrollEnabled      = "editor:stickyscrollenabled"
@@ -111,6 +112,10 @@ const (
 	ConfigKey_ConnAskBeforeWshInstall        = "conn:askbeforewshinstall"
 	ConfigKey_ConnWshEnabled                 = "conn:wshenabled"
 	ConfigKey_ConnLocalHostnameDisplay       = "conn:localhostdisplayname"
+
+	ConfigKey_ShellClear                     = "shell:*"
+	ConfigKey_ShellDefault                   = "shell:default"
+	ConfigKey_ShellProfiles                  = "shell:profiles"
 
 	ConfigKey_DebugClear                     = "debug:*"
 	ConfigKey_DebugPprofPort                 = "debug:pprofport"

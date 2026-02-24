@@ -99,6 +99,17 @@
                     gap: 8px;
                     overflow-x: hidden;
 
+                    &.clickable {
+                        cursor: pointer;
+                        border-radius: 4px;
+                        padding: 2px 6px;
+                        margin: -2px -6px;
+
+                        &:hover {
+                            background-color: var(--highlight-bg-color);
+                        }
+                    }
+
                     .block-frame-view-icon {
                         font-size: var(--header-icon-size);
                         opacity: 0.5;
@@ -178,6 +189,34 @@
                         svg {
                             fill: var(--warning-color);
                         }
+                    }
+                }
+
+                .shell-button {
+                    display: flex;
+                    align-items: center;
+                    flex-wrap: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    min-width: 0;
+                    font-weight: 400;
+                    color: var(--main-text-color);
+                    border-radius: 2px;
+                    padding: 2px 4px;
+                    cursor: pointer;
+
+                    &:hover {
+                        background-color: var(--highlight-bg-color);
+                    }
+
+                    .shell-icon {
+                        flex-shrink: 0;
+                    }
+
+                    .shell-name {
+                        flex: 1 1 auto;
+                        overflow: hidden;
+                        padding-right: 4px;
                     }
                 }
 

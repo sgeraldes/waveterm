@@ -174,6 +174,40 @@ export class TermWrap {
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
+
+        // Register CSI handler to optionally block DEC mode 1004 (focus reporting)
+        // This prevents applications like Claude Code from receiving focus events
+        // which can cause jarring UI changes when the terminal loses/gains focus
+        // Default is DISABLED (false) to protect users from UI corruption issues
+        this.terminal.parser.registerCsiHandler({ prefix: "?", final: "h" }, (params: (number | number[])[]) => {
+            const reportFocusEnabled =
+                globalStore.get(getOverrideConfigAtom(this.blockId, "term:reportfocus")) ?? false;
+            if (!reportFocusEnabled) {
+                // Check if any param is mode 1004 (send focus events)
+                let has1004 = false;
+                for (const param of params) {
+                    if (param === 1004 || (Array.isArray(param) && param.includes(1004))) {
+                        has1004 = true;
+                        break;
+                    }
+                }
+                if (has1004) {
+                    dlog("Blocking DEC mode 1004 (focus reporting) - term:reportfocus is disabled");
+                    // Filter out mode 1004 and let other modes through
+                    const remainingModes = (params as number[]).filter((p) => p !== 1004);
+                    if (remainingModes.length > 0) {
+                        // Re-emit the CSI sequence without mode 1004
+                        const seq = `\x1b[?${remainingModes.join(";")}h`;
+                        this.terminal.write(seq);
+                    }
+                    // Return true to prevent the original (full) sequence from being processed
+                    return true;
+                }
+            }
+            // Return false to let the default handler process this CSI sequence
+            return false;
+        });
+
         this.toDispose.push(
             this.terminal.onBell(() => {
                 if (!this.loaded) {

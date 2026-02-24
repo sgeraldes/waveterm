@@ -49,7 +49,7 @@ export class TermViewModel implements ViewModel {
     blockAtom: jotai.Atom<Block>;
     termMode: jotai.Atom<string>;
     blockId: string;
-    viewIcon: jotai.Atom<IconButtonDecl>;
+    viewIcon: jotai.Atom<string | IconButtonDecl>;
     viewName: jotai.Atom<string>;
     viewText: jotai.Atom<HeaderElem[]>;
     blockBg: jotai.Atom<MetaType>;
@@ -91,15 +91,50 @@ export class TermViewModel implements ViewModel {
             return blockData?.meta?.["term:mode"] ?? "term";
         });
         this.isRestarting = jotai.atom(false);
-        this.viewIcon = jotai.atom((get) => {
-            return { elemtype: "iconbutton", icon: "terminal" };
+        this.viewIcon = jotai.atom((get): string | IconButtonDecl => {
+            const blockData = get(this.blockAtom);
+            const fullConfig = get(atoms.fullConfigAtom);
+            const shellProfile = blockData?.meta?.["shell:profile"] || "";
+            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+            const effectiveShell = shellProfile || defaultShell;
+
+            // Return appropriate icon for the shell
+            const lowerId = effectiveShell.toLowerCase();
+            if (effectiveShell.startsWith("wsl:")) return "brands@linux";
+            if (lowerId === "cmd") return "brands@windows";
+            if (lowerId.includes("pwsh") || lowerId.includes("powershell")) return "terminal";
+            if (lowerId.includes("gitbash") || lowerId.includes("git-bash")) return "brands@git-alt";
+            return "terminal";
         });
         this.viewName = jotai.atom((get) => {
             const blockData = get(this.blockAtom);
             if (blockData?.meta?.controller == "cmd") {
                 return "";
             }
-            return "";
+            const fullConfig = get(atoms.fullConfigAtom);
+            const shellProfile = blockData?.meta?.["shell:profile"] || "";
+            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+            const effectiveShell = shellProfile || defaultShell;
+            const isDefault = !shellProfile || effectiveShell === defaultShell;
+
+            // Format shell name for display
+            let displayName: string;
+            if (effectiveShell.startsWith("wsl:")) {
+                displayName = effectiveShell.substring(4);
+            } else {
+                const lowerId = effectiveShell.toLowerCase();
+                if (lowerId === "pwsh" || lowerId === "powershell") {
+                    displayName = "PowerShell";
+                } else if (lowerId.startsWith("pwsh-")) {
+                    displayName = `PowerShell ${effectiveShell.substring(5)}`;
+                } else if (lowerId === "cmd") {
+                    displayName = "CMD";
+                } else {
+                    displayName = effectiveShell.charAt(0).toUpperCase() + effectiveShell.slice(1);
+                }
+            }
+
+            return isDefault ? `${displayName} (default)` : displayName;
         });
         this.viewText = jotai.atom((get) => {
             const rtn: HeaderElem[] = [];

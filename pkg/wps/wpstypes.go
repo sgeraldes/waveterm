@@ -22,8 +22,6 @@ const (
 	Event_RouteUp             = "route:up"
 	Event_WorkspaceUpdate     = "workspace:update"
 	Event_WaveAIRateLimit     = "waveai:ratelimit"
-	Event_WaveAppAppGoUpdated = "waveapp:appgoupdated"
-	Event_TsunamiUpdateMeta   = "tsunami:updatemeta"
 	Event_AIModeConfig        = "waveai:modeconfig"
 	Event_TabIndicator        = "tab:indicator"
 	Event_BlockJobStatus      = "block:jobstatus" // type: BlockJobStatusData

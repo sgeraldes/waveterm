@@ -6,6 +6,7 @@ import { BlockFrame_Header } from "@/app/block/blockframe-header";
 import { blockViewToIcon, getViewIconElem } from "@/app/block/blockutil";
 import { ConnStatusOverlay } from "@/app/block/connstatusoverlay";
 import { ChangeConnectionBlockModal } from "@/app/modals/conntypeahead";
+import { ShellSelectorModal } from "@/app/modals/shellselector";
 import { atoms, getBlockComponentModel, getSettingsKeyAtom, globalStore, useBlockAtom, WOS } from "@/app/store/global";
 import { useTabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
@@ -98,6 +99,10 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
         return jotai.atom(false);
     }) as jotai.PrimitiveAtom<boolean>;
     const connModalOpen = jotai.useAtomValue(changeConnModalAtom);
+    const changeShellModalAtom = useBlockAtom(nodeModel.blockId, "changeShell", () => {
+        return jotai.atom(false);
+    }) as jotai.PrimitiveAtom<boolean>;
+    const shellModalOpen = jotai.useAtomValue(changeShellModalAtom);
     const isMagnified = jotai.useAtomValue(nodeModel.isMagnified);
     const isEphemeral = jotai.useAtomValue(nodeModel.isEphemeral);
     const [magnifiedBlockBlurAtom] = React.useState(() => getSettingsKeyAtom("window:magnifiedblockblurprimarypx"));
@@ -105,6 +110,7 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
     const [magnifiedBlockOpacityAtom] = React.useState(() => getSettingsKeyAtom("window:magnifiedblockopacity"));
     const magnifiedBlockOpacity = jotai.useAtomValue(magnifiedBlockOpacityAtom);
     const connBtnRef = React.useRef<HTMLDivElement>(null);
+    const shellBtnRef = React.useRef<HTMLDivElement>(null);
     const noHeader = util.useAtomValueSafe(viewModel?.noHeader);
 
     React.useEffect(() => {
@@ -149,7 +155,11 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
     }
     const previewElem = <div className="block-frame-preview">{viewIconElem}</div>;
     const headerElem = (
-        <BlockFrame_Header {...props} connBtnRef={connBtnRef} changeConnModalAtom={changeConnModalAtom} />
+        <BlockFrame_Header
+            {...props}
+            connBtnRef={connBtnRef}
+            changeConnModalAtom={changeConnModalAtom}
+        />
     );
     const headerElemNoView = React.cloneElement(headerElem, { viewModel: null });
     return (
@@ -194,6 +204,15 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
                     blockRef={blockModel?.blockRef}
                     changeConnModalAtom={changeConnModalAtom}
                     connBtnRef={connBtnRef}
+                />
+            )}
+            {preview || viewModel == null || !shellModalOpen ? null : (
+                <ShellSelectorModal
+                    blockId={nodeModel.blockId}
+                    blockRef={blockModel?.blockRef}
+                    shellBtnRef={shellBtnRef}
+                    changeShellModalAtom={changeShellModalAtom}
+                    nodeModel={nodeModel}
                 />
             )}
         </div>

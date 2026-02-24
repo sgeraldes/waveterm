@@ -147,6 +147,11 @@ class RpcApiType {
         return client.wshRpcCall("deleteblock", data, opts);
     }
 
+    // command "deleteshellprofile" [call]
+    DeleteShellProfileCommand(client: WshClient, data: DeleteShellProfileRequest, opts?: RpcOpts): Promise<void> {
+        return client.wshRpcCall("deleteshellprofile", data, opts);
+    }
+
     // command "deletesubblock" [call]
     DeleteSubBlockCommand(client: WshClient, data: CommandDeleteBlockData, opts?: RpcOpts): Promise<void> {
         return client.wshRpcCall("deletesubblock", data, opts);
@@ -457,6 +462,11 @@ class RpcApiType {
         return client.wshRpcCall("jobstartstream", data, opts);
     }
 
+    // command "mergeshellprofiles" [call]
+    MergeShellProfilesCommand(client: WshClient, data: MergeShellProfilesRequest, opts?: RpcOpts): Promise<MergeShellProfilesResponse> {
+        return client.wshRpcCall("mergeshellprofiles", data, opts);
+    }
+
     // command "message" [call]
     MessageCommand(client: WshClient, data: CommandMessageData, opts?: RpcOpts): Promise<void> {
         return client.wshRpcCall("message", data, opts);
@@ -650,6 +660,11 @@ class RpcApiType {
     // command "setsecrets" [call]
     SetSecretsCommand(client: WshClient, data: {[key: string]: string}, opts?: RpcOpts): Promise<void> {
         return client.wshRpcCall("setsecrets", data, opts);
+    }
+
+    // command "setshellprofile" [call]
+    SetShellProfileCommand(client: WshClient, data: SetShellProfileRequest, opts?: RpcOpts): Promise<void> {
+        return client.wshRpcCall("setshellprofile", data, opts);
     }
 
     // command "setvar" [call]

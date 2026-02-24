@@ -7,7 +7,7 @@
     "productName": "Wave",
     "description": "Open-Source AI-Native Terminal Built for Seamless Workflows",
     "license": "Apache-2.0",
-    "version": "0.14.2",
+    "version": "0.14.3",
     "homepage": "https://waveterm.dev",
     "build": {
         "appId": "dev.commandline.waveterm"
@@ -149,8 +149,7 @@
     },
     "packageManager": "npm@10.9.2",
     "workspaces": [
-        "docs",
-        "tsunami/frontend"
+        "docs"
     ],
     "overrides": {
         "lodash-es": "^4.17.23"

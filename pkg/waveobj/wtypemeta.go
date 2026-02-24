@@ -14,6 +14,7 @@ type MetaTSType struct {
 	Url            string   `json:"url,omitempty"`
 	PinnedUrl      string   `json:"pinnedurl,omitempty"`
 	Connection     string   `json:"connection,omitempty"`
+	ShellProfile   string   `json:"shell:profile,omitempty"` // shell profile ID for local shells (new shell selector feature)
 	Edit           bool     `json:"edit,omitempty"`
 	History        []string `json:"history,omitempty"`
 	HistoryForward []string `json:"history:forward,omitempty"`
@@ -119,6 +120,7 @@ type MetaTSType struct {
 	TermBellSound           *bool    `json:"term:bellsound,omitempty"`
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
 	TermDurable             *bool    `json:"term:durable,omitempty"`
+	TermReportFocus         *bool    `json:"term:reportfocus,omitempty"`
 
 	TermHistoryBlockId string `json:"termhistory:blockid,omitempty"`
 

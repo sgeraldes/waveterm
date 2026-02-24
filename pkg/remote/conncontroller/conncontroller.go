@@ -104,7 +104,12 @@ func IsLocalConnName(connName string) bool {
 	}
 
 	// Check if this connection is defined as a local shell profile in connections.json
-	return IsLocalShellProfile(connName)
+	if IsLocalShellProfile(connName) {
+		return true
+	}
+
+	// Check if this is a local shell profile ID from shell:profiles settings
+	return IsLocalShellProfileId(connName)
 }
 
 // IsLocalShellProfile checks if a connection name refers to a local shell profile
@@ -138,6 +143,24 @@ func IsLocalShellProfile(connName string) bool {
 
 func IsWslConnName(connName string) bool {
 	return strings.HasPrefix(connName, "wsl://")
+}
+
+// IsLocalShellProfileId checks if a name refers to a local (non-WSL) shell profile
+// defined in the shell:profiles settings. This handles legacy blocks that stored
+// shell profile IDs in the connection field.
+func IsLocalShellProfileId(name string) bool {
+	if name == "" {
+		return false
+	}
+	config := wconfig.GetWatcher().GetFullConfig()
+	if config.Settings.ShellProfiles == nil {
+		return false
+	}
+	profile, ok := config.Settings.ShellProfiles[name]
+	if !ok {
+		return false
+	}
+	return !profile.IsWsl
 }
 
 func GetAllConnStatus() []wshrpc.ConnStatus {

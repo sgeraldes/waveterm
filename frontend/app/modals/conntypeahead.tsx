@@ -8,7 +8,9 @@ import {
     atoms,
     createBlock,
     getConnStatusAtom,
+    getHostName,
     getLocalHostDisplayNameAtom,
+    getUserName,
     globalStore,
     WOS,
 } from "@/app/store/global";
@@ -150,38 +152,6 @@ function createFilteredLocalSuggestionItem(
     return [];
 }
 
-/**
- * Create suggestion items for local shell profiles from connections config
- */
-function createLocalShellProfileItems(
-    localShellProfiles: Array<string>,
-    connection: string,
-    connStatusMap: Map<string, ConnStatus>,
-    fullConfig: FullConfigType
-): Array<SuggestionConnectionItem> {
-    return localShellProfiles.map((connName) => {
-        const connStatus = connStatusMap.get(connName);
-        const connColorNum = computeConnColorNum(connStatus);
-        const connSettings = fullConfig.connections?.[connName];
-        // Use display name if available, otherwise use connection name
-        const displayName = connSettings?.["display:name"] || connName;
-        // Get shell-specific icon based on name and config
-        const iconInfo = getShellIconForConnection(connName, connSettings);
-        const icon = iconInfo.isBrand ? `brands@${iconInfo.icon}` : iconInfo.icon;
-        const item: SuggestionConnectionItem = {
-            status: "connected",
-            icon: icon,
-            iconColor:
-                connStatus?.status == "connected" ? `var(--conn-icon-color-${connColorNum})` : "var(--grey-text-color)",
-            value: connName,
-            label: displayName,
-            current: connName == connection,
-        };
-        return item;
-    });
-}
-
-
 function getReconnectItem(
     connStatus: ConnStatus,
     connSelected: string,
@@ -213,56 +183,20 @@ function getReconnectItem(
 function getLocalSuggestions(
     localName: string,
     wslList: Array<string>,
-    localShellProfiles: Array<string>,
     connection: string,
     connSelected: string,
     connStatusMap: Map<string, ConnStatus>,
     fullConfig: FullConfigType,
-    filterOutNowsh: boolean,
-    hasGitBash: boolean
+    filterOutNowsh: boolean
 ): SuggestionConnectionScope | null {
+    // WSL distributions represent different filesystem environments, so they stay here
+    // Local shell profiles (pwsh, cmd, bash) are now handled by the shell selector
     const wslFiltered = filterConnections(wslList, connSelected, fullConfig, filterOutNowsh);
     const wslSuggestionItems = createWslSuggestionItems(wslFiltered, connection, connStatusMap);
     const localSuggestionItem = createFilteredLocalSuggestionItem(localName, connection, connSelected);
 
-    // Local shell profiles from connections config
-    // Only show shell profiles when NOT in file browser mode (filterOutNowsh=false)
-    // because shell profiles like cmd, pwsh, git-bash share the same Windows filesystem
-    // and don't provide a different filesystem to browse
-    let localShellProfileItems: Array<SuggestionConnectionItem> = [];
-    let gitBashItems: Array<SuggestionConnectionItem> = [];
-
-    if (!filterOutNowsh) {
-        // Terminal mode: show all shell profiles
-        const localShellProfilesFiltered = filterConnections(
-            localShellProfiles,
-            connSelected,
-            fullConfig,
-            filterOutNowsh
-        );
-        localShellProfileItems = createLocalShellProfileItems(
-            localShellProfilesFiltered,
-            connection,
-            connStatusMap,
-            fullConfig
-        );
-
-        if (hasGitBash && "Git Bash".toLowerCase().includes(connSelected.toLowerCase())) {
-            gitBashItems.push({
-                status: "connected",
-                icon: "laptop",
-                iconColor: "var(--grey-text-color)",
-                value: "local:gitbash",
-                label: "Git Bash",
-                current: connection === "local:gitbash",
-            });
-        }
-    }
-
     const combinedSuggestionItems = [
         ...localSuggestionItem,
-        ...gitBashItems,
-        ...localShellProfileItems,
         ...wslSuggestionItems,
     ];
     const sortedSuggestionItems = sortConnSuggestionItems(combinedSuggestionItems, fullConfig);
@@ -476,27 +410,19 @@ const ChangeConnectionBlockModal = React.memo(
 
         const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom);
 
-        // Split connList into local shell profiles and remote connections
-        const localShellProfiles: Array<string> = [];
-        const remoteConnections: Array<string> = [];
-        for (const conn of connList) {
-            if (util.isLocalShellProfile(conn, fullConfig.connections)) {
-                localShellProfiles.push(conn);
-            } else {
-                remoteConnections.push(conn);
-            }
-        }
+        // Filter out local shell profiles from connList - they're now handled by shell selector
+        const remoteConnections = connList.filter(
+            (conn) => !util.isLocalShellProfile(conn, fullConfig.connections)
+        );
 
         const localSuggestions = getLocalSuggestions(
             localName,
             wslList,
-            localShellProfiles,
             connection,
             connSelected,
             connStatusMap,
             fullConfig,
-            filterOutNowsh,
-            hasGitBash
+            filterOutNowsh
         );
         const remoteSuggestions = getRemoteSuggestions(
             remoteConnections,

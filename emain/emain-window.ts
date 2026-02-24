@@ -432,10 +432,9 @@ export class WaveBrowserWindow extends BaseWindow {
             const p2 = this.repositionTabsSlowly(100);
             await Promise.all([p1, p2]);
         } else {
-            console.log("reusing an existing tab, calling wave-init", tabView.waveTabId);
-            const p1 = this.repositionTabsSlowly(35);
-            const p2 = tabView.webContents.send("wave-init", tabView.savedInitOpts); // reinit
-            await Promise.all([p1, p2]);
+            console.log("reusing an existing tab, sending wave-activate", tabView.waveTabId);
+            tabView.webContents.send("wave-activate");
+            await this.repositionTabsSlowly(35);
         }
 
         // something is causing the new tab to lose focus so it requires manual refocusing

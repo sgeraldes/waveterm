@@ -111,6 +111,7 @@ declare global {
         closeTab: (workspaceId: string, tabId: string) => void; // close-tab
         setWindowInitStatus: (status: "ready" | "wave-ready") => void; // set-window-init-status
         onWaveInit: (callback: (initOpts: WaveInitOpts) => void) => void; // wave-init
+        onWaveActivate: (callback: () => void) => void; // wave-activate
         sendLog: (log: string) => void; // fe-log
         onQuicklook: (filePath: string) => void; // quicklook
         openNativePath(filePath: string): void; // open-native-path

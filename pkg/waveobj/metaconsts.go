@@ -18,6 +18,8 @@ const (
 
 	MetaKey_Connection                       = "connection"
 
+	MetaKey_ShellProfile                     = "shell:profile"
+
 	MetaKey_Edit                             = "edit"
 
 	MetaKey_History                          = "history"
@@ -124,6 +126,7 @@ const (
 	MetaKey_TermBellSound                    = "term:bellsound"
 	MetaKey_TermBellIndicator                = "term:bellindicator"
 	MetaKey_TermDurable                      = "term:durable"
+	MetaKey_TermReportFocus                  = "term:reportfocus"
 
 	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
 

@@ -44,7 +44,6 @@ function getConnectionDisplayName(
         if (connectionsConfig?.[connection]?.["display:name"]) {
             return { displayName: connectionsConfig[connection]["display:name"], icon: "terminal", isWsl: false };
         }
-        // Format the profile name nicely
         return { displayName: formatShellName(profileName), icon: "terminal", isWsl: false };
     }
 
@@ -263,6 +262,122 @@ export function getViewIconElem(
         return <IconButton decl={viewIconUnion} className="block-frame-view-icon" />;
     }
 }
+
+/**
+ * Gets shell profile display info from a profile ID.
+ * Falls back to formatting the ID as a display name if no profile config exists.
+ * When profileId is blank, uses the default shell setting.
+ */
+function getShellProfileDisplayInfo(
+    profileId: string,
+    shellProfiles?: Record<string, ShellProfileType>,
+    defaultShell?: string
+): { displayName: string; icon: string; isDefault: boolean } {
+    // Use default shell when profileId is blank
+    const effectiveProfileId = util.isBlank(profileId) ? (defaultShell || "pwsh") : profileId;
+    const isDefault = util.isBlank(profileId) || effectiveProfileId === defaultShell;
+
+    // Check configured shell profiles
+    if (shellProfiles?.[effectiveProfileId]) {
+        const profile = shellProfiles[effectiveProfileId];
+        return {
+            displayName: profile["display:name"] || formatShellName(effectiveProfileId),
+            icon: profile["display:icon"] || getShellIcon(effectiveProfileId, profile),
+            isDefault,
+        };
+    }
+
+    // Handle WSL profile IDs (wsl:DistroName)
+    if (effectiveProfileId.startsWith("wsl:")) {
+        const distroName = effectiveProfileId.substring(4);
+        return { displayName: distroName, icon: "brands@linux", isDefault };
+    }
+
+    // Fallback to formatted profile ID
+    return { displayName: formatShellName(effectiveProfileId), icon: getShellIcon(effectiveProfileId, null), isDefault };
+}
+
+/**
+ * Gets appropriate icon for a shell profile.
+ */
+function getShellIcon(profileId: string, profile: ShellProfileType | null): string {
+    // Check if profile has a custom icon
+    if (profile?.["display:icon"]) {
+        return profile["display:icon"];
+    }
+
+    // WSL distros
+    if (profile?.["shell:iswsl"] || profileId.startsWith("wsl:")) {
+        return "brands@linux";
+    }
+
+    const lowerId = profileId.toLowerCase();
+
+    // PowerShell
+    if (lowerId.includes("pwsh") || lowerId.includes("powershell")) {
+        return "terminal"; // Could use brands@windows but terminal is more recognizable
+    }
+
+    // CMD
+    if (lowerId === "cmd") {
+        return "brands@windows";
+    }
+
+    // Git Bash
+    if (lowerId.includes("gitbash") || lowerId.includes("git-bash")) {
+        return "brands@git-alt";
+    }
+
+    // Bash/Zsh/Fish/Other Unix shells
+    if (lowerId === "bash" || lowerId === "zsh" || lowerId === "fish" || lowerId === "sh") {
+        return "terminal";
+    }
+
+    // Default
+    return "terminal";
+}
+
+interface ShellButtonProps {
+    shellProfile: string;
+    changeShellModalAtom: jotai.PrimitiveAtom<boolean>;
+}
+
+/**
+ * ShellButton displays the current shell name for local shells.
+ * Unlike ConnectionButton, it has no connection status indicators since shells
+ * are local processes, not network connections.
+ */
+export const ShellButton = React.memo(
+    React.forwardRef<HTMLDivElement, ShellButtonProps>(
+        ({ shellProfile, changeShellModalAtom }: ShellButtonProps, ref) => {
+            const [, setShellModalOpen] = jotai.useAtom(changeShellModalAtom);
+            const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
+            const shellProfiles = fullConfig?.settings?.["shell:profiles"];
+            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+
+            const { displayName, icon, isDefault } = getShellProfileDisplayInfo(shellProfile, shellProfiles, defaultShell);
+            const displayLabel = isDefault ? `${displayName} (default)` : displayName;
+
+            const clickHandler = function () {
+                recordTEvent("action:other", { "action:type": "shellselector", "action:initiator": "mouse" });
+                setShellModalOpen(true);
+            };
+
+            const titleText = `Shell: ${displayName}${isDefault ? " (default)" : ""}`;
+
+            return (
+                <div ref={ref} className={clsx("shell-button")} onClick={clickHandler} title={titleText}>
+                    <i
+                        className={clsx(util.makeIconClass(icon, false), "shell-icon")}
+                        style={{ color: "var(--grey-text-color)", marginRight: 4 }}
+                    />
+                    <div className="shell-name ellipsis">{displayLabel}</div>
+                </div>
+            );
+        }
+    )
+);
+
 
 export const Input = React.memo(
     ({ decl, className, preview }: { decl: HeaderInput; className: string; preview: boolean }) => {

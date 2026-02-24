@@ -3,6 +3,7 @@
 
 export const DefaultTermTheme = "default-dark";
 export const DefaultLightTermTheme = "light-default";
+import { getResolvedTheme } from "@/app/hook/usetheme";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import base64 from "base64-js";
@@ -21,13 +22,15 @@ export function computeTheme(
     themeName: string,
     termTransparency: number
 ): [TermThemeType, string] {
-    // Use the specified theme name, or fall back to default dark
-    const effectiveThemeName = themeName || DefaultTermTheme;
+    // Use the specified theme name, or fall back to the appropriate default
+    // based on whether the app is in light or dark mode
+    const defaultTheme = getResolvedTheme() === "light" ? DefaultLightTermTheme : DefaultTermTheme;
+    const effectiveThemeName = themeName || defaultTheme;
 
     let theme: TermThemeType = fullConfig?.termthemes?.[effectiveThemeName];
     if (theme == null) {
-        // Fallback to default dark theme
-        theme = fullConfig?.termthemes?.[DefaultTermTheme] || ({} as any);
+        // Fallback to default theme for the current mode
+        theme = fullConfig?.termthemes?.[defaultTheme] || ({} as any);
     }
     const themeCopy = { ...theme };
     if (termTransparency != null && termTransparency > 0) {

@@ -341,6 +341,45 @@ func main() {
 	if err != nil {
 		log.Printf("error fixing up wave zsh history: %v\n", err)
 	}
+	// Auto-detect shells on startup and merge with existing profiles
+	go func() {
+		defer func() {
+			panichandler.PanicHandler("AutoDetectShells", recover())
+		}()
+		w := wconfig.GetWatcher()
+		if w == nil {
+			log.Printf("warning: config watcher not available, skipping shell auto-detection")
+			return
+		}
+		fullConfig := w.GetFullConfig()
+		detectedShells, err := shellutil.DetectAllShells(&fullConfig, false)
+		if err != nil {
+			log.Printf("error detecting shells: %v\n", err)
+			return
+		}
+		// Convert to ShellProfileType for merging
+		profiles := make([]wconfig.ShellProfileType, len(detectedShells))
+		for i, shell := range detectedShells {
+			profiles[i] = wconfig.ShellProfileType{
+				DisplayName:  shell.Name,
+				DisplayIcon:  shell.Icon,
+				ShellPath:    shell.ShellPath,
+				ShellType:    shell.ShellType,
+				Source:       shell.Source,
+				Autodetected: true,
+			}
+			if shell.Source == shellutil.ShellSource_Wsl {
+				profiles[i].IsWsl = true
+				profiles[i].WslDistro = shell.WslDistro
+			}
+		}
+		added, err := wconfig.MergeDetectedShellProfiles(profiles)
+		if err != nil {
+			log.Printf("error merging shell profiles: %v\n", err)
+		} else if added > 0 {
+			log.Printf("auto-detected %d new shell profiles\n", added)
+		}
+	}()
 	createMainWshClient()
 	sigutil.InstallShutdownSignalHandlers(doShutdown)
 	sigutil.InstallSIGUSR1Handler()
