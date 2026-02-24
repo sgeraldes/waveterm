@@ -224,6 +224,9 @@ func (sc *ShellController) DoRunShellCommand(logCtx context.Context, rc *RunShel
 	blocklogger.Debugf(logCtx, "[conndebug] DoRunShellCommand\n")
 	shellProc, err := sc.setupAndStartShellProcess(logCtx, rc, blockMeta)
 	if err != nil {
+		errMsg := fmt.Sprintf("\r\n\x1b[31mError starting shell: %v\x1b[0m\r\n\r\n", err)
+		HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(errMsg))
+		debugLog(logCtx, "error running shell: %v\n", err)
 		return err
 	}
 	return sc.manageRunningShellProcess(shellProc, rc, blockMeta)
@@ -365,6 +368,10 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 }
 
 func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc *RunShellOpts, blockMeta waveobj.MetaMapType) (*shellexec.ShellProc, error) {
+	bc.UpdateControllerAndSendUpdate(func() bool {
+		bc.ProcStatus = Status_Starting
+		return true
+	})
 	ctx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFn()
 	fsErr := filestore.WFS.MakeFile(ctx, bc.BlockId, wavebase.BlockFile_Term, nil, wshrpc.FileOpts{MaxSize: DefaultTermMaxFileSize, Circular: true})
@@ -410,6 +417,13 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 		cmdOpts.Interactive = true
 		cmdOpts.Login = true
 		cmdOpts.Cwd = blockMeta.GetString(waveobj.MetaKey_CmdCwd, "")
+		if connUnion.ConnType == ConnType_Wsl && connUnion.HomeDir != "" {
+			if cmdOpts.Cwd == "~" {
+				cmdOpts.Cwd = connUnion.HomeDir
+			} else if strings.HasPrefix(cmdOpts.Cwd, "~/") {
+				cmdOpts.Cwd = connUnion.HomeDir + cmdOpts.Cwd[1:]
+			}
+		}
 		if cmdOpts.Cwd != "" {
 			cwdPath, err := wavebase.ExpandHomeDir(cmdOpts.Cwd)
 			if err != nil {

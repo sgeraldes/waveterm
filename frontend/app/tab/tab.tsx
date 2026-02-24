@@ -406,8 +406,17 @@ const Tab = memo(
                         "new-tab": isNew,
                         "has-color": !!tabColor,
                     })}
+                    role="tab"
+                    aria-selected={active}
                     onMouseDown={onDragStart}
                     onClick={handleTabClick}
+                    onAuxClick={(e) => {
+                        if (e.button === 1) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onClose(null);
+                        }
+                    }}
                     onContextMenu={handleContextMenu}
                     data-tab-id={id}
                 >

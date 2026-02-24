@@ -223,6 +223,47 @@ export class TodoViewModel implements ViewModel {
         ]);
     }
 
+    deleteTask(lineIndex: number): void {
+        const content = globalStore.get(this.fileContent);
+        const lines = content.split("\n");
+        lines.splice(lineIndex, 1);
+        const newContent = lines.join("\n");
+        globalStore.set(this.fileContent, newContent);
+        this.saveContent(newContent);
+    }
+
+    clearCompleted(): void {
+        const content = globalStore.get(this.fileContent);
+        const lines = content.split("\n");
+        const filtered = lines.filter((line) => !line.startsWith("- [x] "));
+        const newContent = filtered.join("\n");
+        globalStore.set(this.fileContent, newContent);
+        this.saveContent(newContent);
+    }
+
+    getSettingsMenuItems(): ContextMenuItem[] {
+        const menuItems: ContextMenuItem[] = [];
+        const todoPath = globalStore.get(this.todoPath);
+        const conn = globalStore.get(this.connection);
+
+        menuItems.push({
+            label: "Copy File Path",
+            click: () => {
+                const fullPath = conn ? formatRemoteUri(todoPath, conn) : todoPath;
+                navigator.clipboard.writeText(fullPath);
+            },
+        });
+        menuItems.push({ type: "separator" });
+        menuItems.push({
+            label: "Clear Completed",
+            click: () => {
+                this.clearCompleted();
+            },
+        });
+
+        return menuItems;
+    }
+
     giveFocus(): boolean {
         if (this.monacoRef.current) {
             this.monacoRef.current.focus();

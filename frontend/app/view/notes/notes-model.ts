@@ -1,5 +1,5 @@
 import type { BlockNodeModel } from "@/app/block/blocktypes";
-import { globalStore, pushNotification, WOS } from "@/app/store/global";
+import { createBlock, globalStore, pushNotification, WOS } from "@/app/store/global";
 import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
@@ -206,6 +206,44 @@ export class NotesViewModel implements ViewModel {
                 forceMoveMarkers: true,
             },
         ]);
+    }
+
+    getSettingsMenuItems(): ContextMenuItem[] {
+        const menuItems: ContextMenuItem[] = [];
+        const notesPath = globalStore.get(this.notesPath);
+        const conn = globalStore.get(this.connection);
+
+        menuItems.push({
+            label: "Copy File Path",
+            click: () => {
+                const fullPath = conn ? formatRemoteUri(notesPath, conn) : notesPath;
+                navigator.clipboard.writeText(fullPath);
+            },
+        });
+        menuItems.push({
+            label: "Open in Preview",
+            click: () => {
+                const blockDef: BlockDef = {
+                    meta: {
+                        view: "preview",
+                        file: notesPath,
+                        connection: conn || undefined,
+                    },
+                };
+                createBlock(blockDef);
+            },
+        });
+        menuItems.push({ type: "separator" });
+
+        const magnified = globalStore.get(this.nodeModel.isMagnified);
+        menuItems.push({
+            label: magnified ? "Un-Magnify Block" : "Magnify Block",
+            click: () => {
+                this.nodeModel.toggleMagnify();
+            },
+        });
+
+        return menuItems;
     }
 
     giveFocus(): boolean {

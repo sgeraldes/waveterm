@@ -28,9 +28,10 @@ const (
 )
 
 const (
-	Status_Running = "running"
-	Status_Done    = "done"
-	Status_Init    = "init"
+	Status_Running  = "running"
+	Status_Done     = "done"
+	Status_Init     = "init"
+	Status_Starting = "starting"
 )
 
 const (

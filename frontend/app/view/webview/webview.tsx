@@ -24,7 +24,6 @@ let webviewPreloadUrl: string = null;
 function getWebviewPreloadUrl() {
     if (webviewPreloadUrl == null) {
         webviewPreloadUrl = getApi().getWebviewPreload();
-        console.log("webviewPreloadUrl", webviewPreloadUrl);
     }
     return webviewPreloadUrl ? "file://" + webviewPreloadUrl : null;
 }

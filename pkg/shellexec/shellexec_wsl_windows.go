@@ -26,8 +26,15 @@ import (
 
 var wslDistroPattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
+var wslInstallLocks sync.Map
+
+func getWslInstallLock(distro string) *sync.Mutex {
+	val, _ := wslInstallLocks.LoadOrStore(distro, &sync.Mutex{})
+	return val.(*sync.Mutex)
+}
+
 func DetectWslShellAndHome(wslDistro string) (shellPath string, homeDir string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	out, err := exec.CommandContext(ctx, "wsl.exe", "-d", wslDistro, "--", "sh", "-c",
 		"getent passwd $(whoami) | cut -d: -f6,7").Output()
@@ -75,6 +82,27 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		}
 	}
 
+	var envVars []string
+	packedToken, err := cmdOpts.SwapToken.PackForClient()
+	if err != nil {
+		blocklogger.Infof(logCtx, "error packing swap token: %v", err)
+	} else {
+		blocklogger.Debugf(logCtx, "packed swaptoken %s\n", packedToken)
+		envVars = append(envVars, wavebase.WaveSwapTokenVarName+"="+packedToken)
+	}
+	jwtToken := cmdOpts.SwapToken.Env[wavebase.WaveJwtTokenVarName]
+	if jwtToken != "" {
+		blocklogger.Debugf(logCtx, "adding JWT token to WSL environment\n")
+		envVars = append(envVars, wavebase.WaveJwtTokenVarName+"="+jwtToken)
+	}
+	envToAdd := shellutil.WaveshellLocalEnvVars(shellutil.DefaultTermType)
+	if os.Getenv("LANG") == "" {
+		envToAdd["LANG"] = wavebase.DetermineLang()
+	}
+	for k, v := range envToAdd {
+		envVars = append(envVars, k+"="+v)
+	}
+
 	var cmdArgs []string
 	cmdArgs = append(cmdArgs, "-d", wslDistro)
 	if wslCwd != "" {
@@ -87,57 +115,52 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		if cmdOpts.HomeDir != "" {
 			waveHomeLinux = cmdOpts.HomeDir + "/.waveterm"
 		}
+
+		var shellArgs []string
 		switch shellType {
 		case shellutil.ShellType_bash:
-			cmdArgs = append(cmdArgs, shellPath)
+			shellArgs = append(shellArgs, shellPath)
 			if waveHomeLinux != "" {
-				cmdArgs = append(cmdArgs, "--rcfile", waveHomeLinux+"/shell/bash/.bashrc")
+				shellArgs = append(shellArgs, "--rcfile", waveHomeLinux+"/shell/bash/.bashrc")
 			} else {
-				cmdArgs = append(cmdArgs, "--login")
+				shellArgs = append(shellArgs, "--login")
 			}
-			cmdArgs = append(cmdArgs, "-i")
+			shellArgs = append(shellArgs, "-i")
 		case shellutil.ShellType_zsh:
 			if waveHomeLinux != "" {
-				cmdArgs = append(cmdArgs, "env", "ZDOTDIR="+waveHomeLinux+"/shell/zsh", shellPath, "--login", "-i")
-			} else {
-				cmdArgs = append(cmdArgs, shellPath, "--login", "-i")
+				envVars = append(envVars, "ZDOTDIR="+waveHomeLinux+"/shell/zsh")
 			}
+			shellArgs = append(shellArgs, shellPath, "--login", "-i")
 		case shellutil.ShellType_fish:
-			cmdArgs = append(cmdArgs, shellPath, "-l")
+			shellArgs = append(shellArgs, shellPath, "-l")
 			if waveHomeLinux != "" {
 				fishPath := shellutil.HardQuoteFish(waveHomeLinux + "/shell/fish/wave.fish")
-				cmdArgs = append(cmdArgs, "-C", "source "+fishPath)
+				shellArgs = append(shellArgs, "-C", "source "+fishPath)
+			}
+		case shellutil.ShellType_pwsh:
+			if waveHomeLinux != "" {
+				pwshPath := waveHomeLinux + "/shell/pwsh/wavepwsh.ps1"
+				shellArgs = append(shellArgs, shellPath, "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", pwshPath)
+			} else {
+				shellArgs = append(shellArgs, shellPath, "-NoProfile", "-NoExit")
 			}
 		default:
-			cmdArgs = append(cmdArgs, shellPath, "--login", "-i")
+			shellArgs = append(shellArgs, shellPath, "--login", "-i")
 		}
+
+		cmdArgs = append(cmdArgs, "env")
+		cmdArgs = append(cmdArgs, envVars...)
+		cmdArgs = append(cmdArgs, shellArgs...)
 		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe %s\n", strings.Join(cmdArgs, " "))
 	} else {
+		cmdArgs = append(cmdArgs, "env")
+		cmdArgs = append(cmdArgs, envVars...)
 		cmdArgs = append(cmdArgs, shellPath, "-c", cmdStr)
 		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe %s\n", strings.Join(cmdArgs, " "))
 	}
 
 	ecmd := exec.Command("wsl.exe", cmdArgs...)
 	ecmd.Env = os.Environ()
-
-	packedToken, err := cmdOpts.SwapToken.PackForClient()
-	if err != nil {
-		blocklogger.Infof(logCtx, "error packing swap token: %v", err)
-	} else {
-		blocklogger.Debugf(logCtx, "packed swaptoken %s\n", packedToken)
-		shellutil.UpdateCmdEnv(ecmd, map[string]string{wavebase.WaveSwapTokenVarName: packedToken})
-	}
-	jwtToken := cmdOpts.SwapToken.Env[wavebase.WaveJwtTokenVarName]
-	if jwtToken != "" {
-		blocklogger.Debugf(logCtx, "adding JWT token to WSL environment\n")
-		shellutil.UpdateCmdEnv(ecmd, map[string]string{wavebase.WaveJwtTokenVarName: jwtToken})
-	}
-
-	envToAdd := shellutil.WaveshellLocalEnvVars(shellutil.DefaultTermType)
-	if os.Getenv("LANG") == "" {
-		envToAdd["LANG"] = wavebase.DetermineLang()
-	}
-	shellutil.UpdateCmdEnv(ecmd, envToAdd)
 
 	if termSize.Rows == 0 || termSize.Cols == 0 {
 		termSize.Rows = shellutil.DefaultTermRows
@@ -212,9 +235,12 @@ func StartWslLocalShellProcWithWsh(logCtx context.Context, termSize waveobj.Term
 	installCtx, cancelFn := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelFn()
 
+	mu := getWslInstallLock(wslDistro)
+	mu.Lock()
 	if err := installWshInWsl(installCtx, logCtx, wslDistro); err != nil {
 		blocklogger.Infof(logCtx, "[conndebug] wsh installation failed for WSL distro %s (non-fatal, continuing without wsh): %v\n", wslDistro, err)
 	}
+	mu.Unlock()
 
 	return StartWslLocalShellProc(logCtx, termSize, cmdStr, cmdOpts, wslDistro)
 }

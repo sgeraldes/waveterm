@@ -370,7 +370,13 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
             {isScrollable && (
                 <IconButton className="scroll-left-btn" ref={scrollLeftBtnRef} decl={scrollLeftButtonDecl} />
             )}
-            <div className="tab-bar" ref={tabBarRef} data-overlayscrollbars-initialize>
+            <div
+                className="tab-bar"
+                ref={tabBarRef}
+                role="tablist"
+                aria-label="Open tabs"
+                data-overlayscrollbars-initialize
+            >
                 <div className="tabs-wrapper" ref={tabsWrapperRef} style={{ width: `${tabsWrapperWidth}px` }}>
                     {tabIds.map((tabId, index) => {
                         return (

@@ -92,6 +92,15 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
         };
     }
 
+    if (isLoading && !hasEverLoaded) {
+        return (
+            <div className="notes-loading">
+                <i className={makeIconClass("spinner", false) + " fa-spin"} />
+                <span>Loading...</span>
+            </div>
+        );
+    }
+
     if (error && !hasEverLoaded) {
         return (
             <div className="notes-error">

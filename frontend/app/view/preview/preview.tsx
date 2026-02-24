@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { CenteredDiv } from "@/app/element/quickelems";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
@@ -59,7 +56,6 @@ const SpecializedView = memo(({ parentRef, model }: SpecializedViewProps) => {
         setCanPreview(canPreview(mimeType));
     }, [mimeType, setCanPreview]);
 
-    // Show loading state while promises resolve
     if (loadableSpecializedView.state === "loading") {
         return <CenteredDiv>Loading...</CenteredDiv>;
     }
@@ -71,7 +67,6 @@ const SpecializedView = memo(({ parentRef, model }: SpecializedViewProps) => {
     if (!SpecializedViewComponent) {
         return <CenteredDiv>Invalid Specialized View Component ({specializedView.specializedView})</CenteredDiv>;
     }
-    // Use blockId as key for stability - path changes shouldn't remount the editor
     return <SpecializedViewComponent key={model.blockId} model={model} parentRef={parentRef} />;
 });
 
@@ -129,9 +124,7 @@ function PreviewView({
         () => ({
             accept: "FILE_ITEM",
             canDrop: (draggedFile: DraggedFile) => {
-                // Directory view handles its own drops (for copy); skip the open drop zone
                 if (currentView === "directory") return false;
-                // Only allow drops from the same connection
                 const fileConn = isBlank(connection) ? "local" : connection;
                 const expectedPrefix = `wsh://${fileConn}/`;
                 return draggedFile.uri.startsWith(expectedPrefix);
@@ -150,7 +143,6 @@ function PreviewView({
         [connection, currentView, model]
     );
 
-    // Attach drop ref to contentRef element when it's available
     useEffect(() => {
         if (contentRef.current) {
             dropRef(contentRef.current);
@@ -158,7 +150,6 @@ function PreviewView({
     }, [contentRef.current, dropRef]);
 
     useEffect(() => {
-        console.log("fileInfo or connection changed", fileInfo, connection);
         if (!fileInfo) {
             return;
         }

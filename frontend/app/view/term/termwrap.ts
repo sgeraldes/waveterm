@@ -476,6 +476,7 @@ export class TermWrap {
     lastCommandAtom: jotai.PrimitiveAtom<string | null>;
     nodeModel: BlockNodeModel;
     onShellIntegrationStatusChange?: () => void;
+    pendingTermSize: TermSize | null = null;
 
     isComposing: boolean = false;
     composingData: string = "";
@@ -553,6 +554,11 @@ export class TermWrap {
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
+        this.terminal.onTitleChange((title: string) => {
+            if (title) {
+                services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), { "term:title": title });
+            }
+        });
 
         this.terminal.parser.registerCsiHandler({ prefix: "?", final: "h" }, (params: (number | number[])[]) => {
             const reportFocusEnabled =
@@ -614,6 +620,25 @@ export class TermWrap {
         this.toDispose.push({
             dispose: () => {
                 this.connectElem.removeEventListener("paste", pasteHandler, true);
+            },
+        });
+        const auxclickHandler = (e: MouseEvent) => {
+            if (e.button === 1) {
+                e.preventDefault();
+                navigator.clipboard
+                    .readText()
+                    .then((text) => {
+                        if (text) {
+                            this.terminal.paste(text);
+                        }
+                    })
+                    .catch(() => {});
+            }
+        };
+        this.terminal.element?.addEventListener("auxclick", auxclickHandler);
+        this.toDispose.push({
+            dispose: () => {
+                this.terminal.element?.removeEventListener("auxclick", auxclickHandler);
             },
         });
     }
@@ -716,6 +741,12 @@ export class TermWrap {
             await this.loadInitialTerminalData();
         } finally {
             this.loaded = true;
+            if (this.heldData.length > 0) {
+                for (const data of this.heldData) {
+                    this.doTerminalWrite(data, null);
+                }
+                this.heldData = [];
+            }
         }
         this.runProcessIdleTimeout();
     }
@@ -744,6 +775,23 @@ export class TermWrap {
     setShellIntegrationStatus(status: "ready" | "running-command" | null) {
         globalStore.set(this.shellIntegrationStatusAtom, status);
         this.onShellIntegrationStatusChange?.();
+        this.retryPendingResize();
+    }
+
+    /**
+     * Retries sending a pending terminal resize that failed because the shell was not ready.
+     */
+    retryPendingResize() {
+        if (this.pendingTermSize == null) {
+            return;
+        }
+        const termSize = this.pendingTermSize;
+        this.pendingTermSize = null;
+        dlog("retrying pending resize", termSize);
+        RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
+            dlog("retry resize failed, shell still not ready");
+            this.pendingTermSize = termSize;
+        });
     }
 
     handleTermData(data: string) {
@@ -879,7 +927,11 @@ export class TermWrap {
         this.fitAddon.fit();
         if (oldRows !== this.terminal.rows || oldCols !== this.terminal.cols) {
             const termSize: TermSize = { rows: this.terminal.rows, cols: this.terminal.cols };
-            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {});
+            this.pendingTermSize = null;
+            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
+                dlog("resize: shell not ready, storing pending termsize", termSize);
+                this.pendingTermSize = termSize;
+            });
         }
         dlog("resize", `${this.terminal.rows}x${this.terminal.cols}`, `${oldRows}x${oldCols}`, this.hasResized);
         if (!this.hasResized) {

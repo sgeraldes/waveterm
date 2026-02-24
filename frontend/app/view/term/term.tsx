@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { Block } from "@/app/block/block";
 import { Search, useSearch } from "@/app/element/search";
 import { ContextMenuModel } from "@/app/store/contextmenu";
@@ -67,9 +64,8 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     const connFontFamily = fullConfig.connections?.[blockData?.meta?.connection]?.["term:fontfamily"];
     const isFocused = jotai.useAtomValue(model.nodeModel.isFocused);
     const isMI = jotai.useAtomValue(tabModel.isTermMultiInput);
-    const isBasicTerm = blockData?.meta?.controller != "cmd"; // needs to match isBasicTerm
+    const isBasicTerm = blockData?.meta?.controller != "cmd";
 
-    // search
     const searchProps = useSearch({
         anchorRef: viewRef,
         viewModel: model,
@@ -82,12 +78,13 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     const wholeWord = useAtomValueSafe<boolean>(searchProps.wholeWord);
     const regex = useAtomValueSafe<boolean>(searchProps.regex);
     const searchVal = jotai.useAtomValue<string>(searchProps.searchValue);
+    // TODO: derive search decoration colors from the terminal theme once xterm supports CSS variables in decorations
     const searchDecorations = React.useMemo(
         () => ({
-            matchOverviewRuler: "#000000",
-            activeMatchColorOverviewRuler: "#000000",
+            matchOverviewRuler: "#FFFF00",
+            activeMatchColorOverviewRuler: "#FF9632",
             activeMatchBorder: "#FF9632",
-            matchBorder: "#FFFF00",
+            matchBorder: "#555555",
         }),
         []
     );
@@ -126,18 +123,15 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     );
     searchProps.onPrev = React.useCallback(() => executeSearch(searchVal, "previous"), [executeSearch, searchVal]);
     searchProps.onNext = React.useCallback(() => executeSearch(searchVal, "next"), [executeSearch, searchVal]);
-    // Return input focus to the terminal when the search is closed
     React.useEffect(() => {
         if (!searchIsOpen) {
             model.giveFocus();
         }
     }, [searchIsOpen]);
-    // rerun search when the searchOpts change
     React.useEffect(() => {
         model.termRef.current?.searchAddon.clearDecorations();
         searchProps.onSearch(searchVal);
     }, [searchOpts]);
-    // end search
 
     React.useEffect(() => {
         const fullConfig = globalStore.get(atoms.fullConfigAtom);
@@ -174,9 +168,18 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
                 fontWeightBold: "bold",
                 allowTransparency: true,
                 scrollback: termScrollback,
-                allowProposedApi: true, // Required by @xterm/addon-search to enable search functionality and decorations
+                allowProposedApi: true,
                 ignoreBracketedPasteMode: !termAllowBPM,
                 macOptionIsMeta: termMacOptionIsMeta,
+                cursorStyle:
+                    (termSettings?.["term:cursorstyle"] as any) ||
+                    (blockData?.meta?.["term:cursorstyle"] as any) ||
+                    "block",
+                cursorBlink: termSettings?.["term:cursorblink"] ?? blockData?.meta?.["term:cursorblink"] ?? true,
+                lineHeight:
+                    (termSettings?.["term:lineheight"] as number) ||
+                    (blockData?.meta?.["term:lineheight"] as number) ||
+                    undefined,
             },
             {
                 keydownHandler: model.handleTerminalKeydown.bind(model),
@@ -190,17 +193,12 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
         (window as any).term = termWrap;
         model.termRef.current = termWrap;
 
-        // Set up callback to update tab terminal status when shell integration status changes
         termWrap.onShellIntegrationStatusChange = () => {
             model.updateTabTerminalStatus();
         };
 
-        // Update terminal status on init to reflect current state
-        // This ensures status icons show the correct state when switching tabs
         model.updateTabTerminalStatus();
 
-        // Delayed status update to catch OSC data that was buffered while tab was inactive
-        // When webview resumes, xterm needs time to process buffered data including OSC 16162
         const statusRefreshTimer = setTimeout(() => {
             model.updateTabTerminalStatus();
         }, 500);
@@ -226,12 +224,9 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
         };
     }, [blockId, termSettings, termFontSize, connFontFamily]);
 
-    // Refresh terminal status when tab becomes focused
-    // This catches OSC data that was buffered while tab was in background
     const wasFocusedRef = React.useRef(isFocused);
     React.useEffect(() => {
         if (isFocused && !wasFocusedRef.current) {
-            // Tab just became focused - refresh status after a delay to let xterm process buffered data
             const timer = setTimeout(() => {
                 model.updateTabTerminalStatus();
             }, 300);
@@ -289,8 +284,6 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
         [model]
     );
 
-    // Focus block on any pointerdown in the terminal (including scrollbar)
-    // xterm.js scrollbar uses PointerEvents, not MouseEvents
     React.useEffect(() => {
         const elem = viewRef.current;
         if (!elem) return;
@@ -301,11 +294,8 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
             }
         };
 
-        // Attach to the view-term element for normal terminal clicks
         elem.addEventListener("pointerdown", handlePointerDown, true);
 
-        // Find and attach to the scrollbar slider directly
-        // xterm creates this element asynchronously, so we need to wait/observe
         let sliderElem: Element | null = null;
         const attachSliderListener = () => {
             sliderElem = elem.querySelector(".xterm-scrollable-element > .scrollbar.vertical > .slider");
@@ -314,11 +304,9 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
             }
         };
 
-        // Try immediately and also after a short delay (xterm init is async)
         attachSliderListener();
         const timer = setTimeout(attachSliderListener, 500);
 
-        // Also observe for DOM changes in case the terminal reinitializes
         const observer = new MutationObserver(() => {
             const newSlider = elem.querySelector(".xterm-scrollable-element > .scrollbar.vertical > .slider");
             if (newSlider && newSlider !== sliderElem) {

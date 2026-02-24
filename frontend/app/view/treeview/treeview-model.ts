@@ -38,6 +38,7 @@ export class TreeViewModel implements ViewModel {
     error: PrimitiveAtom<string | null>;
     connection: Atom<string>;
     selectedPath: PrimitiveAtom<string | null>;
+    showHiddenFiles: PrimitiveAtom<boolean>;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.blockId = blockId;
@@ -48,6 +49,7 @@ export class TreeViewModel implements ViewModel {
         this.isLoading = atom(false);
         this.error = atom(null) as PrimitiveAtom<string | null>;
         this.selectedPath = atom(null) as PrimitiveAtom<string | null>;
+        this.showHiddenFiles = atom(false) as PrimitiveAtom<boolean>;
 
         this.connection = atom((get) => {
             const blockData = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));
@@ -82,8 +84,9 @@ export class TreeViewModel implements ViewModel {
             return a.name.localeCompare(b.name);
         });
 
+        const showHidden = globalStore.get(this.showHiddenFiles);
         return files
-            .filter((f) => f.name && !f.name.startsWith("."))
+            .filter((f) => f.name && (showHidden || !f.name.startsWith(".")))
             .map((f) => ({
                 name: f.name,
                 path: f.path,
@@ -181,28 +184,47 @@ export class TreeViewModel implements ViewModel {
     }
 
     getNodeContextMenu(node: TreeNode): ContextMenuItem[] {
-        const menu: ContextMenuItem[] = [
-            {
-                label: node.path,
-                enabled: false,
-            },
-            { type: "separator" },
-            {
-                label: "Copy Full Path",
-                click: () => navigator.clipboard.writeText(node.path),
-            },
-            {
-                label: "Copy Filename",
-                click: () => navigator.clipboard.writeText(node.name),
-            },
-        ];
-        if (!node.isDir) {
-            menu.push({ type: "separator" });
+        const menu: ContextMenuItem[] = [];
+
+        if (node.isDir) {
             menu.push({
-                label: "Open in Preview",
+                label: node.isExpanded ? "Collapse" : "Expand",
+                click: () => this.toggleExpand(node),
+            });
+        } else {
+            menu.push({
+                label: "Open",
                 click: () => this.openInPreview(node),
             });
         }
+
+        menu.push({ type: "separator" });
+        menu.push({
+            label: "Copy Path",
+            click: () => navigator.clipboard.writeText(node.path),
+        });
+        menu.push({
+            label: "Copy Filename",
+            click: () => navigator.clipboard.writeText(node.name),
+        });
+        menu.push({ type: "separator" });
+        menu.push({
+            label: "Reveal in File Browser",
+            click: () => {
+                const revealPath = node.isDir ? node.path : node.path.substring(0, node.path.lastIndexOf("/")) || "/";
+                const blockDef: BlockDef = {
+                    meta: {
+                        view: "preview",
+                        file: revealPath,
+                        connection: globalStore.get(this.connection) || undefined,
+                    },
+                };
+                import("@/app/store/global").then(({ createBlock }) => {
+                    createBlock(blockDef);
+                });
+            },
+        });
+
         if (node.isDir) {
             menu.push({ type: "separator" });
             menu.push({
@@ -215,6 +237,7 @@ export class TreeViewModel implements ViewModel {
                 },
             });
         }
+
         return menu;
     }
 
@@ -229,6 +252,47 @@ export class TreeViewModel implements ViewModel {
         import("@/app/store/global").then(({ createBlock }) => {
             createBlock(blockDef);
         });
+    }
+
+    collapseAll(): void {
+        const nodes = globalStore.get(this.rootNodes);
+        const collapsed = this.collapseNodes(nodes);
+        globalStore.set(this.rootNodes, collapsed);
+    }
+
+    private collapseNodes(nodes: TreeNode[]): TreeNode[] {
+        return nodes.map((n) => ({
+            ...n,
+            isExpanded: false,
+            children: undefined,
+        }));
+    }
+
+    getSettingsMenuItems(): ContextMenuItem[] {
+        const menuItems: ContextMenuItem[] = [];
+        const showHidden = globalStore.get(this.showHiddenFiles);
+
+        menuItems.push({
+            label: "Refresh",
+            click: () => {
+                this.loadRoot();
+            },
+        });
+        menuItems.push({
+            label: showHidden ? "Hide Hidden Files" : "Show Hidden Files",
+            click: () => {
+                globalStore.set(this.showHiddenFiles, !showHidden);
+                this.loadRoot();
+            },
+        });
+        menuItems.push({
+            label: "Collapse All",
+            click: () => {
+                this.collapseAll();
+            },
+        });
+
+        return menuItems;
     }
 
     giveFocus(): boolean {

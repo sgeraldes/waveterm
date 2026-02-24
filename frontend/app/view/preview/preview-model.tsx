@@ -468,6 +468,14 @@ export class PreviewModel implements ViewModel {
         this.noPadding = atom(true);
     }
 
+    hasPendingChanges(): boolean {
+        return globalStore.get(this.newFileContent) != null;
+    }
+
+    async saveChanges(): Promise<void> {
+        await this.handleFileSave();
+    }
+
     markdownShowTocToggle() {
         globalStore.set(this.markdownShowToc, !globalStore.get(this.markdownShowToc));
     }
@@ -627,7 +635,6 @@ export class PreviewModel implements ViewModel {
         }
         const newFileContent = globalStore.get(this.newFileContent);
         if (newFileContent == null) {
-            console.log("not saving file, newFileContent is null");
             return;
         }
         try {
@@ -639,7 +646,6 @@ export class PreviewModel implements ViewModel {
             });
             globalStore.set(this.fileContent, newFileContent);
             globalStore.set(this.newFileContent, null);
-            console.log("saved file", filePath);
         } catch (e) {
             const errorStatus: ErrorMsg = {
                 status: "Save Failed",

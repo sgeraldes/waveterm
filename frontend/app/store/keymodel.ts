@@ -653,6 +653,15 @@ function registerGlobalKeys() {
         return false;
     }
     globalKeyMap.set("Cmd:f", activateSearch);
+    globalKeyMap.set("Ctrl:Shift:f", (_waveEvent: WaveKeyboardEvent): boolean => {
+        const focusedBlockId = getFocusedBlockInStaticTab();
+        const bcm = getBlockComponentModel(focusedBlockId);
+        if (bcm?.viewModel?.searchAtoms) {
+            globalStore.set(bcm.viewModel.searchAtoms.isOpen, true);
+            return true;
+        }
+        return false;
+    });
     globalKeyMap.set("Escape", () => {
         if (modalsModel.hasOpenModals()) {
             modalsModel.popModal();

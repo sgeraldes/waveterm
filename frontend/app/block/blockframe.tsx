@@ -97,7 +97,7 @@ const OptMagnifyButton = React.memo(
         const magnifyDecl: IconButtonDecl = {
             elemtype: "iconbutton",
             icon: <MagnifyIcon enabled={magnified} />,
-            title: magnified ? "Minimize" : "Magnify",
+            title: magnified ? "Un-magnify block" : "Magnify block",
             click: toggleMagnify,
             disabled,
         };
@@ -123,7 +123,7 @@ function computeEndIcons(
     const settingsDecl: IconButtonDecl = {
         elemtype: "iconbutton",
         icon: "cog",
-        title: "Settings",
+        title: "Block settings",
         click: onContextMenu,
     };
     endIconsElem.push(<IconButton key="settings" decl={settingsDecl} className="block-frame-settings" />);
@@ -151,8 +151,24 @@ function computeEndIcons(
     const closeDecl: IconButtonDecl = {
         elemtype: "iconbutton",
         icon: "xmark-large",
-        title: "Close",
-        click: () => uxCloseBlock(nodeModel.blockId),
+        title: "Close block",
+        click: () => {
+            const bcm = getBlockComponentModel(nodeModel.blockId);
+            const vm = bcm?.viewModel;
+            if (vm?.hasPendingChanges?.()) {
+                util.fireAndForget(async () => {
+                    const save = window.confirm(
+                        "You have unsaved changes. Click OK to save and close, or Cancel to go back."
+                    );
+                    if (save) {
+                        await vm.saveChanges?.();
+                    }
+                    uxCloseBlock(nodeModel.blockId);
+                });
+                return;
+            }
+            uxCloseBlock(nodeModel.blockId);
+        },
     };
     endIconsElem.push(<IconButton key="close" decl={closeDecl} className="block-frame-default-close" />);
     return endIconsElem;
@@ -535,7 +551,7 @@ const BlockMask = React.memo(({ nodeModel }: { nodeModel: NodeModel }) => {
     }
 
     if (blockHighlight && !style.borderColor) {
-        style.borderColor = "rgb(59, 130, 246)";
+        style.borderColor = "var(--accent-color)";
     }
 
     let innerElem = null;

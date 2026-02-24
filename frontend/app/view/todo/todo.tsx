@@ -1,3 +1,4 @@
+import { ContextMenuModel } from "@/app/store/contextmenu";
 import { globalStore } from "@/app/store/global";
 import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
 import { makeIconClass } from "@/util/util";
@@ -50,6 +51,27 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
         if (e.key === "Enter") model.addTask(newTaskText);
     };
 
+    const handleItemContextMenu = (e: React.MouseEvent, item: TodoItem) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const menuItems: ContextMenuItem[] = [
+            {
+                label: "Edit",
+                click: () => startEdit(item),
+            },
+            {
+                label: item.checked ? "Uncomplete" : "Complete",
+                click: () => model.toggleCheckbox(item.lineIndex),
+            },
+            { type: "separator" },
+            {
+                label: "Delete",
+                click: () => model.deleteTask(item.lineIndex),
+            },
+        ];
+        ContextMenuModel.showContextMenu(menuItems, e);
+    };
+
     const renderItem = (item: TodoItem) => {
         const isEditing = editingLineIndex === item.lineIndex;
         const isDragOver = dragOverLineIndex === item.lineIndex;
@@ -82,6 +104,7 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
                     draggingLineIndex.current = null;
                     setDragOverLineIndex(null);
                 }}
+                onContextMenu={(e) => handleItemContextMenu(e, item)}
             >
                 <span className="todo-checkbox" onClick={() => model.toggleCheckbox(item.lineIndex)}>
                     <i className={makeIconClass(item.checked ? "square-check" : "square", false)} />
