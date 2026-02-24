@@ -117,7 +117,11 @@ function createShellSuggestionItems(
         const label = isDefault ? `${displayName} (default)` : displayName;
 
         // Filter by search text
-        if (normalizedFilter && !displayName.toLowerCase().includes(normalizedFilter) && !shellId.toLowerCase().includes(normalizedFilter)) {
+        if (
+            normalizedFilter &&
+            !displayName.toLowerCase().includes(normalizedFilter) &&
+            !shellId.toLowerCase().includes(normalizedFilter)
+        ) {
             continue;
         }
 
@@ -177,7 +181,11 @@ function createBuiltInShellItems(
 
     for (const shell of builtInShells) {
         // Filter by search text
-        if (normalizedFilter && !shell.name.toLowerCase().includes(normalizedFilter) && !shell.id.includes(normalizedFilter)) {
+        if (
+            normalizedFilter &&
+            !shell.name.toLowerCase().includes(normalizedFilter) &&
+            !shell.id.includes(normalizedFilter)
+        ) {
             continue;
         }
 
@@ -294,16 +302,28 @@ const ShellSelectorModal = React.memo(
             // Use configured shell profiles (which includes detected shells)
             // Filter out WSL profiles - they go in their own group
             const nonWslProfiles = Object.fromEntries(
-                Object.entries(shellProfiles).filter(([id, profile]) => !profile["shell:iswsl"] && !id.startsWith("wsl:"))
+                Object.entries(shellProfiles).filter(
+                    ([id, profile]) => !profile["shell:iswsl"] && !id.startsWith("wsl:")
+                )
             );
-            const profileItems = createShellSuggestionItems(nonWslProfiles, effectiveCurrentShell, defaultShell, filterText);
+            const profileItems = createShellSuggestionItems(
+                nonWslProfiles,
+                effectiveCurrentShell,
+                defaultShell,
+                filterText
+            );
             localShells.push(...profileItems);
 
             // WSL profiles from shell:profiles
             const wslProfiles = Object.fromEntries(
                 Object.entries(shellProfiles).filter(([id, profile]) => profile["shell:iswsl"] || id.startsWith("wsl:"))
             );
-            const wslProfileItems = createShellSuggestionItems(wslProfiles, effectiveCurrentShell, defaultShell, filterText);
+            const wslProfileItems = createShellSuggestionItems(
+                wslProfiles,
+                effectiveCurrentShell,
+                defaultShell,
+                filterText
+            );
 
             if (localShells.length > 0) {
                 suggestions.push({
@@ -315,10 +335,14 @@ const ShellSelectorModal = React.memo(
             // Also check for WSL distros not in profiles
             const existingWslIds = new Set(Object.keys(wslProfiles));
             const additionalWslDistros = wslList.filter((distro) => !existingWslIds.has(`wsl:${distro}`));
-            const filteredAdditionalWsl = additionalWslDistros.filter((distro) =>
-                !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
+            const filteredAdditionalWsl = additionalWslDistros.filter(
+                (distro) => !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
             );
-            const additionalWslItems = createWslSuggestionItems(filteredAdditionalWsl, effectiveCurrentShell, defaultShell);
+            const additionalWslItems = createWslSuggestionItems(
+                filteredAdditionalWsl,
+                effectiveCurrentShell,
+                defaultShell
+            );
 
             // Combine WSL items
             const allWslItems = [...wslProfileItems, ...additionalWslItems];
@@ -340,8 +364,8 @@ const ShellSelectorModal = React.memo(
             }
 
             // WSL Distributions group from live query
-            const filteredWsl = wslList.filter((distro) =>
-                !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
+            const filteredWsl = wslList.filter(
+                (distro) => !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
             );
             const wslItems = createWslSuggestionItems(filteredWsl, effectiveCurrentShell, defaultShell);
 

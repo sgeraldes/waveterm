@@ -41,9 +41,7 @@ const CancelConfirmDialog = memo(({ isOpen, onConfirm, onCancel }: CancelConfirm
                     <i className="fa fa-solid fa-exclamation-triangle" />
                     <span>Discard Changes?</span>
                 </div>
-                <div className="dialog-body">
-                    You have unsaved changes. Are you sure you want to discard them?
-                </div>
+                <div className="dialog-body">You have unsaved changes. Are you sure you want to discard them?</div>
                 <div className="dialog-actions">
                     <button className="btn-secondary" onClick={onCancel}>
                         Keep Editing
@@ -122,11 +120,7 @@ export const ActionButtons = memo(({ hasChanges, saving, onSave, onCancel }: Act
                     )}
                 </button>
             </div>
-            <CancelConfirmDialog
-                isOpen={showConfirm}
-                onConfirm={handleConfirmDiscard}
-                onCancel={handleKeepEditing}
-            />
+            <CancelConfirmDialog isOpen={showConfirm} onConfirm={handleConfirmDiscard} onCancel={handleKeepEditing} />
         </>
     );
 });

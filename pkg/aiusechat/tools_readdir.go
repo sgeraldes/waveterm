@@ -100,12 +100,17 @@ func readDirCallback(input any, toolUseData *uctypes.UIMessageDataToolUse) (any,
 		return nil, err
 	}
 
+	var entriesMaps []map[string]any
+	if err := utilfn.ReUnmarshal(&entriesMaps, result.Entries); err != nil {
+		return nil, fmt.Errorf("failed to serialize entries: %w", err)
+	}
+
 	resultMap := map[string]any{
 		"path":          result.Path,
 		"absolute_path": result.AbsolutePath,
 		"entry_count":   result.EntryCount,
 		"total_entries": result.TotalEntries,
-		"entries":       result.Entries,
+		"entries":       entriesMaps,
 	}
 
 	if result.Truncated {

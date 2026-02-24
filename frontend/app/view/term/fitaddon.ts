@@ -9,7 +9,7 @@
 // - Replaced DOM-based scrollbar width measurement with config-based approach
 
 import type { FitAddon as IFitApi } from "@xterm/addon-fit";
-import type { ITerminalAddon, Terminal, IRenderDimensions } from "@xterm/xterm";
+import type { IRenderDimensions, ITerminalAddon, Terminal } from "@xterm/xterm";
 
 interface ITerminalDimensions {
     /**
@@ -72,9 +72,8 @@ export class FitAddon implements ITerminalAddon, IFitApi {
         if (!this.noScrollbar && this._terminal.options.scrollback !== 0) {
             const configWidth = (this._terminal.options as any).overviewRuler?.width ?? DEFAULT_SCROLLBAR_WIDTH;
             // Validate scrollbar width to prevent invalid dimension calculations
-            scrollbarWidth = isNaN(configWidth) || configWidth < 0 || configWidth > 100
-                ? DEFAULT_SCROLLBAR_WIDTH
-                : configWidth;
+            scrollbarWidth =
+                isNaN(configWidth) || configWidth < 0 || configWidth > 100 ? DEFAULT_SCROLLBAR_WIDTH : configWidth;
         }
 
         const parentElementStyle = window.getComputedStyle(this._terminal.element.parentElement);

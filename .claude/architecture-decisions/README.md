@@ -11,6 +11,7 @@ This directory contains architecture decision records (ADRs), lessons learned, a
 | [LESSON-0001](LESSON-0001-wave-terminal-is-host-environment.md) | Wave Terminal IS the Host Environment | Development Environment | CRITICAL |
 | [LESSON-0002](LESSON-0002-never-use-destructive-commands.md) | Never Use Destructive Commands | Agent Behavior | CRITICAL |
 | [LESSON-0003](LESSON-0003-vscode-style-settings-ui-patterns.md) | VS Code-Style Settings UI Patterns | UI/UX Design | INFORMATIONAL |
+| [LESSON-0004](LESSON-0004-definition-of-done.md) | Definition of Done — ALL Tests Must Pass | Quality Standards | CRITICAL |
 
 ### Architecture Decision Records (ADRs)
 
@@ -33,4 +34,4 @@ Update this registry with new ADRs, lessons learned, or error solutions.
 ---
 
 ## Last Updated
-2026-01-25
+2026-02-24

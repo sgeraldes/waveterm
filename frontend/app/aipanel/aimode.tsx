@@ -19,37 +19,39 @@ interface AIModeMenuItemProps {
     isLast?: boolean;
 }
 
-const AIModeMenuItem = memo(({ config, isSelected, isDisabled, isPremiumDisabled, onClick, isFirst, isLast }: AIModeMenuItemProps) => {
-    return (
-        <button
-            key={config.mode}
-            onClick={onClick}
-            disabled={isDisabled}
-            className={cn(
-                "w-full flex flex-col gap-0.5 px-3 transition-colors text-left",
-                isFirst ? "pt-1 pb-0.5" : isLast ? "pt-0.5 pb-1" : "pt-0.5 pb-0.5",
-                isDisabled ? "text-muted" : "text-secondary hover:bg-hover cursor-pointer"
-            )}
-        >
-            <div className="flex items-center gap-2 w-full">
-                <i className={makeIconClass(config["display:icon"] || "sparkles", false)}></i>
-                <span className={cn("text-sm", isSelected && "font-bold")}>
-                    {getModeDisplayName(config)}
-                    {isPremiumDisabled && " (premium)"}
-                </span>
-                {isSelected && <i className="fa fa-check ml-auto"></i>}
-            </div>
-            {config["display:description"] && (
-                <div
-                    className={cn("text-xs pl-5", isDisabled ? "text-muted/60" : "text-muted")}
-                    style={{ whiteSpace: "pre-line" }}
-                >
-                    {config["display:description"]}
+const AIModeMenuItem = memo(
+    ({ config, isSelected, isDisabled, isPremiumDisabled, onClick, isFirst, isLast }: AIModeMenuItemProps) => {
+        return (
+            <button
+                key={config.mode}
+                onClick={onClick}
+                disabled={isDisabled}
+                className={cn(
+                    "w-full flex flex-col gap-0.5 px-3 transition-colors text-left",
+                    isFirst ? "pt-1 pb-0.5" : isLast ? "pt-0.5 pb-1" : "pt-0.5 pb-0.5",
+                    isDisabled ? "text-muted" : "text-secondary hover:bg-hover cursor-pointer"
+                )}
+            >
+                <div className="flex items-center gap-2 w-full">
+                    <i className={makeIconClass(config["display:icon"] || "sparkles", false)}></i>
+                    <span className={cn("text-sm", isSelected && "font-bold")}>
+                        {getModeDisplayName(config)}
+                        {isPremiumDisabled && " (premium)"}
+                    </span>
+                    {isSelected && <i className="fa fa-check ml-auto"></i>}
                 </div>
-            )}
-        </button>
-    );
-});
+                {config["display:description"] && (
+                    <div
+                        className={cn("text-xs pl-5", isDisabled ? "text-muted/60" : "text-muted")}
+                        style={{ whiteSpace: "pre-line" }}
+                    >
+                        {config["display:description"]}
+                    </div>
+                )}
+            </button>
+        );
+    }
+);
 
 AIModeMenuItem.displayName = "AIModeMenuItem";
 

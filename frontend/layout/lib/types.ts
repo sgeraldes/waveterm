@@ -108,6 +108,12 @@ export interface LayoutTreeComputeMoveNodeAction extends LayoutTreeAction {
     nodeId: string;
     nodeToMoveId: string;
     direction: DropDirection;
+    /**
+     * Optional node object for the node to move. Used when the node is not yet in the tree
+     * (e.g., inserting a new node from outside). If not provided, the node will be looked up
+     * in the tree by nodeToMoveId.
+     */
+    nodeToMove?: LayoutNode;
 }
 
 /**

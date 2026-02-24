@@ -378,7 +378,9 @@
     font-size: 13px;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 
     &:hover:not(:disabled) {
         background: var(--hover-bg-color);
@@ -434,7 +436,9 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease;
 
     &:disabled {
         opacity: 0.5;

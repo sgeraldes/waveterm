@@ -9,10 +9,10 @@
  * editing properties, and adding/removing custom widgets.
  */
 
-import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
-import { atoms, globalStore } from "@/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
+import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
+import { atoms } from "@/store/global";
 import { cn, makeIconClass, stringToBase64 } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -430,9 +430,7 @@ const WidgetEditor = memo(({ widget, isNew, onSave, onDelete, onCancel }: Widget
         <div className="widget-editor">
             <div className="editor-header">
                 <h3>{isNew ? "Add New Widget" : `Edit Widget: ${widget?.config?.label || widget?.key}`}</h3>
-                {isDefault && (
-                    <span className="editor-badge">Default widget - changes create an override</span>
-                )}
+                {isDefault && <span className="editor-badge">Default widget - changes create an override</span>}
             </div>
 
             <div className="editor-preview">
@@ -455,9 +453,7 @@ const WidgetEditor = memo(({ widget, isNew, onSave, onDelete, onCancel }: Widget
                             />
                         </div>
                         {keyError && key && (
-                            <span className="field-error">
-                                Only letters, numbers, underscores, and hyphens allowed
-                            </span>
+                            <span className="field-error">Only letters, numbers, underscores, and hyphens allowed</span>
                         )}
                     </div>
                 )}
@@ -509,11 +505,7 @@ const WidgetEditor = memo(({ widget, isNew, onSave, onDelete, onCancel }: Widget
 
                 <div className="form-field checkbox">
                     <label>
-                        <input
-                            type="checkbox"
-                            checked={magnified}
-                            onChange={(e) => setMagnified(e.target.checked)}
-                        />
+                        <input type="checkbox" checked={magnified} onChange={(e) => setMagnified(e.target.checked)} />
                         Open magnified by default
                     </label>
                 </div>
@@ -530,11 +522,7 @@ const WidgetEditor = memo(({ widget, isNew, onSave, onDelete, onCancel }: Widget
                     <button className="widgets-btn secondary" onClick={onCancel}>
                         Cancel
                     </button>
-                    <button
-                        className="widgets-btn primary"
-                        onClick={handleSave}
-                        disabled={isNew && (keyError || !key)}
-                    >
+                    <button className="widgets-btn primary" onClick={handleSave} disabled={isNew && (keyError || !key)}>
                         {isNew ? "Add Widget" : "Save Changes"}
                     </button>
                 </div>

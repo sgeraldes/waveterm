@@ -127,9 +127,7 @@ export function useTheme(): void {
     const accentSettingAtom = getSettingsKeyAtom("app:accent");
     const themeSetting = (useAtomValue(themeSettingAtom) ?? "dark") as string;
     const accentSetting = (useAtomValue(accentSettingAtom) ?? "green") as string;
-    const themeOverrides = useAtomValue(getSettingsKeyAtom("app:themeoverrides")) as
-        | Record<string, string>
-        | undefined;
+    const themeOverrides = useAtomValue(getSettingsKeyAtom("app:themeoverrides")) as Record<string, string> | undefined;
     const customAccents = useAtomValue(getSettingsKeyAtom("app:customaccents")) as
         | Record<string, { label: string; overrides: Record<string, string> }>
         | undefined;

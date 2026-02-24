@@ -18,10 +18,10 @@ import { ColorControl } from "@/app/element/settings/color-control";
 import { SelectControl, type SelectOption } from "@/app/element/settings/select-control";
 import { SliderControl } from "@/app/element/settings/slider-control";
 import { TextControl } from "@/app/element/settings/text-control";
-import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
+import { getApi } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { getApi } from "@/app/store/global";
+import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
 import { base64ToString, stringToBase64 } from "@/util/util";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -163,11 +163,7 @@ const PresetCard = memo(({ presetKey, preset, onSelect, onDelete }: PresetCardPr
                 <span className="bgpreset-card-name">{displayName}</span>
                 <span className="bgpreset-card-key">{presetKey}</span>
             </div>
-            <button
-                className="bgpreset-card-delete"
-                onClick={handleDeleteClick}
-                title="Delete preset"
-            >
+            <button className="bgpreset-card-delete" onClick={handleDeleteClick} title="Delete preset">
                 <i className="fa-sharp fa-solid fa-trash" />
             </button>
         </div>
@@ -302,13 +298,26 @@ const PresetEditor = memo(
             }
 
             onSave(keyToUse, newPreset);
-        }, [isNew, newKey, presetKey, bg, opacity, blendMode, borderColor, activeBorderColor, displayName, displayOrder, existingKeys, onSave]);
+        }, [
+            isNew,
+            newKey,
+            presetKey,
+            bg,
+            opacity,
+            blendMode,
+            borderColor,
+            activeBorderColor,
+            displayName,
+            displayOrder,
+            existingKeys,
+            onSave,
+        ]);
 
         // Build preview style
         const previewStyle: React.CSSProperties = {
             background: bg || "#333333",
             opacity: opacity,
-            backgroundBlendMode: blendMode as any || "normal",
+            backgroundBlendMode: (blendMode as any) || "normal",
         };
 
         const bgTypeOptions: SelectOption[] = [
@@ -345,11 +354,7 @@ const PresetEditor = memo(
                     {isNew && (
                         <div className="bgpreset-editor-field">
                             <label className="bgpreset-editor-label">Preset Key</label>
-                            <TextControl
-                                value={newKey}
-                                onChange={setNewKey}
-                                placeholder="bg@my-preset"
-                            />
+                            <TextControl value={newKey} onChange={setNewKey} placeholder="bg@my-preset" />
                             <span className="bgpreset-editor-hint">
                                 Must start with "bg@" followed by letters, numbers, underscores, or hyphens
                             </span>
@@ -359,32 +364,19 @@ const PresetEditor = memo(
                     {/* Display Name */}
                     <div className="bgpreset-editor-field">
                         <label className="bgpreset-editor-label">Display Name</label>
-                        <TextControl
-                            value={displayName}
-                            onChange={setDisplayName}
-                            placeholder="My Custom Background"
-                        />
+                        <TextControl value={displayName} onChange={setDisplayName} placeholder="My Custom Background" />
                     </div>
 
                     {/* Background Type */}
                     <div className="bgpreset-editor-field">
                         <label className="bgpreset-editor-label">Background Type</label>
-                        <SelectControl
-                            value={bgType}
-                            onChange={handleBgTypeChange}
-                            options={bgTypeOptions}
-                        />
+                        <SelectControl value={bgType} onChange={handleBgTypeChange} options={bgTypeOptions} />
                     </div>
 
                     {/* Background Value based on type */}
                     <div className="bgpreset-editor-field">
                         <label className="bgpreset-editor-label">Background Value</label>
-                        {bgType === "color" && (
-                            <ColorControl
-                                value={extractColor(bg)}
-                                onChange={handleColorChange}
-                            />
-                        )}
+                        {bgType === "color" && <ColorControl value={extractColor(bg)} onChange={handleColorChange} />}
                         {bgType === "gradient" && (
                             <TextControl
                                 value={bg}
@@ -395,11 +387,7 @@ const PresetEditor = memo(
                             />
                         )}
                         {bgType === "url" && (
-                            <TextControl
-                                value={bg}
-                                onChange={setBg}
-                                placeholder="url(https://example.com/image.jpg)"
-                            />
+                            <TextControl value={bg} onChange={setBg} placeholder="url(https://example.com/image.jpg)" />
                         )}
                     </div>
 
@@ -431,47 +419,27 @@ const PresetEditor = memo(
                     <div className="bgpreset-editor-field-row">
                         <div className="bgpreset-editor-field">
                             <label className="bgpreset-editor-label">Border Color</label>
-                            <ColorControl
-                                value={borderColor || "#000000"}
-                                onChange={setBorderColor}
-                            />
+                            <ColorControl value={borderColor || "#000000"} onChange={setBorderColor} />
                         </div>
                         <div className="bgpreset-editor-field">
                             <label className="bgpreset-editor-label">Active Border Color</label>
-                            <ColorControl
-                                value={activeBorderColor || "#000000"}
-                                onChange={setActiveBorderColor}
-                            />
+                            <ColorControl value={activeBorderColor || "#000000"} onChange={setActiveBorderColor} />
                         </div>
                     </div>
 
                     {/* Display Order */}
                     <div className="bgpreset-editor-field">
                         <label className="bgpreset-editor-label">Display Order</label>
-                        <TextControl
-                            value={displayOrder}
-                            onChange={setDisplayOrder}
-                            placeholder="0"
-                        />
-                        <span className="bgpreset-editor-hint">
-                            Lower numbers appear first in the context menu
-                        </span>
+                        <TextControl value={displayOrder} onChange={setDisplayOrder} placeholder="0" />
+                        <span className="bgpreset-editor-hint">Lower numbers appear first in the context menu</span>
                     </div>
                 </div>
 
                 <div className="bgpreset-editor-actions">
-                    <button
-                        className="bgpreset-editor-cancel"
-                        onClick={onCancel}
-                        disabled={isLoading}
-                    >
+                    <button className="bgpreset-editor-cancel" onClick={onCancel} disabled={isLoading}>
                         Cancel
                     </button>
-                    <button
-                        className="bgpreset-editor-save"
-                        onClick={handleSubmit}
-                        disabled={isLoading}
-                    >
+                    <button className="bgpreset-editor-save" onClick={handleSubmit} disabled={isLoading}>
                         {isLoading ? (
                             <>
                                 <i className="fa-sharp fa-solid fa-spinner fa-spin" />
@@ -537,25 +505,28 @@ export const BgPresetsContent = memo(({ model }: BgPresetsContentProps) => {
     }, [configDir]);
 
     // Save presets to file
-    const savePresets = useCallback(async (newPresets: BgPresetsData) => {
-        setIsSaving(true);
-        setErrorMessage(null);
+    const savePresets = useCallback(
+        async (newPresets: BgPresetsData) => {
+            setIsSaving(true);
+            setErrorMessage(null);
 
-        try {
-            const fullPath = `${configDir}/presets/bg.json`;
-            const content = JSON.stringify(newPresets, null, 2);
-            await RpcApi.FileWriteCommand(TabRpcClient, {
-                info: { path: fullPath },
-                data64: stringToBase64(content),
-            });
-            setPresets(newPresets);
-            model.markAsEdited();
-        } catch (err: any) {
-            setErrorMessage(`Failed to save presets: ${err.message || String(err)}`);
-        } finally {
-            setIsSaving(false);
-        }
-    }, [configDir, model]);
+            try {
+                const fullPath = `${configDir}/presets/bg.json`;
+                const content = JSON.stringify(newPresets, null, 2);
+                await RpcApi.FileWriteCommand(TabRpcClient, {
+                    info: { path: fullPath },
+                    data64: stringToBase64(content),
+                });
+                setPresets(newPresets);
+                model.markAsEdited();
+            } catch (err: any) {
+                setErrorMessage(`Failed to save presets: ${err.message || String(err)}`);
+            } finally {
+                setIsSaving(false);
+            }
+        },
+        [configDir, model]
+    );
 
     // Initial load
     useEffect(() => {
@@ -596,12 +567,15 @@ export const BgPresetsContent = memo(({ model }: BgPresetsContentProps) => {
         setPresetToDelete(null);
     }, []);
 
-    const handleSavePreset = useCallback(async (key: string, preset: BgPreset) => {
-        const newPresets = { ...presets, [key]: preset };
-        await savePresets(newPresets);
-        setSelectedPreset(null);
-        setIsAddingNew(false);
-    }, [presets, savePresets]);
+    const handleSavePreset = useCallback(
+        async (key: string, preset: BgPreset) => {
+            const newPresets = { ...presets, [key]: preset };
+            await savePresets(newPresets);
+            setSelectedPreset(null);
+            setIsAddingNew(false);
+        },
+        [presets, savePresets]
+    );
 
     const handleCancelEdit = useCallback(() => {
         setSelectedPreset(null);

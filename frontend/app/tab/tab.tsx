@@ -342,7 +342,10 @@ const Tab = memo(
                         });
                     }
 
-                    menu.push({ label: "Base Directory", type: "submenu", submenu: baseDirSubmenu }, { type: "separator" });
+                    menu.push(
+                        { label: "Base Directory", type: "submenu", submenu: baseDirSubmenu },
+                        { type: "separator" }
+                    );
 
                     // Tab Color submenu
                     const currentTabColor = tabData?.meta?.["tab:color"];
@@ -381,7 +384,16 @@ const Tab = memo(
                     menu.push({ label: "Close Tab", click: () => onClose(null) });
                     ContextMenuModel.showContextMenu(menu, e);
                 },
-                [handleRenameTab, id, onClose, tabData, handleSetBaseDir, handleClearBaseDir, handleToggleLock, handleSetTabColor]
+                [
+                    handleRenameTab,
+                    id,
+                    onClose,
+                    tabData,
+                    handleSetBaseDir,
+                    handleClearBaseDir,
+                    handleToggleLock,
+                    handleSetTabColor,
+                ]
             );
 
             const tabColor = tabData?.meta?.["tab:color"];

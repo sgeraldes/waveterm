@@ -9,8 +9,8 @@
  */
 
 import { memo } from "react";
-import { ShellProfileHelper } from "./shell-profile-helper";
 import "./prompt-compatibility-help.scss";
+import { ShellProfileHelper } from "./shell-profile-helper";
 
 interface ExternalLink {
     title: string;
@@ -52,13 +52,12 @@ export const PromptCompatibilityHelp = memo(() => {
                 <div className="prompt-compat-explanation">
                     <p>
                         Custom prompt frameworks like <strong>Oh-My-Posh</strong>, <strong>Starship</strong>, and{" "}
-                        <strong>Powerlevel10k</strong> define their own color schemes that don't automatically
-                        update when you change Wave's terminal theme.
+                        <strong>Powerlevel10k</strong> define their own color schemes that don't automatically update
+                        when you change Wave's terminal theme.
                     </p>
                     <p>
-                        This can lead to poor contrast and readability issues. For example, a dark-colored prompt
-                        may be hard to read on a dark background, or a light-colored prompt may blend into a light
-                        background.
+                        This can lead to poor contrast and readability issues. For example, a dark-colored prompt may be
+                        hard to read on a dark background, or a light-colored prompt may blend into a light background.
                     </p>
                     <p>
                         To fix this, you need to configure your prompt framework to use <strong>terminal colors</strong>{" "}
@@ -105,16 +104,16 @@ export const PromptCompatibilityHelp = memo(() => {
                 </h3>
                 <ul className="prompt-compat-tips">
                     <li>
-                        <strong>Test your configuration:</strong> After applying the changes, switch between light
-                        and dark themes in Wave to ensure your prompt remains readable.
+                        <strong>Test your configuration:</strong> After applying the changes, switch between light and
+                        dark themes in Wave to ensure your prompt remains readable.
                     </li>
                     <li>
-                        <strong>Minimal themes work best:</strong> Consider using minimal or terminal-color-based
-                        themes from your prompt framework for optimal compatibility.
+                        <strong>Minimal themes work best:</strong> Consider using minimal or terminal-color-based themes
+                        from your prompt framework for optimal compatibility.
                     </li>
                     <li>
-                        <strong>Environment variables:</strong> The <code>WAVE_TERM_PALETTE</code> variable can be
-                        used by your prompt scripts to detect when running in Wave Terminal.
+                        <strong>Environment variables:</strong> The <code>WAVE_TERM_PALETTE</code> variable can be used
+                        by your prompt scripts to detect when running in Wave Terminal.
                     </li>
                     <li>
                         <strong>Custom themes:</strong> If you maintain a custom theme configuration, look for color

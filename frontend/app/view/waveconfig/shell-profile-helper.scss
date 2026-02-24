@@ -57,7 +57,9 @@
     outline: none;
     cursor: pointer;
     appearance: none;
-    transition: border-color 0.15s ease, background 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
 
     &:hover {
         border-color: var(--form-element-primary-color);

@@ -16,7 +16,9 @@
     border-radius: 8px;
     background: var(--card-bg-color);
     cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
     position: relative;
 
     &:hover {
@@ -36,7 +38,9 @@
     &--add {
         border-style: dashed;
         opacity: 0.7;
-        transition: opacity 0.15s ease, border-color 0.15s ease;
+        transition:
+            opacity 0.15s ease,
+            border-color 0.15s ease;
 
         &:hover {
             opacity: 1;

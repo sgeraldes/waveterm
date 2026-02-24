@@ -180,8 +180,7 @@ export function isBlockedPath(normalizedPath: string): boolean {
 
     // Normalize separators to forward slashes for consistent comparison on Windows
     // This ensures C:/Windows matches against C:\Windows in the blocked list
-    const normalizedForComparison =
-        PLATFORM === PlatformWindows ? normalizedPath.replace(/\\/g, "/") : normalizedPath;
+    const normalizedForComparison = PLATFORM === PlatformWindows ? normalizedPath.replace(/\\/g, "/") : normalizedPath;
     const lowerPath = normalizedForComparison.toLowerCase();
 
     for (const blocked of blockedPaths) {

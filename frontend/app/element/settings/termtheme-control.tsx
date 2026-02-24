@@ -92,11 +92,7 @@ function getTermThemes(): ThemeInfo[] {
  * Color swatch component - displays a single color
  */
 const ColorSwatch = memo(({ color, title }: { color: string; title?: string }) => (
-    <div
-        className="termtheme-swatch"
-        style={{ backgroundColor: color }}
-        title={title}
-    />
+    <div className="termtheme-swatch" style={{ backgroundColor: color }} title={title} />
 ));
 
 ColorSwatch.displayName = "ColorSwatch";
@@ -137,11 +133,7 @@ const ThemePreview = memo(({ theme, previewBackground }: ThemePreviewProps) => {
 
     // Determine background based on preview mode
     const bgColor =
-        previewBackground === "light"
-            ? "#fafafa"
-            : previewBackground === "dark"
-              ? "#1a1a1a"
-              : colors.background;
+        previewBackground === "light" ? "#fafafa" : previewBackground === "dark" ? "#1a1a1a" : colors.background;
 
     // Split view shows both dark and light backgrounds
     if (previewBackground === "split") {

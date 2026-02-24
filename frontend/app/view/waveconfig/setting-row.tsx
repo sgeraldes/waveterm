@@ -59,9 +59,7 @@ export const SettingRow = memo(
                 <div className="setting-header">
                     <div className="setting-label-container">
                         <span className="setting-label">{metadata.label}</span>
-                        {metadata.requiresRestart && (
-                            <span className="setting-restart-badge">Requires restart</span>
-                        )}
+                        {metadata.requiresRestart && <span className="setting-restart-badge">Requires restart</span>}
                         {showModified && (
                             <button
                                 className="setting-reset-button"
@@ -75,17 +73,10 @@ export const SettingRow = memo(
                         <span className="setting-key">{metadata.key}</span>
                     </div>
                     <div className="setting-control-container">
-                        <ControlFactory
-                            metadata={metadata}
-                            value={value}
-                            onChange={handleChange}
-                            disabled={disabled}
-                        />
+                        <ControlFactory metadata={metadata} value={value} onChange={handleChange} disabled={disabled} />
                     </div>
                 </div>
-                {metadata.description && (
-                    <div className="setting-description">{metadata.description}</div>
-                )}
+                {metadata.description && <div className="setting-description">{metadata.description}</div>}
             </div>
         );
     }

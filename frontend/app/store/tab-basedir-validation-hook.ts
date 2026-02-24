@@ -3,8 +3,8 @@
 
 import { fireAndForget } from "@/util/util";
 import { globalStore } from "./jotaiStore";
-import { activeTabIdAtom, getTabModelByTabId } from "./tab-model";
 import { validateTabBasedir } from "./tab-basedir-validator";
+import { activeTabIdAtom, getTabModelByTabId } from "./tab-model";
 import * as WOS from "./wos";
 
 const DEBOUNCE_INTERVAL_MS = 500; // Minimum time between validations

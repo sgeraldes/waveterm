@@ -103,7 +103,10 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
 
     const handleSaveCustomAccent = useCallback(
         (name: string, overrides: Record<string, string>) => {
-            let id = name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+            let id = name
+                .toLowerCase()
+                .replace(/\s+/g, "-")
+                .replace(/[^a-z0-9-]/g, "");
             if (!id) {
                 alert("Please enter a valid name with at least one letter or number.");
                 return;
@@ -165,18 +168,14 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
             >
                 <div className="theme-subsections">
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Mode
-                        </div>
+                        <div className="display-subsection-title">Mode</div>
                         <div className="display-subsection-content">
                             <ModeSelector value={appTheme} onChange={handleThemeChange} />
                         </div>
                     </div>
 
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Accent Theme
-                        </div>
+                        <div className="display-subsection-title">Accent Theme</div>
                         <div className="display-subsection-content">
                             <AccentSelector
                                 value={appAccent}
@@ -190,9 +189,7 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
                     </div>
 
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Color Palette Preview
-                        </div>
+                        <div className="display-subsection-title">Color Palette Preview</div>
                         <div className="display-subsection-content">
                             <ThemePalettePreview
                                 themeOverrides={themeOverrides}
@@ -220,9 +217,7 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
             >
                 <div className="theme-subsections">
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Themes
-                        </div>
+                        <div className="display-subsection-title">Themes</div>
                         <div className="display-subsection-content">
                             <PreviewBackgroundToggle value={termPreviewBg} onChange={setTermPreviewBg} />
                             <TermThemeControl
@@ -243,9 +238,7 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
             >
                 <div className="theme-subsections">
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Theme
-                        </div>
+                        <div className="display-subsection-title">Theme</div>
                         <div className="display-subsection-content">
                             <PreviewBackgroundToggle value={ompPreviewBg} onChange={setOmpPreviewBg} />
                             <OmpThemeControl
@@ -265,14 +258,9 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
                     </div>
 
                     <div className="display-subsection">
-                        <div className="display-subsection-title">
-                            Configurator
-                        </div>
+                        <div className="display-subsection-title">Configurator</div>
                         <div className="display-subsection-content">
-                            <OmpConfigurator
-                                previewBackground={ompPreviewBg}
-                                onConfigChange={handleOmpConfigChange}
-                            />
+                            <OmpConfigurator previewBackground={ompPreviewBg} onConfigChange={handleOmpConfigChange} />
                         </div>
                     </div>
                 </div>

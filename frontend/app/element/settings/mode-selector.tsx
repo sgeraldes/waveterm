@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { memo } from "react";
-import { SegmentedToggle } from "./segmented-toggle";
 import type { SegmentedToggleOption } from "./segmented-toggle";
+import { SegmentedToggle } from "./segmented-toggle";
 
 interface ModeSelectorProps {
     value: string;

@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import type { BlockNodeModel } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import { QuickTips } from "@/app/element/quicktips";
 import { globalStore } from "@/app/store/global";
+import type { TabModel } from "@/app/store/tab-model";
 import { Atom, atom, PrimitiveAtom } from "jotai";
 
 class QuickTipsViewModel implements ViewModel {

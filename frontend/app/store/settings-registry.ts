@@ -109,7 +109,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "term:ligatures",
         label: "Font Ligatures",
-        description: "Enable font ligatures for supported fonts (e.g., Fira Code, JetBrains Mono). Set a ligature-enabled Font Family to use this feature.",
+        description:
+            "Enable font ligatures for supported fonts (e.g., Fira Code, JetBrains Mono). Set a ligature-enabled Font Family to use this feature.",
         category: "Terminal",
         subcategory: "Appearance",
         controlType: "toggle",
@@ -122,7 +123,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "term:disablewebgl",
         label: "Disable WebGL",
-        description: "Disable WebGL rendering for the terminal. May help with GPU-related issues. See also Hardware Acceleration.",
+        description:
+            "Disable WebGL rendering for the terminal. May help with GPU-related issues. See also Hardware Acceleration.",
         category: "Terminal",
         subcategory: "Performance",
         controlType: "toggle",
@@ -215,7 +217,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "term:omptheme",
         label: "Oh-My-Posh Theme",
-        description: "Browse and select an Oh-My-Posh theme for your terminal prompt. After selecting, configure OMP to use this theme in your shell profile.",
+        description:
+            "Browse and select an Oh-My-Posh theme for your terminal prompt. After selecting, configure OMP to use this theme in your shell profile.",
         category: "Terminal",
         subcategory: "Prompt Compatibility",
         controlType: "omptheme",
@@ -228,7 +231,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "term:ompexport",
         label: "Oh-My-Posh Palette Export",
-        description: "Export your current terminal Color Scheme as an Oh-My-Posh palette configuration. Copy the palette and add it to your OMP config file to match your prompt colors.",
+        description:
+            "Export your current terminal Color Scheme as an Oh-My-Posh palette configuration. Copy the palette and add it to your OMP config file to match your prompt colors.",
         category: "Terminal",
         subcategory: "Prompt Compatibility",
         controlType: "omppalette",
@@ -242,7 +246,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "term:promptcompat",
         label: "Prompt Compatibility Help",
-        description: "Learn how to configure custom prompt frameworks (Oh-My-Posh, Starship, Powerlevel10k) to work seamlessly with Wave Terminal's theme system.",
+        description:
+            "Learn how to configure custom prompt frameworks (Oh-My-Posh, Starship, Powerlevel10k) to work seamlessly with Wave Terminal's theme system.",
         category: "Terminal",
         subcategory: "Prompt Compatibility",
         controlType: "promptcompat",
@@ -421,7 +426,8 @@ const allSettings: SettingMetadata[] = [
     {
         key: "window:disablehardwareacceleration",
         label: "Disable Hardware Acceleration",
-        description: "Disable GPU hardware acceleration. May help with rendering issues. See also Disable WebGL for terminal-specific GPU settings.",
+        description:
+            "Disable GPU hardware acceleration. May help with rendering issues. See also Disable WebGL for terminal-specific GPU settings.",
         category: "Window",
         subcategory: "Performance",
         controlType: "toggle",
@@ -1228,9 +1234,7 @@ function getSettingsForPlatform(platform: "darwin" | "win32" | "linux"): Setting
 /**
  * Get all settings grouped by category for the current platform.
  */
-function getSettingsByCategoryForPlatform(
-    platform: "darwin" | "win32" | "linux"
-): Map<string, SettingMetadata[]> {
+function getSettingsByCategoryForPlatform(platform: "darwin" | "win32" | "linux"): Map<string, SettingMetadata[]> {
     const result = new Map<string, SettingMetadata[]>();
     const platformSettings = getSettingsForPlatform(platform);
 
@@ -1249,10 +1253,7 @@ function getSettingsByCategoryForPlatform(
  * Get subcategories for a category, ordered by first appearance in settings list.
  * Returns an array of unique subcategory names (excluding undefined).
  */
-function getSubcategoriesForCategory(
-    category: string,
-    platform: "darwin" | "win32" | "linux"
-): string[] {
+function getSubcategoriesForCategory(category: string, platform: "darwin" | "win32" | "linux"): string[] {
     const settingsByCategory = getSettingsByCategoryForPlatform(platform);
     const settings = settingsByCategory.get(category);
     if (!settings) return [];
@@ -1271,15 +1272,15 @@ function getSubcategoriesForCategory(
 }
 
 export {
-    settingsRegistry,
-    settingsByCategory,
     categoryConfigMap,
-    getSettingMetadata,
-    getDefaultValue,
     getCategoryConfig,
+    getDefaultValue,
     getOrderedCategories,
-    searchSettings,
-    getSettingsForPlatform,
+    getSettingMetadata,
     getSettingsByCategoryForPlatform,
+    getSettingsForPlatform,
     getSubcategoriesForCategory,
+    searchSettings,
+    settingsByCategory,
+    settingsRegistry,
 };

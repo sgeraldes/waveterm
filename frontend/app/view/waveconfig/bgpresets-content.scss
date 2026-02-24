@@ -116,7 +116,10 @@ $card-preview-height: 120px;
     border-radius: 8px;
     overflow: hidden;
     cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        transform 0.15s ease;
 
     &:hover {
         border-color: var(--accent-color);
@@ -184,7 +187,9 @@ $card-preview-height: 120px;
     color: var(--main-text-color);
     cursor: pointer;
     opacity: 0;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease;
 
     &:hover {
         background: var(--error-color);
@@ -211,7 +216,10 @@ $card-preview-height: 120px;
     border-radius: 8px;
     color: var(--secondary-text-color);
     cursor: pointer;
-    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        color 0.15s ease,
+        background-color 0.15s ease;
 
     &:hover {
         border-color: var(--accent-color);
@@ -384,7 +392,9 @@ $card-preview-height: 120px;
     color: var(--secondary-text-color);
     font-size: 13px;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 
     &:hover:not(:disabled) {
         background: var(--hover-bg-color);
@@ -468,7 +478,10 @@ $card-preview-height: 120px;
     border-radius: 4px;
     font-size: 12px;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        opacity 0.15s ease;
 
     &:disabled {
         opacity: 0.5;

@@ -41,11 +41,7 @@ interface ThemeCardProps {
 const ThemeCard = memo(({ theme, selected, onClick, previewBackground }: ThemeCardProps) => {
     // Determine background based on preview mode
     const bgColor =
-        previewBackground === "light"
-            ? "#fafafa"
-            : previewBackground === "dark"
-              ? "#1a1a1a"
-              : theme.colors[0];
+        previewBackground === "light" ? "#fafafa" : previewBackground === "dark" ? "#1a1a1a" : theme.colors[0];
 
     // Split view shows both dark and light backgrounds
     if (previewBackground === "split") {
@@ -124,12 +120,7 @@ const ThemeCard = memo(({ theme, selected, onClick, previewBackground }: ThemeCa
             >
                 <div className="omptheme-color-row">
                     {theme.colors.slice(0, 8).map((color, i) => (
-                        <div
-                            key={i}
-                            className="omptheme-swatch"
-                            style={{ backgroundColor: color }}
-                            title={color}
-                        />
+                        <div key={i} className="omptheme-swatch" style={{ backgroundColor: color }} title={color} />
                     ))}
                 </div>
             </div>
@@ -194,9 +185,7 @@ export const OmpThemeControl = memo(({ value, onChange, disabled, previewBackgro
         }
         const query = searchQuery.toLowerCase();
         return themes.filter(
-            (theme) =>
-                theme.name.toLowerCase().includes(query) ||
-                theme.displayName.toLowerCase().includes(query)
+            (theme) => theme.name.toLowerCase().includes(query) || theme.displayName.toLowerCase().includes(query)
         );
     }, [themes, searchQuery]);
 
@@ -276,9 +265,16 @@ export const OmpThemeControl = memo(({ value, onChange, disabled, previewBackgro
             <div className="omptheme-instructions">
                 <i className="fa fa-solid fa-info-circle" />
                 <span>
-                    Selected theme: <strong>{value || "None"}</strong>.
-                    After selecting a theme, you'll need to configure Oh-My-Posh to use it.
-                    See the <a href="https://ohmyposh.dev/docs/installation/customize" target="_blank" rel="noopener noreferrer">OMP documentation</a> for setup instructions.
+                    Selected theme: <strong>{value || "None"}</strong>. After selecting a theme, you'll need to
+                    configure Oh-My-Posh to use it. See the{" "}
+                    <a
+                        href="https://ohmyposh.dev/docs/installation/customize"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        OMP documentation
+                    </a>{" "}
+                    for setup instructions.
                 </span>
             </div>
         </div>

@@ -4,13 +4,13 @@
 import { atoms, getApi } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
 import {
     computeModeStatus,
     isLocalEndpoint,
     ModeStatus,
     ProviderStatusBadge,
 } from "@/app/view/waveconfig/provider-status-badge";
+import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
 import { base64ToString, cn, stringToBase64 } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -238,9 +238,7 @@ const ModeEditor = memo(({ modeKey, mode, onSave, onDelete, onDuplicate, isLoadi
     const isTemplate = isTemplateMode(modeKey);
     const isReadOnly = isDefault || isTemplate;
     const [form, setForm] = useState<ModeFormData>(() => modeKeyToFormData(modeKey, mode));
-    const [tokenMode, setTokenMode] = useState<TokenMode>(() =>
-        form["ai:apitoken"] ? "direct" : "secret"
-    );
+    const [tokenMode, setTokenMode] = useState<TokenMode>(() => (form["ai:apitoken"] ? "direct" : "secret"));
     const [hasChanges, setHasChanges] = useState(false);
 
     // Reset form when mode changes
@@ -317,21 +315,13 @@ const ModeEditor = memo(({ modeKey, mode, onSave, onDelete, onDuplicate, isLoadi
                 </div>
                 <div className="waveai-editor-actions">
                     {isTemplate && onDuplicate && (
-                        <button
-                            className="waveai-duplicate-btn"
-                            onClick={handleDuplicate}
-                            disabled={isLoading}
-                        >
+                        <button className="waveai-duplicate-btn" onClick={handleDuplicate} disabled={isLoading}>
                             <i className="fa fa-solid fa-copy" />
                             Duplicate & Edit
                         </button>
                     )}
                     {!isReadOnly && (
-                        <button
-                            className="waveai-delete-btn"
-                            onClick={handleDelete}
-                            disabled={isLoading}
-                        >
+                        <button className="waveai-delete-btn" onClick={handleDelete} disabled={isLoading}>
                             <i className="fa fa-solid fa-trash" />
                             Delete
                         </button>
@@ -368,7 +358,8 @@ const ModeEditor = memo(({ modeKey, mode, onSave, onDelete, onDuplicate, isLoadi
                 {isTemplate && (
                     <div className="waveai-readonly-notice template">
                         <i className="fa fa-solid fa-cube" />
-                        This is a pre-configured template. Click "Duplicate & Edit" to create your own customized version.
+                        This is a pre-configured template. Click "Duplicate & Edit" to create your own customized
+                        version.
                     </div>
                 )}
 
@@ -644,7 +635,11 @@ const ModeEditor = memo(({ modeKey, mode, onSave, onDelete, onDuplicate, isLoadi
                                         <div className="waveai-field-help">
                                             Reference to a secret stored in Wave's secret manager.
                                             {provider && getDefaultSecretName(provider) && (
-                                                <> Default for {getProviderLabel(provider)}: <code>{getDefaultSecretName(provider)}</code></>
+                                                <>
+                                                    {" "}
+                                                    Default for {getProviderLabel(provider)}:{" "}
+                                                    <code>{getDefaultSecretName(provider)}</code>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -692,7 +687,8 @@ const ModeEditor = memo(({ modeKey, mode, onSave, onDelete, onDuplicate, isLoadi
                             ))}
                         </div>
                         <div className="waveai-field-help" style={{ marginTop: 8 }}>
-                            Capabilities control what features the AI mode supports. Most modes should have "Tools" enabled.
+                            Capabilities control what features the AI mode supports. Most modes should have "Tools"
+                            enabled.
                         </div>
                     </div>
                 </div>
@@ -822,11 +818,7 @@ const AddModeForm = memo(({ onSave, onCancel, isLoading, existingKeys }: AddMode
                     <button className="waveai-delete-btn" onClick={onCancel} disabled={isLoading}>
                         Cancel
                     </button>
-                    <button
-                        className="waveai-save-btn"
-                        onClick={handleSave}
-                        disabled={isLoading || !canSave}
-                    >
+                    <button className="waveai-save-btn" onClick={handleSave} disabled={isLoading || !canSave}>
                         {isLoading ? (
                             <>
                                 <i className="fa fa-solid fa-spinner fa-spin" />
@@ -1124,7 +1116,10 @@ const AddModeForm = memo(({ onSave, onCancel, isLoading, existingKeys }: AddMode
                                         <div className="waveai-field-help">
                                             Reference to a secret stored in Wave's secret manager.
                                             {provider && getDefaultSecretName(provider) && (
-                                                <> Default: <code>{getDefaultSecretName(provider)}</code></>
+                                                <>
+                                                    {" "}
+                                                    Default: <code>{getDefaultSecretName(provider)}</code>
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -1272,22 +1267,25 @@ export const WaveAIVisualContent = memo(({ model }: WaveAIVisualContentProps) =>
         loadSecrets();
     }, [loadUserModes, loadSecrets]);
 
-    const saveUserModes = useCallback(async (modes: Record<string, AIModeConfigType>) => {
-        setErrorMessage(null);
-        try {
-            const fullPath = `${configDir}/waveai.json`;
-            const content = JSON.stringify(modes, null, 2);
-            await RpcApi.FileWriteCommand(TabRpcClient, {
-                info: { path: fullPath },
-                data64: stringToBase64(content),
-            });
-            setUserModes(modes);
-        } catch (err: any) {
-            console.error("Failed to save waveai.json:", err);
-            setErrorMessage(`Failed to save AI modes: ${err.message || String(err)}`);
-            throw err;
-        }
-    }, [configDir]);
+    const saveUserModes = useCallback(
+        async (modes: Record<string, AIModeConfigType>) => {
+            setErrorMessage(null);
+            try {
+                const fullPath = `${configDir}/waveai.json`;
+                const content = JSON.stringify(modes, null, 2);
+                await RpcApi.FileWriteCommand(TabRpcClient, {
+                    info: { path: fullPath },
+                    data64: stringToBase64(content),
+                });
+                setUserModes(modes);
+            } catch (err: any) {
+                console.error("Failed to save waveai.json:", err);
+                setErrorMessage(`Failed to save AI modes: ${err.message || String(err)}`);
+                throw err;
+            }
+        },
+        [configDir]
+    );
 
     // Combine default modes with user modes
     const allModes = useMemo(() => {
@@ -1430,11 +1428,7 @@ export const WaveAIVisualContent = memo(({ model }: WaveAIVisualContentProps) =>
                         <i className="fa fa-solid fa-circle-exclamation" />
                         <span>{errorMessage}</span>
                     </div>
-                    <button
-                        className="waveai-error-dismiss"
-                        onClick={() => setErrorMessage(null)}
-                        title="Dismiss"
-                    >
+                    <button className="waveai-error-dismiss" onClick={() => setErrorMessage(null)} title="Dismiss">
                         <i className="fa fa-solid fa-times" />
                     </button>
                 </div>
@@ -1533,12 +1527,15 @@ export const WaveAIVisualContent = memo(({ model }: WaveAIVisualContentProps) =>
                         )}
 
                         {/* Empty state */}
-                        {waveCloudModes.length === 0 && commercialModes.length === 0 && localModes.length === 0 && customModes.length === 0 && (
-                            <div className="waveai-empty-sidebar">
-                                <i className="fa fa-solid fa-robot" />
-                                <div className="waveai-empty-text">No AI modes configured</div>
-                            </div>
-                        )}
+                        {waveCloudModes.length === 0 &&
+                            commercialModes.length === 0 &&
+                            localModes.length === 0 &&
+                            customModes.length === 0 && (
+                                <div className="waveai-empty-sidebar">
+                                    <i className="fa fa-solid fa-robot" />
+                                    <div className="waveai-empty-text">No AI modes configured</div>
+                                </div>
+                            )}
                     </div>
                 </div>
 

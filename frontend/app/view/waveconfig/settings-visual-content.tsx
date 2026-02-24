@@ -8,10 +8,10 @@
  * with the WaveConfigViewModel for the General settings config file.
  */
 
-import { memo, useEffect } from "react";
-import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
-import { SettingsVisual } from "@/app/view/waveconfig/settings-visual";
 import { settingsService } from "@/app/store/settings-service";
+import { SettingsVisual } from "@/app/view/waveconfig/settings-visual";
+import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
+import { memo, useEffect } from "react";
 
 interface SettingsVisualContentProps {
     model: WaveConfigViewModel;

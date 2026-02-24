@@ -17,12 +17,7 @@ export interface PresetValidationResult {
  * Defines which metadata keys each preset type is allowed to set.
  */
 export const PRESET_KEY_ALLOWLISTS: Record<string, Set<string>> = {
-    "tabvar@": new Set([
-        "tab:basedir",
-        "tab:basedirlock",
-        "display:name",
-        "display:order"
-    ]),
+    "tabvar@": new Set(["tab:basedir", "tab:basedirlock", "display:name", "display:order"]),
     "bg@": new Set([
         "bg:*",
         "bg",
@@ -32,7 +27,7 @@ export const PRESET_KEY_ALLOWLISTS: Record<string, Set<string>> = {
         "bg:activebordercolor",
         "bg:text",
         "display:name",
-        "display:order"
+        "display:order",
     ]),
 };
 
@@ -63,10 +58,7 @@ function isKeyAllowed(key: string, allowedKeys: Set<string>): boolean {
  * Validates a preset before application.
  * Returns validation result with error details if invalid.
  */
-export function validatePresetBeforeApply(
-    presetName: string,
-    presetData: Record<string, any>
-): PresetValidationResult {
+export function validatePresetBeforeApply(presetName: string, presetData: Record<string, any>): PresetValidationResult {
     const warnings: string[] = [];
 
     // Determine preset type from name prefix
@@ -102,7 +94,7 @@ export function validatePresetBeforeApply(
     if (disallowedKeys.length > 0) {
         return {
             valid: false,
-            error: `Preset "${presetName}" contains keys not allowed for its type: ${disallowedKeys.join(", ")}`
+            error: `Preset "${presetName}" contains keys not allowed for its type: ${disallowedKeys.join(", ")}`,
         };
     }
 
@@ -113,10 +105,7 @@ export function validatePresetBeforeApply(
  * Sanitizes a preset by removing disallowed keys.
  * Returns a new preset object with only allowed keys.
  */
-export function sanitizePreset(
-    presetName: string,
-    presetData: Record<string, any>
-): Record<string, any> {
+export function sanitizePreset(presetName: string, presetData: Record<string, any>): Record<string, any> {
     // Determine preset type from name prefix
     let presetType: string | null = null;
     for (const prefix of Object.keys(PRESET_KEY_ALLOWLISTS)) {

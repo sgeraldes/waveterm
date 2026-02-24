@@ -1,4 +1,3 @@
-
 // Note: blockframe-header.tsx is a React component that requires full Electron+Jotai
 
 import { describe, expect, it, vi } from "vitest";

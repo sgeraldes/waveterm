@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
-import { searchSettings, SearchResult } from "./settings-search";
+import { SearchResult, searchSettings } from "./settings-search";
 
 interface FilterState {
     onlyModified: boolean;

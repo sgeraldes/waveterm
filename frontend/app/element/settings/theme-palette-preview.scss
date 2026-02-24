@@ -25,7 +25,10 @@ $setting-modified-color: #e2c08d;
     overflow: hidden;
     border: 1px solid var(--border-color);
     cursor: default;
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        border-color 0.15s ease;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 
     &:hover {
@@ -38,7 +41,9 @@ $setting-modified-color: #e2c08d;
 
         &:hover {
             border-color: var(--accent-color);
-            box-shadow: 0 0 0 2px var(--accent-color), 0 4px 12px rgba(0, 0, 0, 0.25);
+            box-shadow:
+                0 0 0 2px var(--accent-color),
+                0 4px 12px rgba(0, 0, 0, 0.25);
         }
     }
 
@@ -54,7 +59,9 @@ $setting-modified-color: #e2c08d;
 
     &--editing {
         border-color: var(--accent-color);
-        box-shadow: 0 0 0 1px var(--accent-color), 0 2px 6px rgba(0, 0, 0, 0.15);
+        box-shadow:
+            0 0 0 1px var(--accent-color),
+            0 2px 6px rgba(0, 0, 0, 0.15);
     }
 }
 
@@ -101,7 +108,9 @@ $setting-modified-color: #e2c08d;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    transition: color 0.15s ease, opacity 0.15s ease;
+    transition:
+        color 0.15s ease,
+        opacity 0.15s ease;
 
     &--dirty {
         color: var(--accent-color);
@@ -124,7 +133,9 @@ $setting-modified-color: #e2c08d;
     border-radius: 4px;
     opacity: 0.7;
     flex-shrink: 0;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
+    transition:
+        opacity 0.15s ease,
+        background-color 0.15s ease;
 
     &:hover {
         opacity: 1;

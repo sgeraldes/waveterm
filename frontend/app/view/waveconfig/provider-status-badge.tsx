@@ -47,11 +47,7 @@ export function isLocalEndpoint(endpoint: string | undefined): boolean {
 /**
  * Compute the status of an AI mode based on its configuration and available secrets
  */
-export function computeModeStatus(
-    modeKey: string,
-    mode: AIModeConfigType,
-    secretNames: Set<string>
-): ModeStatus {
+export function computeModeStatus(modeKey: string, mode: AIModeConfigType, secretNames: Set<string>): ModeStatus {
     // Wave Cloud modes are always ready (managed by Wave)
     if (modeKey.startsWith("waveai@")) {
         return "cloud";
@@ -124,9 +120,7 @@ export const StatusTooltipContent = memo(
                             <i className="fa fa-solid fa-check-circle" />
                             <span>Ready</span>
                         </div>
-                        <div className="waveai-tooltip-body">
-                            This provider is fully configured and ready to use.
-                        </div>
+                        <div className="waveai-tooltip-body">This provider is fully configured and ready to use.</div>
                     </div>
                 );
 
@@ -186,9 +180,7 @@ export const StatusTooltipContent = memo(
                             <i className="fa fa-solid fa-cloud" />
                             <span>Wave Cloud</span>
                         </div>
-                        <div className="waveai-tooltip-body">
-                            Managed by Wave. No configuration required.
-                        </div>
+                        <div className="waveai-tooltip-body">Managed by Wave. No configuration required.</div>
                     </div>
                 );
 

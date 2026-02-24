@@ -8,9 +8,9 @@
  * Handles async loading, caching, and change subscriptions.
  */
 
-import { useEffect, useState } from "react";
-import type { SelectOption } from "@/app/store/settings-options-provider";
 import { getOptionsProvider } from "@/app/store/options-registry";
+import type { SelectOption } from "@/app/store/settings-options-provider";
+import { useEffect, useState } from "react";
 
 /**
  * Return type for the useSettingOptions hook.

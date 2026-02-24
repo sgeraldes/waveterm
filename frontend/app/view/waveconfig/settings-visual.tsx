@@ -8,26 +8,27 @@
  * category sidebar, search, and settings list.
  */
 
-import { SettingControl } from "@/app/element/settings/setting-control";
-import { SliderControl } from "@/app/element/settings/slider-control";
-import { SelectControl, SelectOption } from "@/app/element/settings/select-control";
-import { ToggleControl } from "@/app/element/settings/toggle-control";
-import { NumberControl } from "@/app/element/settings/number-control";
-import { TextControl } from "@/app/element/settings/text-control";
 import { ColorControl } from "@/app/element/settings/color-control";
 import { FontControl } from "@/app/element/settings/font-control";
-import { PathControl } from "@/app/element/settings/path-control";
-import { StringListControl } from "@/app/element/settings/stringlist-control";
-import { TermThemeControl } from "@/app/element/settings/termtheme-control";
+import { NumberControl } from "@/app/element/settings/number-control";
 import { OmpPaletteExport } from "@/app/element/settings/omp-palette-export";
 import { OmpThemeControl } from "@/app/element/settings/omptheme-control";
-import { PromptCompatibilityHelp } from "@/app/view/waveconfig/prompt-compatibility-help";
+import { PathControl } from "@/app/element/settings/path-control";
+import { SelectControl, SelectOption } from "@/app/element/settings/select-control";
+import { SettingControl } from "@/app/element/settings/setting-control";
+import { SliderControl } from "@/app/element/settings/slider-control";
+import { StringListControl } from "@/app/element/settings/stringlist-control";
+import { TermThemeControl } from "@/app/element/settings/termtheme-control";
+import { TextControl } from "@/app/element/settings/text-control";
+import { ToggleControl } from "@/app/element/settings/toggle-control";
+import { getApi } from "@/app/store/global";
 import {
     allSettingsAtom,
     selectedCategoryAtom,
     selectedSubcategoryAtom,
     settingsSearchQueryAtom,
 } from "@/app/store/settings-atoms";
+import { aiModeProvider, termThemesProvider } from "@/app/store/settings-options-provider";
 import {
     categoryConfigMap,
     getDefaultValue,
@@ -38,11 +39,9 @@ import {
     searchSettings,
 } from "@/app/store/settings-registry";
 import { settingsService } from "@/app/store/settings-service";
-import { termThemesProvider, aiModeProvider } from "@/app/store/settings-options-provider";
-import { getApi } from "@/app/store/global";
+import { PromptCompatibilityHelp } from "@/app/view/waveconfig/prompt-compatibility-help";
 import { cn } from "@/util/util";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { atom } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import "./settings-visual.scss";
@@ -415,9 +414,8 @@ function renderControl(
 
         case "select": {
             // Use dynamic options if provided and static options are empty
-            const options = dynamicOptions && dynamicOptions.length > 0
-                ? dynamicOptions
-                : (metadata.validation?.options || []);
+            const options =
+                dynamicOptions && dynamicOptions.length > 0 ? dynamicOptions : metadata.validation?.options || [];
             return (
                 <SelectControl
                     value={(value as string) ?? ""}
@@ -464,7 +462,7 @@ function renderControl(
         default:
             return (
                 <TextControl
-                    value={typeof value === "string" ? value : JSON.stringify(value) ?? ""}
+                    value={typeof value === "string" ? value : (JSON.stringify(value) ?? "")}
                     onChange={onChange}
                 />
             );
@@ -521,11 +519,7 @@ const SettingRow = memo(({ metadata }: SettingRowProps) => {
 
     // Render description with links if present
     const descriptionContent = metadata.links ? (
-        <SettingDescription
-            description={metadata.description}
-            links={metadata.links}
-            onNavigate={handleNavigate}
-        />
+        <SettingDescription description={metadata.description} links={metadata.links} onNavigate={handleNavigate} />
     ) : (
         metadata.description
     );
@@ -802,11 +796,7 @@ const SettingsList = memo(() => {
                                 id={subcategory ? `settings-subcategory-${category}-${subcategory}` : undefined}
                                 className="settings-subcategory-section"
                             >
-                                {subcategory && (
-                                    <div className="settings-subcategory-header">
-                                        {subcategory}
-                                    </div>
-                                )}
+                                {subcategory && <div className="settings-subcategory-header">{subcategory}</div>}
                                 <div className="settings-subcategory-content">
                                     {subSettings.map((setting) => (
                                         <SettingRow key={setting.key} metadata={setting} />

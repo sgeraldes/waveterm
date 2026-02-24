@@ -3,7 +3,7 @@
 
 import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
 import { useAtomValue } from "jotai";
-import { memo, useMemo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import "./aipresets-content.scss";
 
@@ -65,8 +65,8 @@ const DeprecationBanner = memo(() => {
             <div className="banner-content">
                 <h3 className="banner-title">AI Presets is Deprecated</h3>
                 <p className="banner-description">
-                    This configuration format has been replaced by <strong>Wave AI Modes</strong>, which provides
-                    a more flexible and powerful way to configure AI providers and models.
+                    This configuration format has been replaced by <strong>Wave AI Modes</strong>, which provides a more
+                    flexible and powerful way to configure AI providers and models.
                 </p>
             </div>
         </div>
@@ -182,10 +182,12 @@ const MigrationGuide = memo(() => {
                         <strong>Open Wave AI Modes</strong> - Click the button above or select the "Wave AI Modes" tab
                     </li>
                     <li>
-                        <strong>Create equivalent entries</strong> - Wave AI Modes uses a simpler key format without the <code>ai@</code> prefix
+                        <strong>Create equivalent entries</strong> - Wave AI Modes uses a simpler key format without the{" "}
+                        <code>ai@</code> prefix
                     </li>
                     <li>
-                        <strong>Move your API tokens</strong> - For security, consider using the Secrets manager for API tokens instead of storing them in config files
+                        <strong>Move your API tokens</strong> - For security, consider using the Secrets manager for API
+                        tokens instead of storing them in config files
                     </li>
                     <li>
                         <strong>Test your configuration</strong> - Verify that AI functionality works with the new modes
@@ -197,8 +199,15 @@ const MigrationGuide = memo(() => {
                 <div className="guide-note">
                     <i className="fa-sharp fa-solid fa-circle-info" />
                     <span>
-                        Wave AI Modes supports all providers: OpenAI, Anthropic, Azure, Ollama, and more.
-                        See the <a href="https://docs.waveterm.dev/waveai-modes?ref=waveconfig" target="_blank" rel="noopener noreferrer">documentation</a> for details.
+                        Wave AI Modes supports all providers: OpenAI, Anthropic, Azure, Ollama, and more. See the{" "}
+                        <a
+                            href="https://docs.waveterm.dev/waveai-modes?ref=waveconfig"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            documentation
+                        </a>{" "}
+                        for details.
                     </span>
                 </div>
             </div>

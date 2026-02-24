@@ -476,9 +476,7 @@ interface ConnectionListItemProps {
 
 const ConnectionListItem = memo(({ connection, isSelected, onSelect }: ConnectionListItemProps) => {
     const iconInfo = getConnectionIcon(connection);
-    const iconClass = iconInfo.isBrand
-        ? `fa-brands fa-${iconInfo.icon}`
-        : `fa-sharp fa-solid fa-${iconInfo.icon}`;
+    const iconClass = iconInfo.isBrand ? `fa-brands fa-${iconInfo.icon}` : `fa-sharp fa-solid fa-${iconInfo.icon}`;
     const isHidden = connection.config["display:hidden"];
     const displayName = (connection.config as any)["display:name"] || connection.name;
 
@@ -492,12 +490,8 @@ const ConnectionListItem = memo(({ connection, isSelected, onSelect }: Connectio
         >
             <i className={iconClass} />
             <span className="connections-list-item-name">{displayName}</span>
-            {connection.type === "wsl" && (
-                <span className="connections-list-item-badge wsl">WSL</span>
-            )}
-            {connection.type === "ssh" && (
-                <span className="connections-list-item-badge ssh">SSH</span>
-            )}
+            {connection.type === "wsl" && <span className="connections-list-item-badge wsl">WSL</span>}
+            {connection.type === "ssh" && <span className="connections-list-item-badge ssh">SSH</span>}
             {isHidden && <i className="fa-sharp fa-solid fa-eye-slash connections-list-item-hidden" />}
             <i className="fa-sharp fa-solid fa-chevron-right connections-list-item-arrow" />
         </div>
@@ -716,12 +710,7 @@ const SettingsCategory = memo(
                 {isExpanded && (
                     <div className="connections-category-content">
                         {category.fields.map((field) => (
-                            <SettingField
-                                key={field.key}
-                                field={field}
-                                value={config[field.key]}
-                                onChange={onChange}
-                            />
+                            <SettingField key={field.key} field={field} value={config[field.key]} onChange={onChange} />
                         ))}
                     </div>
                 )}
@@ -807,12 +796,8 @@ const ConnectionEditor = memo(({ connection, onBack, onDelete, onSave }: Connect
                         return <i className={editorIconClass} />;
                     })()}
                     <span>{(connection.config as any)["display:name"] || connection.name}</span>
-                    {connection.type === "ssh" && (
-                        <span className="connections-editor-badge remote">SSH</span>
-                    )}
-                    {connection.type === "wsl" && (
-                        <span className="connections-editor-badge wsl">WSL</span>
-                    )}
+                    {connection.type === "ssh" && <span className="connections-editor-badge remote">SSH</span>}
+                    {connection.type === "wsl" && <span className="connections-editor-badge wsl">WSL</span>}
                 </div>
                 <div className="connections-editor-actions">
                     <button
@@ -823,11 +808,7 @@ const ConnectionEditor = memo(({ connection, onBack, onDelete, onSave }: Connect
                         <i className="fa-sharp fa-solid fa-trash" />
                         <span>Delete</span>
                     </button>
-                    <button
-                        className="connections-btn primary"
-                        onClick={handleSave}
-                        disabled={!hasChanges || isSaving}
-                    >
+                    <button className="connections-btn primary" onClick={handleSave} disabled={!hasChanges || isSaving}>
                         {isSaving ? (
                             <>
                                 <i className="fa-sharp fa-solid fa-spinner fa-spin" />
@@ -943,21 +924,24 @@ export const ConnectionsContent = memo(({ model }: ConnectionsContentProps) => {
         }
     }, []);
 
-    const handleSaveConnection = useCallback(async (config: ConnKeywords) => {
-        if (!selectedConnection) return;
+    const handleSaveConnection = useCallback(
+        async (config: ConnKeywords) => {
+            if (!selectedConnection) return;
 
-        setError(null);
-        try {
-            const data: ConnConfigRequest = {
-                host: selectedConnection,
-                metamaptype: config as MetaType,
-            };
-            await RpcApi.SetConnectionsConfigCommand(TabRpcClient, data);
-        } catch (err) {
-            setError(`Failed to save connection: ${err.message || String(err)}`);
-            throw err;
-        }
-    }, [selectedConnection]);
+            setError(null);
+            try {
+                const data: ConnConfigRequest = {
+                    host: selectedConnection,
+                    metamaptype: config as MetaType,
+                };
+                await RpcApi.SetConnectionsConfigCommand(TabRpcClient, data);
+            } catch (err) {
+                setError(`Failed to save connection: ${err.message || String(err)}`);
+                throw err;
+            }
+        },
+        [selectedConnection]
+    );
 
     const handleDeleteConnection = useCallback(async () => {
         if (!selectedConnection) return;

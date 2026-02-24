@@ -61,15 +61,7 @@ function getSegmentDisplayName(type: string): string {
  * Segment badge component
  */
 const SegmentBadge = memo(
-    ({
-        segment,
-        selected,
-        onClick,
-    }: {
-        segment: OmpSegmentData;
-        selected: boolean;
-        onClick: () => void;
-    }) => {
+    ({ segment, selected, onClick }: { segment: OmpSegmentData; selected: boolean; onClick: () => void }) => {
         const handleKeyDown = useCallback(
             (e: React.KeyboardEvent) => {
                 if (e.key === "Enter" || e.key === " ") {
@@ -159,10 +151,7 @@ const BlockItem = memo(
                         />
                         {block.type}
                         {block.newline && (
-                            <i
-                                className="fa-solid fa-arrow-turn-down newline-badge"
-                                title="Starts on new line"
-                            />
+                            <i className="fa-solid fa-arrow-turn-down newline-badge" title="Starts on new line" />
                         )}
                     </span>
                     <span className="block-alignment">{block.alignment}</span>
@@ -178,9 +167,7 @@ const BlockItem = memo(
                             }}
                         />
                     ))}
-                    {(!block.segments || block.segments.length === 0) && (
-                        <div className="block-empty">No segments</div>
-                    )}
+                    {(!block.segments || block.segments.length === 0) && <div className="block-empty">No segments</div>}
                 </div>
             </div>
         );
@@ -359,9 +346,7 @@ const SegmentPropertiesPanel = memo(
                                         onChange={handleInvertPowerlineChange}
                                         id="segment-invert-powerline"
                                     />
-                                    <label htmlFor="segment-invert-powerline">
-                                        Swap foreground/background colors
-                                    </label>
+                                    <label htmlFor="segment-invert-powerline">Swap foreground/background colors</label>
                                 </div>
                             </div>
                         </>
@@ -377,10 +362,7 @@ const SegmentPropertiesPanel = memo(
                                 placeholder="#ffffff or p:colorname"
                             />
                             {segment.foreground && !segment.foreground.startsWith("p:") && (
-                                <span
-                                    className="color-preview"
-                                    style={{ backgroundColor: segment.foreground }}
-                                />
+                                <span className="color-preview" style={{ backgroundColor: segment.foreground }} />
                             )}
                         </div>
                     </div>
@@ -397,10 +379,7 @@ const SegmentPropertiesPanel = memo(
                             {segment.background &&
                                 segment.background !== "transparent" &&
                                 !segment.background.startsWith("p:") && (
-                                    <span
-                                        className="color-preview"
-                                        style={{ backgroundColor: segment.background }}
-                                    />
+                                    <span className="color-preview" style={{ backgroundColor: segment.background }} />
                                 )}
                         </div>
                     </div>
@@ -467,9 +446,7 @@ const BlockPropertiesPanel = memo(
                                 onChange={handleNewlineChange}
                                 id={`block-newline-${blockIndex}`}
                             />
-                            <label htmlFor={`block-newline-${blockIndex}`}>
-                                Start this block on a new line
-                            </label>
+                            <label htmlFor={`block-newline-${blockIndex}`}>Start this block on a new line</label>
                         </div>
                     </div>
                 </div>

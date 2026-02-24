@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from "vitest";
 import { MIN_CAPTURE_BYTES, SNAPSHOT_DEBOUNCE_MS, shouldCapture, shouldSnapshot } from "./sessionhistory-capture";
 

@@ -3,9 +3,9 @@
 
 import { Button } from "@/app/element/button";
 import { modalsModel } from "@/app/store/modalmodel";
+import { cleanupOsc7DebounceForTab } from "@/app/view/term/termwrap";
 import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
 import { deleteLayoutModelForTab } from "@/layout/index";
-import { cleanupOsc7DebounceForTab } from "@/app/view/term/termwrap";
 import { atoms, createTab, getApi, globalStore, setActiveTab } from "@/store/global";
 import { isMacOS, isWindows } from "@/util/platformutil";
 import { fireAndForget } from "@/util/util";

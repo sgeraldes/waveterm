@@ -133,6 +133,9 @@ class SessionHistoryServiceType {
     SaveSnapshotSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string, reason: string): Promise<void> {
         return WOS.callBackendService("sessionhistory", "SaveSnapshotSegment", Array.from(arguments))
     }
+    StartCleanupScheduler(): Promise<void> {
+        return WOS.callBackendService("sessionhistory", "StartCleanupScheduler", Array.from(arguments))
+    }
 }
 
 export const SessionHistoryService = new SessionHistoryServiceType();

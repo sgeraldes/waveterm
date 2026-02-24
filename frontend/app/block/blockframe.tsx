@@ -155,11 +155,7 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
     }
     const previewElem = <div className="block-frame-preview">{viewIconElem}</div>;
     const headerElem = (
-        <BlockFrame_Header
-            {...props}
-            connBtnRef={connBtnRef}
-            changeConnModalAtom={changeConnModalAtom}
-        />
+        <BlockFrame_Header {...props} connBtnRef={connBtnRef} changeConnModalAtom={changeConnModalAtom} />
     );
     const headerElemNoView = React.cloneElement(headerElem, { viewModel: null });
     return (
@@ -181,7 +177,7 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
                     "--magnified-block-blur": `${magnifiedBlockBlur}px`,
                 } as React.CSSProperties
             }
-            // @ts-ignore: inert does exist in the DOM, just not in react
+            // @ts-expect-error: inert does exist in the DOM, just not in react
             inert={preview ? "1" : undefined} //
         >
             <BlockMask nodeModel={nodeModel} />

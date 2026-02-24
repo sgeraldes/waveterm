@@ -81,8 +81,8 @@ const InfoBubble = memo(() => {
                 <div className="tabvars-info-title">Tab Variables</div>
             </div>
             <div className="tabvars-info-content">
-                Tab variable presets allow you to define named directory configurations that can be
-                applied to tabs. Right-click any tab and select "Apply Preset" to use them.
+                Tab variable presets allow you to define named directory configurations that can be applied to tabs.
+                Right-click any tab and select "Apply Preset" to use them.
             </div>
         </div>
     );
@@ -105,11 +105,7 @@ const PresetListView = memo(({ presets, onSelectPreset, onAddPreset }: PresetLis
                     const isLocked = data["tab:basedirlock"];
 
                     return (
-                        <div
-                            key={key}
-                            className="tabvars-list-item"
-                            onClick={() => onSelectPreset(key)}
-                        >
+                        <div key={key} className="tabvars-list-item" onClick={() => onSelectPreset(key)}>
                             <div className="tabvars-list-item-icon">
                                 <i className="fa-sharp fa-solid fa-folder-tree" />
                             </div>
@@ -123,9 +119,7 @@ const PresetListView = memo(({ presets, onSelectPreset, onAddPreset }: PresetLis
                                         />
                                     )}
                                 </div>
-                                {basedir && (
-                                    <div className="tabvars-list-item-path">{basedir}</div>
-                                )}
+                                {basedir && <div className="tabvars-list-item-path">{basedir}</div>}
                             </div>
                             <i className="fa-sharp fa-solid fa-chevron-right tabvars-list-item-arrow" />
                         </div>
@@ -186,8 +180,7 @@ const AddPresetForm = memo(({ isLoading, onCancel, onSubmit }: AddPresetFormProp
         onSubmit(presetName, data);
     }, [presetName, displayName, basedir, basedirLock, displayOrder, onSubmit]);
 
-    const canSubmit =
-        presetName.trim() !== "" && !isNameInvalid && !isDisplayNameTooLong && !isLoading;
+    const canSubmit = presetName.trim() !== "" && !isNameInvalid && !isDisplayNameTooLong && !isLoading;
 
     return (
         <div className="tabvars-form">
@@ -208,9 +201,7 @@ const AddPresetForm = memo(({ isLoading, onCancel, onSubmit }: AddPresetFormProp
                         disabled={isLoading}
                     />
                 </div>
-                <div className="tabvars-form-hint">
-                    Letters, numbers, underscores, and hyphens only
-                </div>
+                <div className="tabvars-form-hint">Letters, numbers, underscores, and hyphens only</div>
             </div>
 
             <div className="tabvars-form-field">
@@ -225,9 +216,7 @@ const AddPresetForm = memo(({ isLoading, onCancel, onSubmit }: AddPresetFormProp
                     placeholder="My Project"
                     disabled={isLoading}
                 />
-                <div className="tabvars-form-hint">
-                    Friendly name shown in menus (optional, max 256 chars)
-                </div>
+                <div className="tabvars-form-hint">Friendly name shown in menus (optional, max 256 chars)</div>
             </div>
 
             <div className="tabvars-form-field">
@@ -264,9 +253,7 @@ const AddPresetForm = memo(({ isLoading, onCancel, onSubmit }: AddPresetFormProp
                     />
                     <span>Lock base directory</span>
                 </label>
-                <div className="tabvars-form-hint">
-                    Prevents OSC 7 auto-detection from updating the directory
-                </div>
+                <div className="tabvars-form-hint">Prevents OSC 7 auto-detection from updating the directory</div>
             </div>
 
             <div className="tabvars-form-field">
@@ -283,18 +270,10 @@ const AddPresetForm = memo(({ isLoading, onCancel, onSubmit }: AddPresetFormProp
             </div>
 
             <div className="tabvars-form-actions">
-                <button
-                    className="tabvars-button tabvars-button-secondary"
-                    onClick={onCancel}
-                    disabled={isLoading}
-                >
+                <button className="tabvars-button tabvars-button-secondary" onClick={onCancel} disabled={isLoading}>
                     Cancel
                 </button>
-                <button
-                    className="tabvars-button tabvars-button-primary"
-                    onClick={handleSubmit}
-                    disabled={!canSubmit}
-                >
+                <button className="tabvars-button tabvars-button-primary" onClick={handleSubmit} disabled={!canSubmit}>
                     {isLoading ? (
                         <>
                             <i className="fa-sharp fa-solid fa-spinner fa-spin" />
@@ -319,208 +298,200 @@ interface EditPresetFormProps {
     onDelete: () => void;
 }
 
-const EditPresetForm = memo(
-    ({ presetKey, presetData, isLoading, onCancel, onSave, onDelete }: EditPresetFormProps) => {
-        const [displayName, setDisplayName] = useState(presetData["display:name"] || "");
-        const [basedir, setBasedir] = useState(presetData["tab:basedir"] || "");
-        const [basedirLock, setBasedirLock] = useState(presetData["tab:basedirlock"] || false);
-        const [displayOrder, setDisplayOrder] = useState(
-            presetData["display:order"]?.toString() || ""
-        );
-        const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+const EditPresetForm = memo(({ presetKey, presetData, isLoading, onCancel, onSave, onDelete }: EditPresetFormProps) => {
+    const [displayName, setDisplayName] = useState(presetData["display:name"] || "");
+    const [basedir, setBasedir] = useState(presetData["tab:basedir"] || "");
+    const [basedirLock, setBasedirLock] = useState(presetData["tab:basedirlock"] || false);
+    const [displayOrder, setDisplayOrder] = useState(presetData["display:order"]?.toString() || "");
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-        const isDisplayNameTooLong = displayName.length > 256;
+    const isDisplayNameTooLong = displayName.length > 256;
 
-        const handleBrowseDirectory = useCallback(async () => {
-            const result = await getApi().showOpenDialog({
-                title: "Select Base Directory",
-                defaultPath: basedir || "~",
-                properties: ["openDirectory"],
-            });
-            if (result && result.length > 0) {
-                setBasedir(result[0]);
-            }
-        }, [basedir]);
+    const handleBrowseDirectory = useCallback(async () => {
+        const result = await getApi().showOpenDialog({
+            title: "Select Base Directory",
+            defaultPath: basedir || "~",
+            properties: ["openDirectory"],
+        });
+        if (result && result.length > 0) {
+            setBasedir(result[0]);
+        }
+    }, [basedir]);
 
-        const handleSave = useCallback(() => {
-            const data: TabVarPreset = {};
-            if (basedir) {
-                data["tab:basedir"] = basedir;
-            }
-            if (basedirLock) {
-                data["tab:basedirlock"] = true;
-            }
-            if (displayName) {
-                data["display:name"] = displayName;
-            }
-            if (displayOrder && !isNaN(Number(displayOrder))) {
-                data["display:order"] = Number(displayOrder);
-            }
-            onSave(data);
-        }, [displayName, basedir, basedirLock, displayOrder, onSave]);
+    const handleSave = useCallback(() => {
+        const data: TabVarPreset = {};
+        if (basedir) {
+            data["tab:basedir"] = basedir;
+        }
+        if (basedirLock) {
+            data["tab:basedirlock"] = true;
+        }
+        if (displayName) {
+            data["display:name"] = displayName;
+        }
+        if (displayOrder && !isNaN(Number(displayOrder))) {
+            data["display:order"] = Number(displayOrder);
+        }
+        onSave(data);
+    }, [displayName, basedir, basedirLock, displayOrder, onSave]);
 
-        const handleDeleteClick = useCallback(() => {
-            setShowDeleteConfirm(true);
-        }, []);
+    const handleDeleteClick = useCallback(() => {
+        setShowDeleteConfirm(true);
+    }, []);
 
-        const handleConfirmDelete = useCallback(() => {
-            onDelete();
-        }, [onDelete]);
+    const handleConfirmDelete = useCallback(() => {
+        onDelete();
+    }, [onDelete]);
 
-        const handleCancelDelete = useCallback(() => {
-            setShowDeleteConfirm(false);
-        }, []);
+    const handleCancelDelete = useCallback(() => {
+        setShowDeleteConfirm(false);
+    }, []);
 
-        return (
-            <div className="tabvars-form">
-                <div className="tabvars-form-header">
-                    <i className="fa-sharp fa-solid fa-folder-tree" />
-                    <h3 className="tabvars-form-title">{presetKey}</h3>
-                </div>
+    return (
+        <div className="tabvars-form">
+            <div className="tabvars-form-header">
+                <i className="fa-sharp fa-solid fa-folder-tree" />
+                <h3 className="tabvars-form-title">{presetKey}</h3>
+            </div>
 
-                <div className="tabvars-form-field">
-                    <label className="tabvars-form-label">Display Name</label>
+            <div className="tabvars-form-field">
+                <label className="tabvars-form-label">Display Name</label>
+                <input
+                    type="text"
+                    className={cn("tabvars-form-input tabvars-form-input-full", {
+                        "tabvars-form-input-error": isDisplayNameTooLong,
+                    })}
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="My Project"
+                    disabled={isLoading}
+                />
+                <div className="tabvars-form-hint">Friendly name shown in menus (max 256 chars)</div>
+            </div>
+
+            <div className="tabvars-form-field">
+                <label className="tabvars-form-label">Base Directory</label>
+                <div className="tabvars-form-directory">
                     <input
                         type="text"
-                        className={cn("tabvars-form-input tabvars-form-input-full", {
-                            "tabvars-form-input-error": isDisplayNameTooLong,
-                        })}
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="My Project"
+                        className="tabvars-form-input tabvars-form-input-full"
+                        value={basedir}
+                        onChange={(e) => setBasedir(e.target.value)}
+                        placeholder="/path/to/project"
                         disabled={isLoading}
                     />
-                    <div className="tabvars-form-hint">
-                        Friendly name shown in menus (max 256 chars)
-                    </div>
-                </div>
-
-                <div className="tabvars-form-field">
-                    <label className="tabvars-form-label">Base Directory</label>
-                    <div className="tabvars-form-directory">
-                        <input
-                            type="text"
-                            className="tabvars-form-input tabvars-form-input-full"
-                            value={basedir}
-                            onChange={(e) => setBasedir(e.target.value)}
-                            placeholder="/path/to/project"
-                            disabled={isLoading}
-                        />
-                        <button
-                            className="tabvars-browse-button"
-                            onClick={handleBrowseDirectory}
-                            disabled={isLoading}
-                            type="button"
-                        >
-                            <i className="fa-sharp fa-solid fa-folder-open" />
-                            Browse
-                        </button>
-                    </div>
-                    <div className="tabvars-form-hint">Absolute path to the project directory</div>
-                </div>
-
-                <div className="tabvars-form-field">
-                    <label className="tabvars-form-checkbox-label">
-                        <input
-                            type="checkbox"
-                            checked={basedirLock}
-                            onChange={(e) => setBasedirLock(e.target.checked)}
-                            disabled={isLoading}
-                        />
-                        <span>Lock base directory</span>
-                    </label>
-                    <div className="tabvars-form-hint">
-                        Prevents OSC 7 auto-detection from updating the directory
-                    </div>
-                </div>
-
-                <div className="tabvars-form-field">
-                    <label className="tabvars-form-label">Display Order</label>
-                    <input
-                        type="number"
-                        className="tabvars-form-input tabvars-form-input-small"
-                        value={displayOrder}
-                        onChange={(e) => setDisplayOrder(e.target.value)}
-                        placeholder="0"
+                    <button
+                        className="tabvars-browse-button"
+                        onClick={handleBrowseDirectory}
                         disabled={isLoading}
-                    />
-                    <div className="tabvars-form-hint">Lower numbers appear first in menus</div>
+                        type="button"
+                    >
+                        <i className="fa-sharp fa-solid fa-folder-open" />
+                        Browse
+                    </button>
                 </div>
-
-                {showDeleteConfirm ? (
-                    <div className="tabvars-delete-confirm">
-                        <div className="tabvars-delete-confirm-text">
-                            <i className="fa-sharp fa-solid fa-triangle-exclamation" />
-                            <span>
-                                Delete <strong>{presetKey}</strong>? This cannot be undone.
-                            </span>
-                        </div>
-                        <div className="tabvars-delete-confirm-actions">
-                            <button
-                                className="tabvars-button tabvars-button-secondary"
-                                onClick={handleCancelDelete}
-                                disabled={isLoading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="tabvars-button tabvars-button-danger"
-                                onClick={handleConfirmDelete}
-                                disabled={isLoading}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <i className="fa-sharp fa-solid fa-spinner fa-spin" />
-                                        Deleting...
-                                    </>
-                                ) : (
-                                    <>
-                                        <i className="fa-sharp fa-solid fa-trash" />
-                                        Delete
-                                    </>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="tabvars-form-actions tabvars-form-actions-spread">
-                        <button
-                            className="tabvars-button tabvars-button-danger-outline"
-                            onClick={handleDeleteClick}
-                            disabled={isLoading}
-                        >
-                            <i className="fa-sharp fa-solid fa-trash" />
-                            Delete
-                        </button>
-                        <div className="tabvars-form-actions">
-                            <button
-                                className="tabvars-button tabvars-button-secondary"
-                                onClick={onCancel}
-                                disabled={isLoading}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="tabvars-button tabvars-button-primary"
-                                onClick={handleSave}
-                                disabled={isLoading || isDisplayNameTooLong}
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <i className="fa-sharp fa-solid fa-spinner fa-spin" />
-                                        Saving...
-                                    </>
-                                ) : (
-                                    "Save"
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                )}
+                <div className="tabvars-form-hint">Absolute path to the project directory</div>
             </div>
-        );
-    }
-);
+
+            <div className="tabvars-form-field">
+                <label className="tabvars-form-checkbox-label">
+                    <input
+                        type="checkbox"
+                        checked={basedirLock}
+                        onChange={(e) => setBasedirLock(e.target.checked)}
+                        disabled={isLoading}
+                    />
+                    <span>Lock base directory</span>
+                </label>
+                <div className="tabvars-form-hint">Prevents OSC 7 auto-detection from updating the directory</div>
+            </div>
+
+            <div className="tabvars-form-field">
+                <label className="tabvars-form-label">Display Order</label>
+                <input
+                    type="number"
+                    className="tabvars-form-input tabvars-form-input-small"
+                    value={displayOrder}
+                    onChange={(e) => setDisplayOrder(e.target.value)}
+                    placeholder="0"
+                    disabled={isLoading}
+                />
+                <div className="tabvars-form-hint">Lower numbers appear first in menus</div>
+            </div>
+
+            {showDeleteConfirm ? (
+                <div className="tabvars-delete-confirm">
+                    <div className="tabvars-delete-confirm-text">
+                        <i className="fa-sharp fa-solid fa-triangle-exclamation" />
+                        <span>
+                            Delete <strong>{presetKey}</strong>? This cannot be undone.
+                        </span>
+                    </div>
+                    <div className="tabvars-delete-confirm-actions">
+                        <button
+                            className="tabvars-button tabvars-button-secondary"
+                            onClick={handleCancelDelete}
+                            disabled={isLoading}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="tabvars-button tabvars-button-danger"
+                            onClick={handleConfirmDelete}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <i className="fa-sharp fa-solid fa-spinner fa-spin" />
+                                    Deleting...
+                                </>
+                            ) : (
+                                <>
+                                    <i className="fa-sharp fa-solid fa-trash" />
+                                    Delete
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="tabvars-form-actions tabvars-form-actions-spread">
+                    <button
+                        className="tabvars-button tabvars-button-danger-outline"
+                        onClick={handleDeleteClick}
+                        disabled={isLoading}
+                    >
+                        <i className="fa-sharp fa-solid fa-trash" />
+                        Delete
+                    </button>
+                    <div className="tabvars-form-actions">
+                        <button
+                            className="tabvars-button tabvars-button-secondary"
+                            onClick={onCancel}
+                            disabled={isLoading}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            className="tabvars-button tabvars-button-primary"
+                            onClick={handleSave}
+                            disabled={isLoading || isDisplayNameTooLong}
+                        >
+                            {isLoading ? (
+                                <>
+                                    <i className="fa-sharp fa-solid fa-spinner fa-spin" />
+                                    Saving...
+                                </>
+                            ) : (
+                                "Save"
+                            )}
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+});
 EditPresetForm.displayName = "EditPresetForm";
 
 interface TabVarsContentProps {
@@ -679,13 +650,7 @@ export const TabVarsContent = memo(({ model }: TabVarsContentProps) => {
     // Render content
     const renderContent = () => {
         if (isAddingNew) {
-            return (
-                <AddPresetForm
-                    isLoading={isSaving}
-                    onCancel={handleCancelAdd}
-                    onSubmit={handleAddPreset}
-                />
-            );
+            return <AddPresetForm isLoading={isSaving} onCancel={handleCancelAdd} onSubmit={handleAddPreset} />;
         }
 
         if (selectedPreset && presetsData[selectedPreset]) {
@@ -727,10 +692,7 @@ export const TabVarsContent = memo(({ model }: TabVarsContentProps) => {
             {errorMessage && (
                 <div className="tabvars-error-container">
                     <ErrorDisplay message={errorMessage} />
-                    <button
-                        className="tabvars-error-dismiss"
-                        onClick={() => setErrorMessage(null)}
-                    >
+                    <button className="tabvars-error-dismiss" onClick={() => setErrorMessage(null)}>
                         <i className="fa-sharp fa-solid fa-times" />
                     </button>
                 </div>

@@ -50,7 +50,6 @@
         animation: text-pulse 1.5s ease-in-out infinite;
     }
 
-
     &::after {
         content: "";
         position: absolute;
@@ -285,7 +284,8 @@ body.nohover .tab.active .close {
 }
 
 @keyframes text-pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
     }
     50% {

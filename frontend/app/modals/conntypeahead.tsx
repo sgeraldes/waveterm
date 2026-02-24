@@ -3,14 +3,11 @@
 
 import { computeConnColorNum } from "@/app/block/blockutil";
 import { TypeAheadModal } from "@/app/modals/typeaheadmodal";
-import { ConnectionsModel } from "@/app/store/connections-model";
 import {
     atoms,
     createBlock,
     getConnStatusAtom,
-    getHostName,
     getLocalHostDisplayNameAtom,
-    getUserName,
     globalStore,
     WOS,
 } from "@/app/store/global";
@@ -79,10 +76,7 @@ function createRemoteSuggestionItems(
  * Get shell-specific icon based on connection name and config
  * Returns { icon: string, isBrand: boolean }
  */
-function getShellIconForConnection(
-    connName: string,
-    connSettings?: ConnKeywords
-): { icon: string; isBrand: boolean } {
+function getShellIconForConnection(connName: string, connSettings?: ConnKeywords): { icon: string; isBrand: boolean } {
     const nameLower = connName.toLowerCase();
     const shellPath = connSettings?.["conn:shellpath"]?.toLowerCase() || "";
 
@@ -102,7 +96,12 @@ function getShellIconForConnection(
     if (nameLower === "cmd" || shellPath.includes("cmd.exe")) return { icon: "windows", isBrand: true };
 
     // PowerShell (both Windows PowerShell and PowerShell Core)
-    if (nameLower.includes("powershell") || nameLower.includes("pwsh") || shellPath.includes("powershell") || shellPath.includes("pwsh")) {
+    if (
+        nameLower.includes("powershell") ||
+        nameLower.includes("pwsh") ||
+        shellPath.includes("powershell") ||
+        shellPath.includes("pwsh")
+    ) {
         return { icon: "terminal", isBrand: false };
     }
 
@@ -167,7 +166,7 @@ function getReconnectItem(
         iconColor: "var(--grey-text-color)",
         label: `Reconnect to ${connStatus.connection}`,
         value: "",
-        onSelect: async (_: string) => {
+        onSelect: async () => {
             globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnConnectCommand(
                 TabRpcClient,
@@ -195,10 +194,7 @@ function getLocalSuggestions(
     const wslSuggestionItems = createWslSuggestionItems(wslFiltered, connection, connStatusMap);
     const localSuggestionItem = createFilteredLocalSuggestionItem(localName, connection, connSelected);
 
-    const combinedSuggestionItems = [
-        ...localSuggestionItem,
-        ...wslSuggestionItems,
-    ];
+    const combinedSuggestionItems = [...localSuggestionItem, ...wslSuggestionItems];
     const sortedSuggestionItems = sortConnSuggestionItems(combinedSuggestionItems, fullConfig);
     if (sortedSuggestionItems.length == 0) {
         return null;
@@ -251,7 +247,7 @@ function getDisconnectItem(
         iconColor: "var(--grey-text-color)",
         label: `Disconnect ${connStatus.connection}`,
         value: "",
-        onSelect: async (_: string) => {
+        onSelect: async () => {
             globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnDisconnectCommand(TabRpcClient, connection, { timeout: 60000 });
             prtn.catch((e) => console.log("error disconnecting", connStatus.connection, e));
@@ -309,7 +305,7 @@ function getNewConnectionSuggestionItem(
         iconColor: "var(--grey-text-color)",
         label: `${connSelected} (New Connection)`,
         value: "",
-        onSelect: (_: string) => {
+        onSelect: () => {
             changeConnection(connSelected);
             globalStore.set(changeConnModalAtom, false);
         },
@@ -346,8 +342,7 @@ const ChangeConnectionBlockModal = React.memo(
         const [rowIndex, setRowIndex] = React.useState(0);
         const connStatusMap = new Map<string, ConnStatus>();
         const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
-        let filterOutNowsh = util.useAtomValueSafe(viewModel.filterOutNowsh) ?? true;
-        const hasGitBash = jotai.useAtomValue(ConnectionsModel.getInstance().hasGitBashAtom);
+        const filterOutNowsh = util.useAtomValueSafe(viewModel.filterOutNowsh) ?? true;
         const localName = jotai.useAtomValue(getLocalHostDisplayNameAtom());
 
         let maxActiveConnNum = 1;
@@ -372,11 +367,10 @@ const ChangeConnectionBlockModal = React.memo(
                     console.log(newWslList);
                     setWslList(newWslList ?? []);
                 })
-                .catch((e) => {
-                    // removing this log and failing silentyly since it will happen
+                .catch(() => {
+                    // removing this log and failing silently since it will happen
                     // if a system isn't using the wsl. and would happen every time the
                     // typeahead was opened. good candidate for verbose log level.
-                    //console.log("unable to load wsl list from backend. using blank list: ", e)
                 });
         }, [changeConnModalOpen]);
 
@@ -411,9 +405,7 @@ const ChangeConnectionBlockModal = React.memo(
         const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom);
 
         // Filter out local shell profiles from connList - they're now handled by shell selector
-        const remoteConnections = connList.filter(
-            (conn) => !util.isLocalShellProfile(conn, fullConfig.connections)
-        );
+        const remoteConnections = connList.filter((conn) => !util.isLocalShellProfile(conn, fullConfig.connections));
 
         const localSuggestions = getLocalSuggestions(
             localName,

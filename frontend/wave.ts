@@ -1,7 +1,6 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import debug from "debug";
 import { App } from "@/app/app";
 import { loadMonaco } from "@/app/monaco/monaco-env";
 import { GlobalModel } from "@/app/store/global-model";
@@ -35,6 +34,7 @@ import { activeTabIdAtom } from "@/store/tab-model";
 import * as WOS from "@/store/wos";
 import { loadFonts } from "@/util/fontutil";
 import { setKeyUtilPlatform } from "@/util/keyutil";
+import debug from "debug";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
 

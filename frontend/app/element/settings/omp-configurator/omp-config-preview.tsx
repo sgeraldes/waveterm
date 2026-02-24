@@ -101,40 +101,32 @@ function getSegmentSample(segment: OmpSegmentData): string {
  * - Powerline/diamond segments: icon + type name (readable labels for editing).
  * - Plain segments: sample data approximating the actual terminal output.
  */
-const SegmentPreview = memo(
-    ({
-        segment,
-        palette,
-    }: {
-        segment: OmpSegmentData;
-        palette?: Record<string, string>;
-    }) => {
-        const bg = resolveColor(segment.background, palette);
-        const fg = resolveColor(segment.foreground, palette);
-        const isTransparent = bg === "transparent" || !bg;
-        const isStyled = segment.style === "powerline" || segment.style === "diamond";
+const SegmentPreview = memo(({ segment, palette }: { segment: OmpSegmentData; palette?: Record<string, string> }) => {
+    const bg = resolveColor(segment.background, palette);
+    const fg = resolveColor(segment.foreground, palette);
+    const isTransparent = bg === "transparent" || !bg;
+    const isStyled = segment.style === "powerline" || segment.style === "diamond";
 
-        return (
-            <div
-                className={cn("segment-preview", segment.style, { transparent: isTransparent })}
-                style={{
-                    backgroundColor: isTransparent ? undefined : bg,
-                    color: fg,
-                }}
-                title={`${segment.type}: ${segment.template || "(no template)"}`}
-            >
-                {isStyled ? (
-                    <span className="segment-content">
-                        <i className={getSegmentIconClass(segment.type)} />
-                        <span className="segment-type">{segment.type}</span>
-                    </span>
-                ) : (
-                    <span className="segment-template-preview">{getSegmentSample(segment)}</span>
-                )}
-            </div>
-        );
-    }
-);
+    return (
+        <div
+            className={cn("segment-preview", segment.style, { transparent: isTransparent })}
+            style={{
+                backgroundColor: isTransparent ? undefined : bg,
+                color: fg,
+            }}
+            title={`${segment.type}: ${segment.template || "(no template)"}`}
+        >
+            {isStyled ? (
+                <span className="segment-content">
+                    <i className={getSegmentIconClass(segment.type)} />
+                    <span className="segment-type">{segment.type}</span>
+                </span>
+            ) : (
+                <span className="segment-template-preview">{getSegmentSample(segment)}</span>
+            )}
+        </div>
+    );
+});
 
 SegmentPreview.displayName = "SegmentPreview";
 
@@ -190,27 +182,19 @@ SegmentSeparator.displayName = "SegmentSeparator";
 /**
  * Diamond leading character rendered BEFORE a segment.
  */
-const DiamondLeading = memo(
-    ({
-        segment,
-        palette,
-    }: {
-        segment: OmpSegmentData;
-        palette?: Record<string, string>;
-    }) => {
-        if (segment.style !== "diamond" || !segment.leading_diamond) {
-            return null;
-        }
-
-        const bg = resolveColor(segment.background, palette);
-
-        return (
-            <span className="diamond-separator" style={{ color: bg }} title="Diamond leading">
-                {segment.leading_diamond}
-            </span>
-        );
+const DiamondLeading = memo(({ segment, palette }: { segment: OmpSegmentData; palette?: Record<string, string> }) => {
+    if (segment.style !== "diamond" || !segment.leading_diamond) {
+        return null;
     }
-);
+
+    const bg = resolveColor(segment.background, palette);
+
+    return (
+        <span className="diamond-separator" style={{ color: bg }} title="Diamond leading">
+            {segment.leading_diamond}
+        </span>
+    );
+});
 
 DiamondLeading.displayName = "DiamondLeading";
 
@@ -218,15 +202,7 @@ DiamondLeading.displayName = "DiamondLeading";
  * Render segments for a single block (used inside a line)
  */
 const BlockSegments = memo(
-    ({
-        block,
-        palette,
-        blockKey,
-    }: {
-        block: OmpBlockData;
-        palette?: Record<string, string>;
-        blockKey: string;
-    }) => {
+    ({ block, palette, blockKey }: { block: OmpBlockData; palette?: Record<string, string>; blockKey: string }) => {
         return (
             <div className={cn("block-segments-group", block.alignment)}>
                 {block.segments?.map((segment, segIndex) => {
@@ -238,11 +214,7 @@ const BlockSegments = memo(
                             <DiamondLeading segment={segment} palette={palette} />
                             <SegmentPreview segment={segment} palette={palette} />
                             {!isLast && (
-                                <SegmentSeparator
-                                    segment={segment}
-                                    nextSegment={nextSegment}
-                                    palette={palette}
-                                />
+                                <SegmentSeparator segment={segment} nextSegment={nextSegment} palette={palette} />
                             )}
                             {isLast && segment.style === "diamond" && segment.trailing_diamond && (
                                 <span
@@ -323,10 +295,7 @@ export const OmpConfigPreview = memo(({ config, previewBackground }: OmpConfigPr
                     const hasNewline = lineIndex > 0;
 
                     return (
-                        <div
-                            key={lineIndex}
-                            className={cn("preview-line", { "has-newline": hasNewline })}
-                        >
+                        <div key={lineIndex} className={cn("preview-line", { "has-newline": hasNewline })}>
                             {leftBlocks.length > 0 && (
                                 <div className="line-left">
                                     {leftBlocks.map((block, idx) => (

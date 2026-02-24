@@ -144,9 +144,7 @@ const FontControl = memo(
                         disabled={disabled || isLoading}
                         className="setting-select-input setting-font-select"
                     >
-                        <option value="">
-                            {isLoading ? "Loading fonts..." : placeholder}
-                        </option>
+                        <option value="">{isLoading ? "Loading fonts..." : placeholder}</option>
                         {systemFonts.map((font) => (
                             <option key={font} value={font}>
                                 {font}

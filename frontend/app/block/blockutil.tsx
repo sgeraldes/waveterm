@@ -1,8 +1,8 @@
 // Copyright 2026, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { atoms, recordTEvent } from "@/app/store/global";
 import { Button } from "@/app/element/button";
+import { atoms, recordTEvent } from "@/app/store/global";
 import { IconButton, ToggleIconButton } from "@/element/iconbutton";
 import { MagnifyIcon } from "@/element/magnify";
 import { MenuButton } from "@/element/menubutton";
@@ -10,67 +10,6 @@ import * as util from "@/util/util";
 import clsx from "clsx";
 import * as jotai from "jotai";
 import * as React from "react";
-
-/**
- * Gets a user-friendly display name for a connection.
- * - WSL: "wsl://Ubuntu" → "Ubuntu"
- * - Git Bash: "local:gitbash" → "Git Bash"
- * - Shell profiles: "cmd" → "CMD", "pwsh-7.5" → "PowerShell 7.5"
- * - Connections with display:name in config → use that
- */
-function getConnectionDisplayName(
-    connection: string,
-    connectionsConfig?: Record<string, ConnKeywords>
-): { displayName: string | null; icon: string; isWsl: boolean } {
-    if (util.isBlank(connection)) {
-        return { displayName: null, icon: "laptop", isWsl: false };
-    }
-
-    // WSL connections: wsl://DistroName → DistroName
-    if (connection.startsWith("wsl://")) {
-        const distroName = connection.substring(6); // Remove "wsl://"
-        return { displayName: distroName, icon: "brands@linux", isWsl: true };
-    }
-
-    // Git Bash special case
-    if (connection === "local:gitbash") {
-        return { displayName: "Git Bash", icon: "brands@git-alt", isWsl: false };
-    }
-
-    // Other local:* patterns
-    if (connection.startsWith("local:")) {
-        const profileName = connection.substring(6); // Remove "local:"
-        // Check if there's a display name in config
-        if (connectionsConfig?.[connection]?.["display:name"]) {
-            return { displayName: connectionsConfig[connection]["display:name"], icon: "terminal", isWsl: false };
-        }
-        return { displayName: formatShellName(profileName), icon: "terminal", isWsl: false };
-    }
-
-    // Plain "local" - no display name needed
-    if (connection === "local") {
-        return { displayName: null, icon: "laptop", isWsl: false };
-    }
-
-    // Check connections config for shell profiles (e.g., "cmd", "pwsh-7.5")
-    if (connectionsConfig?.[connection]) {
-        const connSettings = connectionsConfig[connection];
-        // Check if it's a local shell profile
-        const isLocalProfile =
-            connSettings["conn:local"] === true ||
-            (connSettings["conn:shellpath"] && !connSettings["ssh:hostname"]);
-
-        if (isLocalProfile) {
-            if (connSettings["display:name"]) {
-                return { displayName: connSettings["display:name"], icon: "terminal", isWsl: false };
-            }
-            return { displayName: formatShellName(connection), icon: "terminal", isWsl: false };
-        }
-    }
-
-    // Not a local connection - return null to indicate it's remote
-    return { displayName: null, icon: "arrow-right-arrow-left", isWsl: false };
-}
 
 /**
  * Formats a shell profile name for display.
@@ -168,13 +107,13 @@ export function processTitleString(titleString: string): React.ReactNode[] {
     const tagRegex = /<(\/)?([a-z]+)(?::([#a-z0-9@-]+))?>/g;
     let lastIdx = 0;
     let match;
-    let partsStack = [[]];
+    const partsStack = [[]];
     while ((match = tagRegex.exec(titleString)) != null) {
         const lastPart = partsStack[partsStack.length - 1];
         const before = titleString.substring(lastIdx, match.index);
         lastPart.push(before);
         lastIdx = match.index + match[0].length;
-        const [_, isClosing, tagName, tagParam] = match;
+        const [, isClosing, tagName, tagParam] = match;
         if (tagName == "icon" && !isClosing) {
             if (tagParam == null) {
                 continue;
@@ -200,7 +139,7 @@ export function processTitleString(titleString: string): React.ReactNode[] {
             if (!tagParam.match(colorRegex)) {
                 continue;
             }
-            let children = [];
+            const children = [];
             const rtag = React.createElement("span", { key: match.index, style: { color: tagParam } }, children);
             lastPart.push(rtag);
             partsStack.push(children);
@@ -214,7 +153,7 @@ export function processTitleString(titleString: string): React.ReactNode[] {
                 partsStack.pop();
                 continue;
             }
-            let children = [];
+            const children = [];
             const rtag = React.createElement(tagName, { key: match.index }, children);
             lastPart.push(rtag);
             partsStack.push(children);
@@ -274,7 +213,7 @@ function getShellProfileDisplayInfo(
     defaultShell?: string
 ): { displayName: string; icon: string; isDefault: boolean } {
     // Use default shell when profileId is blank
-    const effectiveProfileId = util.isBlank(profileId) ? (defaultShell || "pwsh") : profileId;
+    const effectiveProfileId = util.isBlank(profileId) ? defaultShell || "pwsh" : profileId;
     const isDefault = util.isBlank(profileId) || effectiveProfileId === defaultShell;
 
     // Check configured shell profiles
@@ -294,7 +233,11 @@ function getShellProfileDisplayInfo(
     }
 
     // Fallback to formatted profile ID
-    return { displayName: formatShellName(effectiveProfileId), icon: getShellIcon(effectiveProfileId, null), isDefault };
+    return {
+        displayName: formatShellName(effectiveProfileId),
+        icon: getShellIcon(effectiveProfileId, null),
+        isDefault,
+    };
 }
 
 /**
@@ -355,7 +298,11 @@ export const ShellButton = React.memo(
             const shellProfiles = fullConfig?.settings?.["shell:profiles"];
             const defaultShell = fullConfig?.settings?.["shell:default"] || "";
 
-            const { displayName, icon, isDefault } = getShellProfileDisplayInfo(shellProfile, shellProfiles, defaultShell);
+            const { displayName, icon, isDefault } = getShellProfileDisplayInfo(
+                shellProfile,
+                shellProfiles,
+                defaultShell
+            );
             const displayLabel = isDefault ? `${displayName} (default)` : displayName;
 
             const clickHandler = function () {
@@ -377,7 +324,6 @@ export const ShellButton = React.memo(
         }
     )
 );
-
 
 export const Input = React.memo(
     ({ decl, className, preview }: { decl: HeaderInput; className: string; preview: boolean }) => {

@@ -234,20 +234,12 @@ function renderSettingControl(
 
         case "color":
             return (
-                <ColorControl
-                    value={value as string}
-                    onChange={onChange as (v: string) => void}
-                    disabled={disabled}
-                />
+                <ColorControl value={value as string} onChange={onChange as (v: string) => void} disabled={disabled} />
             );
 
         case "font":
             return (
-                <FontControl
-                    value={value as string}
-                    onChange={onChange as (v: string) => void}
-                    disabled={disabled}
-                />
+                <FontControl value={value as string} onChange={onChange as (v: string) => void} disabled={disabled} />
             );
 
         case "path":

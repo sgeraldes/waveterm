@@ -3,11 +3,11 @@
 
 // WaveObjectStore
 
-import debug from "debug";
 import { waveEventSubscribe } from "@/app/store/wps";
 import { getWebServerEndpoint } from "@/util/endpoints";
 import { fetch } from "@/util/fetchutil";
 import { fireAndForget } from "@/util/util";
+import debug from "debug";
 import { atom, Atom, Getter, PrimitiveAtom, Setter, useAtomValue } from "jotai";
 import { useEffect } from "react";
 import { globalStore } from "./jotaiStore";

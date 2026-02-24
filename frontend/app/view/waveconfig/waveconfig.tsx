@@ -117,9 +117,7 @@ const JsonEditorModal = memo(({ model, blockId, configFile, onClose }: JsonEdito
                         <span>{configFile.path}</span>
                     </div>
                     <div className="waveconfig-modal-actions">
-                        {hasChanges && (
-                            <span className="waveconfig-modal-unsaved">Unsaved changes</span>
-                        )}
+                        {hasChanges && <span className="waveconfig-modal-unsaved">Unsaved changes</span>}
                         <button
                             onClick={handleSave}
                             disabled={!hasChanges || isSaving}

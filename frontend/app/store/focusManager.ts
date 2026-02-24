@@ -1,9 +1,9 @@
 import { waveAIHasFocusWithin } from "@/app/aipanel/waveai-focus-utils";
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
-import { atoms, getBlockComponentModel } from "@/app/store/global";
+import { getBlockComponentModel } from "@/app/store/global";
 import { globalStore } from "@/app/store/jotaiStore";
-import { focusedBlockId } from "@/util/focusutil";
 import { getLayoutModelForStaticTab } from "@/layout/index";
+import { focusedBlockId } from "@/util/focusutil";
 import { Atom, atom, type PrimitiveAtom } from "jotai";
 
 export type FocusStrType = "node" | "waveai";

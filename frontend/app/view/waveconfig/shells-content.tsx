@@ -97,14 +97,8 @@ const EmptyState = memo(({ onDetect, onAdd, isDetecting }: EmptyStateProps) => (
     <div className="shells-empty">
         <i className="fa-sharp fa-solid fa-terminal empty-icon" />
         <h3 className="empty-title">No Shell Profiles</h3>
-        <p className="empty-description">
-            Detect available shells on your system or add a custom shell profile.
-        </p>
-        <button
-            className="shells-btn primary"
-            onClick={onDetect}
-            disabled={isDetecting}
-        >
+        <p className="empty-description">Detect available shells on your system or add a custom shell profile.</p>
+        <button className="shells-btn primary" onClick={onDetect} disabled={isDetecting}>
             {isDetecting ? (
                 <>
                     <i className="fa-sharp fa-solid fa-spinner fa-spin" />
@@ -161,9 +155,7 @@ const ShellListItem = memo(({ shell, isSelected, isDefault, onSelect }: ShellLis
                 {isAutodetected && !shell.profile.usermodified && (
                     <span className="shell-badge autodetected">autodetected</span>
                 )}
-                {shell.profile.usermodified && (
-                    <span className="shell-badge modified">modified</span>
-                )}
+                {shell.profile.usermodified && <span className="shell-badge modified">modified</span>}
             </div>
             {isHidden && <i className="fa-sharp fa-solid fa-eye-slash shell-hidden-icon" />}
             <i className="fa-sharp fa-solid fa-chevron-right shell-arrow" />
@@ -183,239 +175,226 @@ interface ShellEditorProps {
     onCancel: () => void;
 }
 
-const ShellEditor = memo(({
-    shell,
-    isNew,
-    defaultShellId,
-    onSave,
-    onDelete,
-    onDuplicate,
-    onSetDefault,
-    onCancel,
-}: ShellEditorProps) => {
-    const [id, setId] = useState(shell?.id || "");
-    const [displayName, setDisplayName] = useState(shell?.profile["display:name"] || "");
-    const [displayIcon, setDisplayIcon] = useState(shell?.profile["display:icon"] || "");
-    const [shellPath, setShellPath] = useState(shell?.profile["shell:path"] || "");
-    const [shellOpts, setShellOpts] = useState(shell?.profile["shell:opts"]?.join(" ") || "");
-    const [shellType, setShellType] = useState(shell?.profile["shell:type"] || "");
-    const [isWsl, setIsWsl] = useState(shell?.profile["shell:iswsl"] || false);
-    const [wslDistro, setWslDistro] = useState(shell?.profile["shell:wsldistro"] || "");
-    const [hidden, setHidden] = useState(shell?.profile.hidden || false);
+const ShellEditor = memo(
+    ({ shell, isNew, defaultShellId, onSave, onDelete, onDuplicate, onSetDefault, onCancel }: ShellEditorProps) => {
+        const [id, setId] = useState(shell?.id || "");
+        const [displayName, setDisplayName] = useState(shell?.profile["display:name"] || "");
+        const [displayIcon, setDisplayIcon] = useState(shell?.profile["display:icon"] || "");
+        const [shellPath, setShellPath] = useState(shell?.profile["shell:path"] || "");
+        const [shellOpts, setShellOpts] = useState(shell?.profile["shell:opts"]?.join(" ") || "");
+        const [shellType, setShellType] = useState(shell?.profile["shell:type"] || "");
+        const [isWsl, setIsWsl] = useState(shell?.profile["shell:iswsl"] || false);
+        const [wslDistro, setWslDistro] = useState(shell?.profile["shell:wsldistro"] || "");
+        const [hidden, setHidden] = useState(shell?.profile.hidden || false);
 
-    // Reset form when shell changes
-    useEffect(() => {
-        setId(shell?.id || "");
-        setDisplayName(shell?.profile["display:name"] || "");
-        setDisplayIcon(shell?.profile["display:icon"] || "");
-        setShellPath(shell?.profile["shell:path"] || "");
-        setShellOpts(shell?.profile["shell:opts"]?.join(" ") || "");
-        setShellType(shell?.profile["shell:type"] || "");
-        setIsWsl(shell?.profile["shell:iswsl"] || false);
-        setWslDistro(shell?.profile["shell:wsldistro"] || "");
-        setHidden(shell?.profile.hidden || false);
-    }, [shell]);
+        // Reset form when shell changes
+        useEffect(() => {
+            setId(shell?.id || "");
+            setDisplayName(shell?.profile["display:name"] || "");
+            setDisplayIcon(shell?.profile["display:icon"] || "");
+            setShellPath(shell?.profile["shell:path"] || "");
+            setShellOpts(shell?.profile["shell:opts"]?.join(" ") || "");
+            setShellType(shell?.profile["shell:type"] || "");
+            setIsWsl(shell?.profile["shell:iswsl"] || false);
+            setWslDistro(shell?.profile["shell:wsldistro"] || "");
+            setHidden(shell?.profile.hidden || false);
+        }, [shell]);
 
-    const isAutodetected = shell?.profile.autodetected && !shell?.profile.usermodified;
-    const isDefault = shell?.id === defaultShellId;
-    const idError = isNew && !/^[a-zA-Z0-9_:-]+$/.test(id);
+        const isAutodetected = shell?.profile.autodetected && !shell?.profile.usermodified;
+        const isDefault = shell?.id === defaultShellId;
+        const idError = isNew && !/^[a-zA-Z0-9_:-]+$/.test(id);
 
-    const handleSave = useCallback(() => {
-        const profile: ShellProfileType = {
-            "display:name": displayName || undefined,
-            "display:icon": displayIcon || undefined,
-            "display:order": shell?.profile["display:order"],
-            "shell:path": shellPath || undefined,
-            "shell:opts": shellOpts ? shellOpts.split(/\s+/).filter(Boolean) : undefined,
-            "shell:type": shellType || undefined,
-            "shell:iswsl": isWsl || undefined,
-            "shell:wsldistro": isWsl ? wslDistro : undefined,
-            autodetected: shell?.profile.autodetected,
-            hidden: hidden || undefined,
-            source: shell?.profile.source,
-            usermodified: !isNew || shell?.profile.autodetected ? true : undefined,
-        };
-        onSave(isNew ? id : shell.id, profile);
-    }, [
-        id, displayName, displayIcon, shellPath, shellOpts, shellType,
-        isWsl, wslDistro, hidden, isNew, shell, onSave,
-    ]);
+        const handleSave = useCallback(() => {
+            const profile: ShellProfileType = {
+                "display:name": displayName || undefined,
+                "display:icon": displayIcon || undefined,
+                "display:order": shell?.profile["display:order"],
+                "shell:path": shellPath || undefined,
+                "shell:opts": shellOpts ? shellOpts.split(/\s+/).filter(Boolean) : undefined,
+                "shell:type": shellType || undefined,
+                "shell:iswsl": isWsl || undefined,
+                "shell:wsldistro": isWsl ? wslDistro : undefined,
+                autodetected: shell?.profile.autodetected,
+                hidden: hidden || undefined,
+                source: shell?.profile.source,
+                usermodified: !isNew || shell?.profile.autodetected ? true : undefined,
+            };
+            onSave(isNew ? id : shell.id, profile);
+        }, [
+            id,
+            displayName,
+            displayIcon,
+            shellPath,
+            shellOpts,
+            shellType,
+            isWsl,
+            wslDistro,
+            hidden,
+            isNew,
+            shell,
+            onSave,
+        ]);
 
-    if (!shell && !isNew) {
+        if (!shell && !isNew) {
+            return (
+                <div className="shell-editor-empty">
+                    <i className="fa-sharp fa-solid fa-hand-pointer" />
+                    <p>Select a shell to edit or add a new one</p>
+                </div>
+            );
+        }
+
         return (
-            <div className="shell-editor-empty">
-                <i className="fa-sharp fa-solid fa-hand-pointer" />
-                <p>Select a shell to edit or add a new one</p>
+            <div className="shell-editor">
+                <div className="editor-header">
+                    <h3>{isNew ? "Add New Shell" : `Edit Shell: ${displayName || shell?.id}`}</h3>
+                    {isAutodetected && (
+                        <span className="editor-badge autodetected">
+                            <i className="fa-sharp fa-solid fa-wand-magic-sparkles" />
+                            Autodetected
+                        </span>
+                    )}
+                </div>
+
+                <div className="editor-form">
+                    {isNew && (
+                        <div className="form-field">
+                            <label>Shell ID</label>
+                            <input
+                                type="text"
+                                value={id}
+                                onChange={(e) => setId(e.target.value)}
+                                placeholder="my-shell"
+                                className={cn({ error: idError && id })}
+                            />
+                            <span className="field-hint">
+                                Unique identifier (letters, numbers, underscores, hyphens, colons)
+                            </span>
+                            {idError && id && <span className="field-error">Invalid characters in ID</span>}
+                        </div>
+                    )}
+
+                    <div className="form-field">
+                        <label>Display Name</label>
+                        <input
+                            type="text"
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder="PowerShell 7"
+                        />
+                    </div>
+
+                    <div className="form-field">
+                        <label>Icon</label>
+                        <select value={displayIcon} onChange={(e) => setDisplayIcon(e.target.value)}>
+                            <option value="">Auto (based on shell type)</option>
+                            {shellIconOptions.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-field">
+                        <label>Shell Path</label>
+                        <input
+                            type="text"
+                            value={shellPath}
+                            onChange={(e) => setShellPath(e.target.value)}
+                            placeholder="C:\Program Files\PowerShell\7\pwsh.exe"
+                        />
+                        <span className="field-hint">Full path to the shell executable</span>
+                    </div>
+
+                    <div className="form-field">
+                        <label>Shell Arguments</label>
+                        <input
+                            type="text"
+                            value={shellOpts}
+                            onChange={(e) => setShellOpts(e.target.value)}
+                            placeholder="-NoLogo -NoProfile"
+                        />
+                        <span className="field-hint">Space-separated arguments</span>
+                    </div>
+
+                    <div className="form-field">
+                        <label>Shell Type</label>
+                        <select value={shellType} onChange={(e) => setShellType(e.target.value)}>
+                            <option value="">Auto-detect</option>
+                            <option value="pwsh">PowerShell</option>
+                            <option value="bash">Bash</option>
+                            <option value="zsh">Zsh</option>
+                            <option value="fish">Fish</option>
+                            <option value="cmd">CMD</option>
+                        </select>
+                    </div>
+
+                    <div className="form-field checkbox">
+                        <label>
+                            <input type="checkbox" checked={isWsl} onChange={(e) => setIsWsl(e.target.checked)} />
+                            WSL Distribution
+                        </label>
+                    </div>
+
+                    {isWsl && (
+                        <div className="form-field">
+                            <label>WSL Distro Name</label>
+                            <input
+                                type="text"
+                                value={wslDistro}
+                                onChange={(e) => setWslDistro(e.target.value)}
+                                placeholder="Ubuntu"
+                            />
+                        </div>
+                    )}
+
+                    <div className="form-field checkbox">
+                        <label>
+                            <input type="checkbox" checked={hidden} onChange={(e) => setHidden(e.target.checked)} />
+                            Hide from shell selector
+                        </label>
+                    </div>
+                </div>
+
+                <div className="editor-actions">
+                    <div className="actions-left">
+                        {!isNew && (
+                            <button className="shells-btn danger" onClick={onDelete}>
+                                <i className="fa-sharp fa-solid fa-trash" />
+                                {isAutodetected ? "Remove" : "Delete"}
+                            </button>
+                        )}
+                        {!isNew && (
+                            <button className="shells-btn secondary" onClick={onDuplicate}>
+                                <i className="fa-sharp fa-solid fa-clone" />
+                                Duplicate
+                            </button>
+                        )}
+                        {!isNew && !isDefault && (
+                            <button className="shells-btn secondary" onClick={onSetDefault}>
+                                <i className="fa-sharp fa-solid fa-star" />
+                                Set as Default
+                            </button>
+                        )}
+                    </div>
+                    <div className="actions-right">
+                        <button className="shells-btn secondary" onClick={onCancel}>
+                            Cancel
+                        </button>
+                        <button
+                            className="shells-btn primary"
+                            onClick={handleSave}
+                            disabled={isNew && (idError || !id)}
+                        >
+                            {isNew ? "Add Shell" : "Save Changes"}
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
-
-    return (
-        <div className="shell-editor">
-            <div className="editor-header">
-                <h3>{isNew ? "Add New Shell" : `Edit Shell: ${displayName || shell?.id}`}</h3>
-                {isAutodetected && (
-                    <span className="editor-badge autodetected">
-                        <i className="fa-sharp fa-solid fa-wand-magic-sparkles" />
-                        Autodetected
-                    </span>
-                )}
-            </div>
-
-            <div className="editor-form">
-                {isNew && (
-                    <div className="form-field">
-                        <label>Shell ID</label>
-                        <input
-                            type="text"
-                            value={id}
-                            onChange={(e) => setId(e.target.value)}
-                            placeholder="my-shell"
-                            className={cn({ error: idError && id })}
-                        />
-                        <span className="field-hint">
-                            Unique identifier (letters, numbers, underscores, hyphens, colons)
-                        </span>
-                        {idError && id && (
-                            <span className="field-error">Invalid characters in ID</span>
-                        )}
-                    </div>
-                )}
-
-                <div className="form-field">
-                    <label>Display Name</label>
-                    <input
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="PowerShell 7"
-                    />
-                </div>
-
-                <div className="form-field">
-                    <label>Icon</label>
-                    <select
-                        value={displayIcon}
-                        onChange={(e) => setDisplayIcon(e.target.value)}
-                    >
-                        <option value="">Auto (based on shell type)</option>
-                        {shellIconOptions.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                                {opt.label}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="form-field">
-                    <label>Shell Path</label>
-                    <input
-                        type="text"
-                        value={shellPath}
-                        onChange={(e) => setShellPath(e.target.value)}
-                        placeholder="C:\Program Files\PowerShell\7\pwsh.exe"
-                    />
-                    <span className="field-hint">Full path to the shell executable</span>
-                </div>
-
-                <div className="form-field">
-                    <label>Shell Arguments</label>
-                    <input
-                        type="text"
-                        value={shellOpts}
-                        onChange={(e) => setShellOpts(e.target.value)}
-                        placeholder="-NoLogo -NoProfile"
-                    />
-                    <span className="field-hint">Space-separated arguments</span>
-                </div>
-
-                <div className="form-field">
-                    <label>Shell Type</label>
-                    <select
-                        value={shellType}
-                        onChange={(e) => setShellType(e.target.value)}
-                    >
-                        <option value="">Auto-detect</option>
-                        <option value="pwsh">PowerShell</option>
-                        <option value="bash">Bash</option>
-                        <option value="zsh">Zsh</option>
-                        <option value="fish">Fish</option>
-                        <option value="cmd">CMD</option>
-                    </select>
-                </div>
-
-                <div className="form-field checkbox">
-                    <label>
-                        <input
-                            type="checkbox"
-                            checked={isWsl}
-                            onChange={(e) => setIsWsl(e.target.checked)}
-                        />
-                        WSL Distribution
-                    </label>
-                </div>
-
-                {isWsl && (
-                    <div className="form-field">
-                        <label>WSL Distro Name</label>
-                        <input
-                            type="text"
-                            value={wslDistro}
-                            onChange={(e) => setWslDistro(e.target.value)}
-                            placeholder="Ubuntu"
-                        />
-                    </div>
-                )}
-
-                <div className="form-field checkbox">
-                    <label>
-                        <input
-                            type="checkbox"
-                            checked={hidden}
-                            onChange={(e) => setHidden(e.target.checked)}
-                        />
-                        Hide from shell selector
-                    </label>
-                </div>
-            </div>
-
-            <div className="editor-actions">
-                <div className="actions-left">
-                    {!isNew && (
-                        <button className="shells-btn danger" onClick={onDelete}>
-                            <i className="fa-sharp fa-solid fa-trash" />
-                            {isAutodetected ? "Remove" : "Delete"}
-                        </button>
-                    )}
-                    {!isNew && (
-                        <button className="shells-btn secondary" onClick={onDuplicate}>
-                            <i className="fa-sharp fa-solid fa-clone" />
-                            Duplicate
-                        </button>
-                    )}
-                    {!isNew && !isDefault && (
-                        <button className="shells-btn secondary" onClick={onSetDefault}>
-                            <i className="fa-sharp fa-solid fa-star" />
-                            Set as Default
-                        </button>
-                    )}
-                </div>
-                <div className="actions-right">
-                    <button className="shells-btn secondary" onClick={onCancel}>
-                        Cancel
-                    </button>
-                    <button
-                        className="shells-btn primary"
-                        onClick={handleSave}
-                        disabled={isNew && (idError || !id)}
-                    >
-                        {isNew ? "Add Shell" : "Save Changes"}
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-});
+);
 ShellEditor.displayName = "ShellEditor";
 
 export const ShellsContent = memo(({ model }: ShellsContentProps) => {

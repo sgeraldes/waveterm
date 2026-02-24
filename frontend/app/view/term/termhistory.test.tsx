@@ -1,4 +1,3 @@
-
 // Note: termhistory.tsx is a React component that requires xterm.js and Electron+Jotai environment.
 
 import { describe, expect, it, vi } from "vitest";
