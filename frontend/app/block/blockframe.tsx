@@ -162,8 +162,8 @@ function computeEndIcons(
                     );
                     if (save) {
                         await vm.saveChanges?.();
+                        uxCloseBlock(nodeModel.blockId);
                     }
-                    uxCloseBlock(nodeModel.blockId);
                 });
                 return;
             }

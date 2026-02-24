@@ -171,14 +171,15 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
                 allowProposedApi: true,
                 ignoreBracketedPasteMode: !termAllowBPM,
                 macOptionIsMeta: termMacOptionIsMeta,
-                cursorStyle:
-                    (termSettings?.["term:cursorstyle"] as any) ||
-                    (blockData?.meta?.["term:cursorstyle"] as any) ||
-                    "block",
+                cursorStyle: ((): "block" | "underline" | "bar" => {
+                    const raw = termSettings?.["term:cursorstyle"] ?? blockData?.meta?.["term:cursorstyle"];
+                    if (raw === "block" || raw === "underline" || raw === "bar") return raw;
+                    return "block";
+                })(),
                 cursorBlink: termSettings?.["term:cursorblink"] ?? blockData?.meta?.["term:cursorblink"] ?? true,
                 lineHeight:
-                    (termSettings?.["term:lineheight"] as number) ||
-                    (blockData?.meta?.["term:lineheight"] as number) ||
+                    (termSettings?.["term:lineheight"] as number) ??
+                    (blockData?.meta?.["term:lineheight"] as number) ??
                     undefined,
             },
             {

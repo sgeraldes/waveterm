@@ -151,12 +151,12 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		cmdArgs = append(cmdArgs, "env")
 		cmdArgs = append(cmdArgs, envVars...)
 		cmdArgs = append(cmdArgs, shellArgs...)
-		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe %s\n", strings.Join(cmdArgs, " "))
+		blocklogger.Debugf(logCtx, "[conndebug] starting WSL shell: wsl.exe -d %s -- env [...] %s\n", wslDistro, strings.Join(shellArgs, " "))
 	} else {
 		cmdArgs = append(cmdArgs, "env")
 		cmdArgs = append(cmdArgs, envVars...)
 		cmdArgs = append(cmdArgs, shellPath, "-c", cmdStr)
-		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe %s\n", strings.Join(cmdArgs, " "))
+		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s -- env [...] %s -c ...\n", wslDistro, shellPath)
 	}
 
 	ecmd := exec.Command("wsl.exe", cmdArgs...)
@@ -237,10 +237,10 @@ func StartWslLocalShellProcWithWsh(logCtx context.Context, termSize waveobj.Term
 
 	mu := getWslInstallLock(wslDistro)
 	mu.Lock()
+	defer mu.Unlock()
 	if err := installWshInWsl(installCtx, logCtx, wslDistro); err != nil {
 		blocklogger.Infof(logCtx, "[conndebug] wsh installation failed for WSL distro %s (non-fatal, continuing without wsh): %v\n", wslDistro, err)
 	}
-	mu.Unlock()
 
 	return StartWslLocalShellProc(logCtx, termSize, cmdStr, cmdOpts, wslDistro)
 }

@@ -554,10 +554,17 @@ export class TermWrap {
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
+        let titleDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+        let lastTitle: string | null = null;
         this.terminal.onTitleChange((title: string) => {
-            if (title) {
-                services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), { "term:title": title });
-            }
+            if (!title || title === lastTitle) return;
+            lastTitle = title;
+            if (titleDebounceTimer) clearTimeout(titleDebounceTimer);
+            titleDebounceTimer = setTimeout(() => {
+                services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), {
+                    "term:title": title,
+                });
+            }, 500);
         });
 
         this.terminal.parser.registerCsiHandler({ prefix: "?", final: "h" }, (params: (number | number[])[]) => {
