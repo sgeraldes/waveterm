@@ -146,7 +146,10 @@ export const ShellSelectorFloatingWindow = memo(
                         <div
                             key={item.shellId}
                             className="flex items-center gap-3 px-3 py-2 rounded hover:bg-hoverbg cursor-pointer transition-colors text-secondary hover:text-white"
+                            role="menuitem"
+                            tabIndex={0}
                             onClick={() => handleShellClick(item)}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleShellClick(item); } }}
                         >
                             <div className="text-lg w-5 flex justify-center">
                                 <i className={makeIconClass(item.icon, false)}></i>
