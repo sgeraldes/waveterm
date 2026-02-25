@@ -78,8 +78,8 @@ const Tab = memo(
             }, []);
 
             useEffect(() => {
-                if (active && isDocVisible && (tabStatus === "finished" || tabStatus === "stopped")) {
-                    const delay = tabStatus === "stopped" ? 3000 : 2000;
+                if (active && isDocVisible && tabStatus === "finished") {
+                    const delay = 2000;
                     const timer = setTimeout(() => {
                         const tabModel = getTabModelByTabId(id);
                         tabModel.clearFinishedUnread();

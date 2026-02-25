@@ -333,7 +333,10 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 	rtn := ConnUnion{ConnName: remoteName}
 	wshEnabled := !blockMeta.GetBool(waveobj.MetaKey_CmdNoWsh, false)
 	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
-	if wslDistro := getWslDistroFromProfile(shellProfileId); wslDistro != "" {
+	if wslDistro, isWsl := getWslDistroFromProfile(shellProfileId); isWsl {
+		if wslDistro == "" {
+			return ConnUnion{}, fmt.Errorf("WSL profile %q has IsWsl=true but no WslDistro configured", shellProfileId)
+		}
 		rtn.ConnType = ConnType_Wsl
 		rtn.WslDistro = wslDistro
 		rtn.WshEnabled = wshEnabled
@@ -377,6 +380,10 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 }
 
 func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc *RunShellOpts, blockMeta waveobj.MetaMapType) (*shellexec.ShellProc, error) {
+	bcInitStatus := bc.GetRuntimeStatus()
+	if bcInitStatus.ShellProcStatus == Status_Running {
+		return nil, nil
+	}
 	bc.UpdateControllerAndSendUpdate(func() bool {
 		bc.ProcStatus = Status_Starting
 		return true
@@ -389,10 +396,6 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 	}
 	if fsErr == fs.ErrExist {
 		bc.resetTerminalState(logCtx, rc.TermSize.Rows)
-	}
-	bcInitStatus := bc.GetRuntimeStatus()
-	if bcInitStatus.ShellProcStatus == Status_Running {
-		return nil, nil
 	}
 	// TODO better sync here (don't let two starts happen at the same times)
 	remoteName := blockMeta.GetString(waveobj.MetaKey_Connection, "")
@@ -703,22 +706,22 @@ func getShellPathFromProfile(profileId string) string {
 	return profile.ShellPath
 }
 
-func getWslDistroFromProfile(profileId string) string {
+func getWslDistroFromProfile(profileId string) (string, bool) {
 	if profileId == "" {
-		return ""
+		return "", false
 	}
 	config := wconfig.GetWatcher().GetFullConfig()
 	if config.Settings.ShellProfiles == nil {
-		return ""
+		return "", false
 	}
 	profile, ok := config.Settings.ShellProfiles[profileId]
 	if !ok {
-		return ""
+		return "", false
 	}
 	if !profile.IsWsl {
-		return ""
+		return "", false
 	}
-	return profile.WslDistro
+	return profile.WslDistro, true
 }
 
 func getShellOptsFromProfile(profileId string) []string {

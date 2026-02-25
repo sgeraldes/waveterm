@@ -357,20 +357,24 @@ const ChangeConnectionBlockModal = React.memo(
                 setConnList([]);
                 return;
             }
-            const prtn = RpcApi.ConnListCommand(TabRpcClient, { timeout: 2000 });
-            prtn.then((newConnList) => {
-                setConnList(newConnList ?? []);
-            }).catch((e) => console.log("unable to load conn list from backend. using blank list: ", e));
-            RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 })
-                .then((resp) => {
+            const loadData = async () => {
+                try {
+                    const newConnList = await RpcApi.ConnListCommand(TabRpcClient, { timeout: 2000 });
+                    setConnList(newConnList ?? []);
+                } catch (e) {
+                    console.log("unable to load conn list from backend. using blank list: ", e);
+                }
+                try {
+                    const resp = await RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 });
                     const wslDistros = (resp.shells ?? [])
                         .filter((s) => s.source === "wsl" && s.wsldistro)
                         .map((s) => s.wsldistro);
                     setWslList(wslDistros);
-                })
-                .catch(() => {
+                } catch {
                     // WSL not available on this system
-                });
+                }
+            };
+            loadData();
         }, [changeConnModalOpen]);
 
         const changeConnection = React.useCallback(

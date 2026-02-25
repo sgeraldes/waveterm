@@ -32,6 +32,9 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
     const [dragStartPositions, setDragStartPositions] = useState<number[]>([]);
     const [draggingTab, setDraggingTab] = useState<string>();
     const draggingRemovedRef = useRef(false);
+    const workingTabIdsRef = useRef<string[]>([]);
+    const workspaceOidRef = useRef(workspaceOid);
+    workspaceOidRef.current = workspaceOid;
     const draggingTabDataRef = useRef({
         tabId: "",
         ref: { current: null } as React.RefObject<HTMLDivElement>,
@@ -148,20 +151,20 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
 
         if (newTabIndex !== tabIndex) {
             if (!draggingRemovedRef.current) {
-                tabIds.splice(tabIndex, 1);
+                workingTabIdsRef.current.splice(tabIndex, 1);
                 draggingRemovedRef.current = true;
             }
 
-            const currentIndexOfDraggingTab = tabIds.indexOf(tabId);
+            const currentIndexOfDraggingTab = workingTabIdsRef.current.indexOf(tabId);
 
             if (currentIndexOfDraggingTab !== -1) {
-                tabIds.splice(currentIndexOfDraggingTab, 1);
+                workingTabIdsRef.current.splice(currentIndexOfDraggingTab, 1);
             }
-            tabIds.splice(newTabIndex, 0, tabId);
+            workingTabIdsRef.current.splice(newTabIndex, 0, tabId);
 
-            tabIds.forEach((localTabId, index) => {
-                const ref = tabRefs.current.find((ref) => ref.current.dataset.tabId === localTabId);
-                if (ref.current && localTabId !== tabId) {
+            workingTabIdsRef.current.forEach((localTabId, index) => {
+                const ref = tabRefs.current.find((r) => r.current?.dataset.tabId === localTabId);
+                if (ref?.current && localTabId !== tabId) {
                     ref.current.style.transform = `translate3d(${index * tabWidth}px,0,0)`;
                     ref.current.classList.add("animate");
                 }
@@ -174,11 +177,13 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
     const setUpdatedTabsDebounced = useCallback(
         debounce(300, (updatedTabIds: string[]) => {
             tabRefs.current.forEach((ref) => {
-                ref.current.style.zIndex = "0";
-                ref.current.classList.remove("animate");
+                if (ref.current) {
+                    ref.current.style.zIndex = "0";
+                    ref.current.classList.remove("animate");
+                }
             });
             setDraggingTab(null);
-            fireAndForget(() => WorkspaceService.UpdateTabIds(workspaceOid, updatedTabIds));
+            fireAndForget(() => WorkspaceService.UpdateTabIds(workspaceOidRef.current, updatedTabIds));
         }),
         []
     );
@@ -186,21 +191,23 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
     const handleMouseUp = () => {
         const { tabIndex, dragged } = draggingTabDataRef.current;
 
-        const currentDraggingTab = tabIds[tabIndex];
+        const currentDraggingTab = workingTabIdsRef.current[tabIndex];
         const tabWidth = tabWidthRef.current;
         const finalLeftPosition = tabIndex * tabWidth;
-        const ref = tabRefs.current.find((ref) => ref.current.dataset.tabId === currentDraggingTab);
-        if (ref.current) {
+        const ref = tabRefs.current.find((r) => r.current?.dataset.tabId === currentDraggingTab);
+        if (ref?.current) {
             ref.current.classList.add("animate");
             ref.current.style.transform = `translate3d(${finalLeftPosition}px,0,0)`;
         }
 
         if (dragged) {
-            setUpdatedTabsDebounced(tabIds);
+            setUpdatedTabsDebounced([...workingTabIdsRef.current]);
         } else {
             tabRefs.current.forEach((ref) => {
-                ref.current.style.zIndex = "0";
-                ref.current.classList.remove("animate");
+                if (ref.current) {
+                    ref.current.style.zIndex = "0";
+                    ref.current.classList.remove("animate");
+                }
             });
             setDraggingTab(null);
         }
@@ -238,6 +245,7 @@ export function useTabDrag(tabIds: string[], workspaceOid: string, refs: TabDrag
 
             const tabIndex = tabIds.indexOf(tabId);
             const tabStartX = dragStartPositions[tabIndex];
+            workingTabIdsRef.current = [...tabIds];
 
             if (ref.current) {
                 draggingTabDataRef.current = {

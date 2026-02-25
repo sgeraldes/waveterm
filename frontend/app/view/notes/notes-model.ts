@@ -40,6 +40,7 @@ export class NotesViewModel implements ViewModel {
     monacoRef: React.MutableRefObject<MonacoTypes.editor.IStandaloneCodeEditor | null>;
 
     private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+    private disposed: boolean = false;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.blockId = blockId;
@@ -129,7 +130,16 @@ export class NotesViewModel implements ViewModel {
         }
     }
 
+    dispose(): void {
+        this.disposed = true;
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = null;
+        }
+    }
+
     scheduleAutoSave(content: string): void {
+        if (this.disposed) return;
         globalStore.set(this.pendingContent, content);
         globalStore.set(this.saveStatus, "unsaved");
 
@@ -137,6 +147,7 @@ export class NotesViewModel implements ViewModel {
             clearTimeout(this.saveTimeout);
         }
         this.saveTimeout = setTimeout(() => {
+            if (this.disposed) return;
             this.saveContent(content);
         }, 1500);
     }

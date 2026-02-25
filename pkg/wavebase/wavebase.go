@@ -33,8 +33,9 @@ const (
 	WaveWshForceUpdateVarName      = "WAVETERM_WSHFORCEUPDATE"
 	WaveNoConfirmQuitVarName       = "WAVETERM_NOCONFIRMQUIT"
 
-	WaveJwtTokenVarName  = "WAVETERM_JWT"
-	WaveSwapTokenVarName = "WAVETERM_SWAPTOKEN"
+	WaveJwtTokenVarName     = "WAVETERM_JWT"
+	WaveSwapTokenVarName    = "WAVETERM_SWAPTOKEN"
+	WaveForceCwdVarName     = "WAVETERM_FORCE_CWD"
 )
 
 const (

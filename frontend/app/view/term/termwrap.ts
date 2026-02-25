@@ -97,6 +97,7 @@ export class TermWrap {
     nodeModel: BlockNodeModel;
     onShellIntegrationStatusChange?: () => void;
     pendingTermSize: TermSize | null = null;
+    titleDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     isComposing: boolean = false;
     composingData: string = "";
@@ -177,13 +178,12 @@ export class TermWrap {
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
-        let titleDebounceTimer: ReturnType<typeof setTimeout> | null = null;
         let lastTitle: string | null = null;
         this.terminal.onTitleChange((title: string) => {
             if (!title || title === lastTitle) return;
             lastTitle = title;
-            if (titleDebounceTimer) clearTimeout(titleDebounceTimer);
-            titleDebounceTimer = setTimeout(() => {
+            if (this.titleDebounceTimer) clearTimeout(this.titleDebounceTimer);
+            this.titleDebounceTimer = setTimeout(() => {
                 ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), {
                     "term:title": title,
                 });
@@ -385,6 +385,10 @@ export class TermWrap {
     }
 
     dispose() {
+        if (this.titleDebounceTimer != null) {
+            clearTimeout(this.titleDebounceTimer);
+            this.titleDebounceTimer = null;
+        }
         if (this.sessionHistoryTimer != null) {
             clearInterval(this.sessionHistoryTimer);
             this.sessionHistoryTimer = null;
@@ -423,7 +427,9 @@ export class TermWrap {
         dlog("retrying pending resize", termSize);
         RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
             dlog("retry resize failed, shell still not ready");
-            this.pendingTermSize = termSize;
+            if (this.pendingTermSize == null) {
+                this.pendingTermSize = termSize;
+            }
         });
     }
 

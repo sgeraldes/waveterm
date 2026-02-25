@@ -106,13 +106,16 @@ export const TabGroupsSection = memo(({ tabIds, searchQuery, onDismissPanel }: T
     const handleDeleteGroup = useCallback(
         (group: GroupInfo) => {
             if (expandedGroup === group.name) setExpandedGroup(null);
-            const promises = group.tabIds.map((tabId) =>
-                ObjectService.UpdateObjectMeta(makeORef("tab", tabId), {
-                    "tab:group": null,
-                    "tab:groupcolor": null,
-                })
-            );
-            fireAndForget(() => Promise.all(promises).then(() => {}));
+            fireAndForget(async () => {
+                await Promise.all(
+                    group.tabIds.map((tabId) =>
+                        ObjectService.UpdateObjectMeta(makeORef("tab", tabId), {
+                            "tab:group": null,
+                            "tab:groupcolor": null,
+                        })
+                    )
+                );
+            });
         },
         [expandedGroup]
     );
@@ -161,7 +164,11 @@ export const TabGroupsSection = memo(({ tabIds, searchQuery, onDismissPanel }: T
                     )}
                 </div>
             ))}
-            {groups.length === 0 && !showCreateForm && <div className="placeholder">No tab groups</div>}
+            {groups.length === 0 && !showCreateForm && (
+                <div className="placeholder">
+                    {searchQuery ? "No matching groups" : "No tab groups"}
+                </div>
+            )}
             {showCreateForm ? (
                 <div className="create-group-form">
                     <input

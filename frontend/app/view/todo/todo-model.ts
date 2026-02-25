@@ -36,6 +36,7 @@ export class TodoViewModel implements ViewModel {
     monacoRef: React.MutableRefObject<MonacoTypes.editor.IStandaloneCodeEditor | null>;
 
     private saveTimeout: ReturnType<typeof setTimeout> | null = null;
+    private disposed: boolean = false;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.blockId = blockId;
@@ -149,12 +150,22 @@ export class TodoViewModel implements ViewModel {
         }
     }
 
+    dispose(): void {
+        this.disposed = true;
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = null;
+        }
+    }
+
     scheduleAutoSave(content: string): void {
+        if (this.disposed) return;
         globalStore.set(this.saveStatus, "unsaved");
         if (this.saveTimeout) {
             clearTimeout(this.saveTimeout);
         }
         this.saveTimeout = setTimeout(() => {
+            if (this.disposed) return;
             this.saveContent(content);
         }, 1500);
     }
@@ -196,6 +207,9 @@ export class TodoViewModel implements ViewModel {
         if (fromLineIndex === toLineIndex) return;
         const content = globalStore.get(this.fileContent);
         const lines = content.split("\n");
+        if (fromLineIndex < 0 || fromLineIndex >= lines.length || toLineIndex < 0 || toLineIndex >= lines.length) {
+            return;
+        }
         const [removed] = lines.splice(fromLineIndex, 1);
         const adjustedTo = toLineIndex > fromLineIndex ? toLineIndex - 1 : toLineIndex;
         lines.splice(adjustedTo, 0, removed);

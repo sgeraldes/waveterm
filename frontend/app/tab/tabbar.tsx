@@ -65,7 +65,7 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
     const osInstanceRef = useRef<OverlayScrollbars>(null);
     const draggerLeftRef = useRef<HTMLDivElement>(null);
     const draggerRightRef = useRef<HTMLDivElement>(null);
-    const tabManagementBtnRef = useRef<HTMLDivElement>(null);
+    const tabManagementBtnRef = useRef<HTMLButtonElement>(null);
     const tabWidthRef = useRef<number>(TabDefaultWidth);
     const scrollableRef = useRef<boolean>(false);
     const scrollLeftBtnRef = useRef<HTMLButtonElement>(null);
@@ -360,18 +360,20 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
                 style={{ width: windowDragLeftWidth, WebkitAppRegion: "drag" } as DragRegionStyle}
             />
             <WaveAIButton />
-            <div
+            <button
+                type="button"
                 ref={tabManagementBtnRef}
                 className="tab-management-btn"
                 style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
                 onClick={handleTogglePanel}
                 title="Tab Management (Ctrl+Shift+T)"
+                aria-label="Open tab management panel"
             >
                 <i
                     className={makeIconClass(workspace.icon || "globe", true)}
                     style={workspace.color ? { color: workspace.color } : undefined}
                 />
-            </div>
+            </button>
             <TabManagementPanel anchorRef={tabManagementBtnRef} tabIds={tabIds} onCloseTab={handleCloseTabFromPanel} />
             {isScrollable && (
                 <IconButton className="scroll-left-btn" ref={scrollLeftBtnRef} decl={scrollLeftButtonDecl} />

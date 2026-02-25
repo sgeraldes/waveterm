@@ -244,7 +244,10 @@ const WebView = memo(({ model, onFailLoad, blockRef, initialSrc }: WebViewProps)
                 const errorMessage = `Failed to load ${e.validatedURL}: ${e.errorDescription}`;
                 console.error(errorMessage);
                 setErrorText(errorMessage);
-                if (onFailLoad) onFailLoad(model.webviewRef.current.getURL());
+                if (onFailLoad) {
+                    const currentUrl = model.webviewRef.current?.getURL?.() || e.validatedURL;
+                    onFailLoad(currentUrl);
+                }
             }
         };
         const webviewFocus = () => {
