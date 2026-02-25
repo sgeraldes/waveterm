@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package wavebase
 
@@ -21,7 +19,6 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 )
 
-// set by main-server.go
 var WaveVersion = "0.0.0"
 var BuildTime = "0"
 
@@ -36,24 +33,25 @@ const (
 	WaveWshForceUpdateVarName      = "WAVETERM_WSHFORCEUPDATE"
 	WaveNoConfirmQuitVarName       = "WAVETERM_NOCONFIRMQUIT"
 
-	WaveJwtTokenVarName  = "WAVETERM_JWT"
-	WaveSwapTokenVarName = "WAVETERM_SWAPTOKEN"
+	WaveJwtTokenVarName     = "WAVETERM_JWT"
+	WaveSwapTokenVarName    = "WAVETERM_SWAPTOKEN"
+	WaveForceCwdVarName     = "WAVETERM_FORCE_CWD"
 )
 
 const (
-	BlockFile_Term  = "term"            // used for main pty output
-	BlockFile_Cache = "cache:term:full" // for cached block
+	BlockFile_Term  = "term"
+	BlockFile_Cache = "cache:term:full"
 	BlockFile_Env   = "env"
 )
 
 const NeedJwtConst = "NEED-JWT"
 
-var ConfigHome_VarCache string          // caches WAVETERM_CONFIG_HOME
-var DataHome_VarCache string            // caches WAVETERM_DATA_HOME
-var AppPath_VarCache string             // caches WAVETERM_APP_PATH
-var AppResourcesPath_VarCache string    // caches WAVETERM_RESOURCES_PATH
-var AppElectronExecPath_VarCache string // caches WAVETERM_ELECTRONEXECPATH
-var Dev_VarCache string                 // caches WAVETERM_DEV
+var ConfigHome_VarCache string
+var DataHome_VarCache string
+var AppPath_VarCache string
+var AppResourcesPath_VarCache string
+var AppElectronExecPath_VarCache string
+var Dev_VarCache string
 
 const WaveLockFile = "wave.lock"
 const DomainSocketBaseName = "wave.sock"
@@ -148,6 +146,9 @@ func GetHomeDir() string {
 
 func ExpandHomeDir(pathStr string) (string, error) {
 	if pathStr != "~" && !strings.HasPrefix(pathStr, "~/") && (!strings.HasPrefix(pathStr, `~\`) || runtime.GOOS != "windows") {
+		if strings.HasPrefix(pathStr, "/") {
+			return pathStr, nil
+		}
 		return filepath.Clean(pathStr), nil
 	}
 	homeDir := GetHomeDir()
@@ -182,8 +183,6 @@ func GetDomainSocketName() string {
 	return filepath.Join(GetWaveDataDir(), DomainSocketBaseName)
 }
 
-// returns a Unix-style path for the remote socket (using fmt.Sprintf instead of filepath.Join
-// because this path is for a remote Unix system, not the local OS which might be Windows)
 func GetPersistentRemoteSockName(clientId string) string {
 	return fmt.Sprintf("~/.waveterm/client/%s/waveterm.sock", clientId)
 }
@@ -290,8 +289,6 @@ func listValidLangs(ctx context.Context) []string {
 		log.Printf("error running 'locale -a': %s\n", err)
 		return []string{}
 	}
-	// don't bother with CRLF line endings
-	// this command doesn't work on windows
 	return strings.Split(string(out), "\n")
 }
 
@@ -320,8 +317,6 @@ func determineLang() string {
 
 		return preferredLang
 	} else {
-		// this is specifically to get the wavesrv LANG so waveshell
-		// on a remote uses the same LANG
 		return os.Getenv("LANG")
 	}
 }
@@ -403,7 +398,6 @@ func getSystemSummary(ctx context.Context) string {
 		out, _ := exec.CommandContext(ctx, "sw_vers", "-productVersion").Output()
 		return fmt.Sprintf("macOS %s (%s)", strings.TrimSpace(string(out)), runtime.GOARCH)
 	case "linux":
-		// Read /etc/os-release directly (standard location since 2012)
 		data, err := os.ReadFile("/etc/os-release")
 		var prettyName string
 		if err == nil {

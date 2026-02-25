@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package wconfig
 
@@ -33,7 +31,6 @@ const AnySchema = `
 }
 `
 
-// old AI Widget presets (deprecated)
 type AiSettingsType struct {
 	AiClear         bool    `json:"ai:*,omitempty"`
 	AiPreset        string  `json:"ai:preset,omitempty"`
@@ -153,8 +150,6 @@ type SettingsType struct {
 	WindowDimensions                    string   `json:"window:dimensions,omitempty"`
 	WindowZoom                          *float64 `json:"window:zoom,omitempty"`
 
-	// Telemetry has been removed from this fork - these fields are kept for compatibility
-	// but have no effect
 	TelemetryClear   bool `json:"telemetry:*,omitempty"`
 	TelemetryEnabled bool `json:"telemetry:enabled,omitempty"`
 
@@ -199,14 +194,12 @@ func MergeAiSettings(settings ...*AiSettingsType) *AiSettingsType {
 			continue
 		}
 
-		// If this setting has AiClear=true, replace result with this entire setting
 		if s.AiClear {
 			result = s
 			result.AiClear = false
 			continue
 		}
 
-		// Merge non-empty values
 		if s.AiPreset != "" {
 			result.AiPreset = s.AiPreset
 		}
@@ -262,8 +255,6 @@ type ConfigError struct {
 	Err  string `json:"err"`
 }
 
-// ShellProfileType represents a local shell profile configuration
-// Used for the new shell selector feature that separates shells from connections
 type ShellProfileType struct {
 	DisplayName    string   `json:"display:name,omitempty"`
 	DisplayIcon    string   `json:"display:icon,omitempty"`
@@ -288,7 +279,6 @@ type WebBookmark struct {
 	DisplayOrder float64 `json:"display:order,omitempty"`
 }
 
-// Wave AI panel mode configuration (NEW)
 type AIModeConfigType struct {
 	DisplayName        string   `json:"display:name"`
 	DisplayOrder       float64  `json:"display:order,omitempty"`
@@ -444,7 +434,7 @@ func resolveEnvValue(value string) (string, bool) {
 		return "", false
 	}
 
-	envSpec := value[5:] // Remove "$ENV:" prefix
+	envSpec := value[5:]
 	parts := strings.SplitN(envSpec, ":", 2)
 	envVar := parts[0]
 	var fallback string
@@ -452,12 +442,10 @@ func resolveEnvValue(value string) (string, bool) {
 		fallback = parts[1]
 	}
 
-	// Get the environment variable value
 	if envValue, exists := os.LookupEnv(envVar); exists {
 		return envValue, true
 	}
 
-	// Return fallback if provided, otherwise return empty string
 	if fallback != "" {
 		return fallback, true
 	}
@@ -491,7 +479,6 @@ func readConfigHelper(fileName string, barr []byte, readErr error) (waveobj.Meta
 		cerrs = append(cerrs, ConfigError{File: fileName, Err: err.Error()})
 	}
 
-	// Resolve environment variable replacements
 	if rtn != nil {
 		resolveEnvReplacements(rtn)
 	}
@@ -502,7 +489,6 @@ func readConfigHelper(fileName string, barr []byte, readErr error) (waveobj.Meta
 func readConfigFileFS(fsys fs.FS, logPrefix string, fileName string) (waveobj.MetaMapType, []ConfigError) {
 	barr, readErr := fs.ReadFile(fsys, fileName)
 	if readErr != nil {
-		// If we get an error, we may be using the wrong path separator for the given FS interface. Try switching the separator.
 		barr, readErr = fs.ReadFile(fsys, filepath.ToSlash(fileName))
 	}
 	return readConfigHelper(logPrefix+fileName, barr, readErr)
@@ -528,7 +514,6 @@ func WriteWaveHomeConfigFile(fileName string, m waveobj.MetaMapType) error {
 	return os.WriteFile(fullFileName, barr, 0644)
 }
 
-// simple merge that overwrites
 func mergeMetaMapSimple(m waveobj.MetaMapType, toMerge waveobj.MetaMapType) waveobj.MetaMapType {
 	if m == nil {
 		return toMerge
@@ -577,7 +562,6 @@ func SortFileNameDescend(files []fs.DirEntry) {
 	})
 }
 
-// Read and merge all files in the specified directory matching the supplied suffix
 func readConfigFilesForDir(fsys fs.FS, logPrefix string, dirName string, fileName string, simpleMerge bool) (waveobj.MetaMapType, []ConfigError) {
 	dirEnts, _ := fs.ReadDir(fsys, dirName)
 	suffixEnts := selectDirEntsBySuffix(dirEnts, fileName+".json")
@@ -592,7 +576,6 @@ func readConfigFilesForDir(fsys fs.FS, logPrefix string, dirName string, fileNam
 	return rtn, errs
 }
 
-// Read and merge all files in the specified config filesystem matching the patterns `<partName>.json` and `<partName>/*.json`
 func readConfigPartForFS(fsys fs.FS, logPrefix string, partName string, simpleMerge bool) (waveobj.MetaMapType, []ConfigError) {
 	config, errs := readConfigFilesForDir(fsys, logPrefix, partName, "", simpleMerge)
 	allErrs := errs
@@ -602,7 +585,6 @@ func readConfigPartForFS(fsys fs.FS, logPrefix string, partName string, simpleMe
 	return mergeMetaMap(rtn, config, simpleMerge), allErrs
 }
 
-// Combine files from the defaults and home directory for the specified config part name
 func readConfigPart(partName string, simpleMerge bool) (waveobj.MetaMapType, []ConfigError) {
 	configDirAbsPath := wavebase.GetWaveConfigDir()
 	configDirFsys := os.DirFS(configDirAbsPath)
@@ -614,8 +596,6 @@ func readConfigPart(partName string, simpleMerge bool) (waveobj.MetaMapType, []C
 	return mergeMetaMap(rtn, homeConfigs, simpleMerge), allErrs
 }
 
-// this function should only be called by the wconfig code.
-// in golang code, the best way to get the current config is via the watcher -- wconfig.GetWatcher().GetFullConfig()
 func ReadFullConfig() FullConfigType {
 	var fullConfig FullConfigType
 	configRType := reflect.TypeOf(fullConfig)
@@ -645,7 +625,6 @@ func ReadFullConfig() FullConfigType {
 		}
 	}
 
-	// Validate preset scopes
 	if fullConfig.Presets != nil {
 		for presetName, presetMeta := range fullConfig.Presets {
 			if err := waveobj.ValidatePresetScope(presetName, presetMeta); err != nil {
@@ -775,8 +754,6 @@ func jsonMarshalConfigInOrder(m waveobj.MetaMapType) ([]byte, error) {
 var dummyNumber json.Number
 
 func convertJsonNumber(num json.Number, ctype reflect.Type) (interface{}, error) {
-	// ctype might be int, int64, float64, string, *int, *int64, *float64, *string
-	// switch on ctype first
 	if ctype.Kind() == reflect.Pointer {
 		ctype = ctype.Elem()
 	}
@@ -833,7 +810,6 @@ func SetBaseConfigValue(toMerge waveobj.MetaMapType) error {
 				if ctype == reflect.PointerTo(rtype) {
 					m[configKey] = &val
 				} else {
-					// Try JSON re-marshal for complex types (maps, structs)
 					jsonBytes, err := json.Marshal(val)
 					if err != nil {
 						return fmt.Errorf("invalid value type for %s: %T", configKey, val)
@@ -877,7 +853,6 @@ func SetConnectionsConfigValue(connName string, toMerge waveobj.MetaMapType) err
 	return WriteWaveHomeConfigFile(ConnectionsFile, m)
 }
 
-// SetShellProfile sets or updates a shell profile in settings.json
 func SetShellProfile(profileId string, profile ShellProfileType) error {
 	m, cerrs := ReadWaveHomeConfigFile(SettingsFile)
 	if len(cerrs) > 0 {
@@ -887,7 +862,6 @@ func SetShellProfile(profileId string, profile ShellProfileType) error {
 		m = make(waveobj.MetaMapType)
 	}
 
-	// Get existing profiles map or create new one
 	profilesRaw := m["shell:profiles"]
 	var profiles map[string]interface{}
 	if profilesRaw == nil {
@@ -898,7 +872,6 @@ func SetShellProfile(profileId string, profile ShellProfileType) error {
 		profiles = make(map[string]interface{})
 	}
 
-	// Convert ShellProfileType to map for JSON storage
 	profileMap := make(map[string]interface{})
 	if profile.DisplayName != "" {
 		profileMap["display:name"] = profile.DisplayName
@@ -942,14 +915,13 @@ func SetShellProfile(profileId string, profile ShellProfileType) error {
 	return WriteWaveHomeConfigFile(SettingsFile, m)
 }
 
-// DeleteShellProfile removes a shell profile from settings.json
 func DeleteShellProfile(profileId string) error {
 	m, cerrs := ReadWaveHomeConfigFile(SettingsFile)
 	if len(cerrs) > 0 {
 		return fmt.Errorf("error reading config file: %v", cerrs[0])
 	}
 	if m == nil {
-		return nil // Nothing to delete
+		return nil
 	}
 
 	profilesRaw := m["shell:profiles"]
@@ -970,7 +942,6 @@ func DeleteShellProfile(profileId string) error {
 	return WriteWaveHomeConfigFile(SettingsFile, m)
 }
 
-// GetShellProfiles returns all shell profiles from settings
 func GetShellProfiles() map[string]ShellProfileType {
 	m, cerrs := ReadWaveHomeConfigFile(SettingsFile)
 	if len(cerrs) > 0 || m == nil {
@@ -1039,25 +1010,18 @@ func GetShellProfiles() map[string]ShellProfileType {
 	return result
 }
 
-// MergeDetectedShellProfiles merges newly detected shells with existing profiles
-// Only adds new shells; doesn't overwrite user-modified profiles
 func MergeDetectedShellProfiles(detectedShells []ShellProfileType) (added int, err error) {
 	existingProfiles := GetShellProfiles()
-	// Track IDs assigned in this merge to detect collisions between detected shells
 	assignedIds := make(map[string]bool)
 	for id := range existingProfiles {
 		assignedIds[id] = true
 	}
 
 	for _, shell := range detectedShells {
-		// Generate profile ID from shell type and path
 		profileId := generateShellProfileId(shell)
 
-		// Migrate old WSL profiles that had "(default)" baked into the key.
-		// Old code extracted distro from display name "WSL: Ubuntu (default)" → "Ubuntu (default)"
-		// which sanitized to "wsl:ubuntu-default". The fix uses raw distro name → "wsl:ubuntu".
 		if shell.IsWsl && shell.WslDistro != "" {
-			oldKey := "wsl:" + sanitizeProfileId(shell.WslDistro+"-default")
+			oldKey := "wsl:" + SanitizeProfileId(shell.WslDistro+"-default")
 			if oldKey != profileId {
 				if oldProfile, exists := existingProfiles[oldKey]; exists && !oldProfile.UserModified {
 					_ = DeleteShellProfile(oldKey)
@@ -1067,26 +1031,20 @@ func MergeDetectedShellProfiles(detectedShells []ShellProfileType) (added int, e
 			}
 		}
 
-		// Resolve collisions: if this ID was already assigned to a different shell
-		// in this batch, append a unique suffix
 		if assignedIds[profileId] {
 			existing, exists := existingProfiles[profileId]
 			if exists {
-				// Don't overwrite if user has modified it
 				if existing.UserModified {
 					continue
 				}
-				// Don't overwrite existing autodetected shells that haven't changed
 				if existing.ShellPath == shell.ShellPath {
 					continue
 				}
 			} else {
-				// Collision with another shell added in this merge batch
 				profileId = profileId + "-" + uuid.New().String()[:8]
 			}
 		}
 
-		// Mark as autodetected
 		shell.Autodetected = true
 		assignedIds[profileId] = true
 
@@ -1098,15 +1056,11 @@ func MergeDetectedShellProfiles(detectedShells []ShellProfileType) (added int, e
 	return added, nil
 }
 
-// generateShellProfileId creates a profile ID from shell info
-// IDs must be unique per shell instance, not just shell type
 func generateShellProfileId(profile ShellProfileType) string {
-	// WSL shells use distro name for uniqueness
 	if profile.IsWsl && profile.WslDistro != "" {
-		return "wsl:" + sanitizeProfileId(profile.WslDistro)
+		return "wsl:" + SanitizeProfileId(profile.WslDistro)
 	}
 
-	// Use display name for uniqueness (e.g., "PowerShell 7.5" vs "Windows PowerShell")
 	name := profile.DisplayName
 	if name == "" {
 		name = profile.ShellType
@@ -1114,17 +1068,13 @@ func generateShellProfileId(profile ShellProfileType) string {
 	if name == "" {
 		name = "shell"
 	}
-	return sanitizeProfileId(name)
+	return SanitizeProfileId(name)
 }
 
-// sanitizeProfileId converts a name to a valid profile ID
-// Lowercase, replace spaces/dots with hyphens, remove special characters
-// Falls back to a UUID-based ID if sanitization produces an empty string
-func sanitizeProfileId(name string) string {
+func SanitizeProfileId(name string) string {
 	name = strings.ToLower(name)
 	name = strings.ReplaceAll(name, " ", "-")
 	name = strings.ReplaceAll(name, ".", "-")
-	// Remove any character that's not alphanumeric or hyphen
 	var result strings.Builder
 	for _, r := range name {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
@@ -1192,8 +1142,6 @@ type TermThemeType struct {
 	Cursor              string  `json:"cursor"`
 }
 
-// CountCustomWidgets returns the number of custom widgets the user has defined.
-// Custom widgets are identified as widgets whose ID doesn't start with "defwidget@".
 func (fc *FullConfigType) CountCustomWidgets() int {
 	count := 0
 	for widgetID := range fc.Widgets {
@@ -1204,8 +1152,6 @@ func (fc *FullConfigType) CountCustomWidgets() int {
 	return count
 }
 
-// CountCustomAIPresets returns the number of custom AI presets the user has defined.
-// Custom AI presets are identified as presets that start with "ai@" but aren't "ai@global" or "ai@wave".
 func (fc *FullConfigType) CountCustomAIPresets() int {
 	count := 0
 	for presetID := range fc.Presets {
@@ -1216,8 +1162,6 @@ func (fc *FullConfigType) CountCustomAIPresets() int {
 	return count
 }
 
-// CountCustomAIModes returns the number of custom AI modes the user has defined.
-// Custom AI modes are identified as modes that don't start with "waveai@".
 func (fc *FullConfigType) CountCustomAIModes() int {
 	count := 0
 	for modeID := range fc.WaveAIModes {
@@ -1228,16 +1172,12 @@ func (fc *FullConfigType) CountCustomAIModes() int {
 	return count
 }
 
-// CountCustomSettings returns the number of settings in the user's settings file.
-// This excludes telemetry:enabled and autoupdate:channel which don't count as customizations.
 func CountCustomSettings() int {
-	// Load user settings
 	userSettings, _ := ReadWaveHomeConfigFile("settings.json")
 	if userSettings == nil {
 		return 0
 	}
 
-	// Count all keys except telemetry:enabled and autoupdate:channel
 	count := 0
 	for key := range userSettings {
 		if key == "telemetry:enabled" || key == "autoupdate:channel" {

@@ -21,6 +21,7 @@ import clsx from "clsx";
 import * as jotai from "jotai";
 import * as React from "react";
 import { BlockFrameProps } from "./blocktypes";
+import { useMouseNavigation } from "./useMouseNavigation";
 
 const BlockMask = React.memo(({ nodeModel }: { nodeModel: NodeModel }) => {
     const tabModel = useTabModel();
@@ -56,7 +57,7 @@ const BlockMask = React.memo(({ nodeModel }: { nodeModel: NodeModel }) => {
     }
 
     if (blockHighlight && !style.borderColor) {
-        style.borderColor = "rgb(59, 130, 246)";
+        style.borderColor = "var(--accent-color)";
     }
 
     let innerElem = null;
@@ -131,7 +132,6 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
         };
     }, [manageConnection]);
     React.useEffect(() => {
-        // on mount, if manageConnection, call ConnEnsure
         if (!manageConnection || blockData == null || preview) {
             return;
         }
@@ -147,6 +147,8 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
             });
         }
     }, [manageConnection, blockData]);
+
+    useMouseNavigation(blockModel?.blockRef, viewModel ?? null);
 
     const viewIconElem = getViewIconElem(viewIconUnion, blockData);
     let innerStyle: React.CSSProperties = {};
@@ -177,8 +179,7 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
                     "--magnified-block-blur": `${magnifiedBlockBlur}px`,
                 } as React.CSSProperties
             }
-            // @ts-expect-error: inert does exist in the DOM, just not in react
-            inert={preview ? "1" : undefined} //
+            inert={preview ? true : undefined}
         >
             <BlockMask nodeModel={nodeModel} />
             {preview || viewModel == null || !manageConnection ? null : (

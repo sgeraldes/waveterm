@@ -25,6 +25,8 @@ import * as jotai from "jotai";
 import { debounce } from "throttle-debounce";
 import { FitAddon } from "./fitaddon";
 import { ROLLING_INTERVAL_MS } from "./sessionhistory-capture";
+import { ObjectService } from "@/app/store/services";
+import { windowsToWslPath } from "@/util/pathutil";
 import { createTempFileFromBlob, extractAllClipboardData } from "./termutil";
 import {
     loadInitialTerminalData,
@@ -94,6 +96,8 @@ export class TermWrap {
     lastCommandAtom: jotai.PrimitiveAtom<string | null>;
     nodeModel: BlockNodeModel;
     onShellIntegrationStatusChange?: () => void;
+    pendingTermSize: TermSize | null = null;
+    titleDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     isComposing: boolean = false;
     composingData: string = "";
@@ -174,16 +178,22 @@ export class TermWrap {
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
             return handleOsc16162Command(data, this.blockId, this.loaded, this);
         });
+        let lastTitle: string | null = null;
+        this.terminal.onTitleChange((title: string) => {
+            if (!title || title === lastTitle) return;
+            lastTitle = title;
+            if (this.titleDebounceTimer) clearTimeout(this.titleDebounceTimer);
+            this.titleDebounceTimer = setTimeout(() => {
+                ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), {
+                    "term:title": title,
+                });
+            }, 500);
+        });
 
-        // Register CSI handler to optionally block DEC mode 1004 (focus reporting)
-        // This prevents applications like Claude Code from receiving focus events
-        // which can cause jarring UI changes when the terminal loses/gains focus
-        // Default is DISABLED (false) to protect users from UI corruption issues
         this.terminal.parser.registerCsiHandler({ prefix: "?", final: "h" }, (params: (number | number[])[]) => {
             const reportFocusEnabled =
                 globalStore.get(getOverrideConfigAtom(this.blockId, "term:reportfocus")) ?? false;
             if (!reportFocusEnabled) {
-                // Check if any param is mode 1004 (send focus events)
                 let has1004 = false;
                 for (const param of params) {
                     if (param === 1004 || (Array.isArray(param) && param.includes(1004))) {
@@ -193,18 +203,14 @@ export class TermWrap {
                 }
                 if (has1004) {
                     dlog("Blocking DEC mode 1004 (focus reporting) - term:reportfocus is disabled");
-                    // Filter out mode 1004 and let other modes through
                     const remainingModes = (params as number[]).filter((p) => p !== 1004);
                     if (remainingModes.length > 0) {
-                        // Re-emit the CSI sequence without mode 1004
                         const seq = `\x1b[?${remainingModes.join(";")}h`;
                         this.terminal.write(seq);
                     }
-                    // Return true to prevent the original (full) sequence from being processed
                     return true;
                 }
             }
-            // Return false to let the default handler process this CSI sequence
             return false;
         });
 
@@ -244,6 +250,25 @@ export class TermWrap {
         this.toDispose.push({
             dispose: () => {
                 this.connectElem.removeEventListener("paste", pasteHandler, true);
+            },
+        });
+        const auxclickHandler = (e: MouseEvent) => {
+            if (e.button === 1) {
+                e.preventDefault();
+                navigator.clipboard
+                    .readText()
+                    .then((text) => {
+                        if (text) {
+                            this.terminal.paste(text);
+                        }
+                    })
+                    .catch(() => {});
+            }
+        };
+        this.terminal.element?.addEventListener("auxclick", auxclickHandler);
+        this.toDispose.push({
+            dispose: () => {
+                this.terminal.element?.removeEventListener("auxclick", auxclickHandler);
             },
         });
     }
@@ -346,6 +371,12 @@ export class TermWrap {
             await loadInitialTerminalData(this);
         } finally {
             this.loaded = true;
+            if (this.heldData.length > 0) {
+                for (const data of this.heldData) {
+                    this.doTerminalWrite(data, null);
+                }
+                this.heldData = [];
+            }
         }
         runProcessIdleTimeout(this);
         this.sessionHistoryTimer = setInterval(() => {
@@ -354,6 +385,10 @@ export class TermWrap {
     }
 
     dispose() {
+        if (this.titleDebounceTimer != null) {
+            clearTimeout(this.titleDebounceTimer);
+            this.titleDebounceTimer = null;
+        }
         if (this.sessionHistoryTimer != null) {
             clearInterval(this.sessionHistoryTimer);
             this.sessionHistoryTimer = null;
@@ -377,6 +412,25 @@ export class TermWrap {
     setShellIntegrationStatus(status: "ready" | "running-command" | null) {
         globalStore.set(this.shellIntegrationStatusAtom, status);
         this.onShellIntegrationStatusChange?.();
+        this.retryPendingResize();
+    }
+
+    /**
+     * Retries sending a pending terminal resize that failed because the shell was not ready.
+     */
+    retryPendingResize() {
+        if (this.pendingTermSize == null) {
+            return;
+        }
+        const termSize = this.pendingTermSize;
+        this.pendingTermSize = null;
+        dlog("retrying pending resize", termSize);
+        RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
+            dlog("retry resize failed, shell still not ready");
+            if (this.pendingTermSize == null) {
+                this.pendingTermSize = termSize;
+            }
+        });
     }
 
     handleTermData(data: string) {
@@ -479,7 +533,11 @@ export class TermWrap {
         this.fitAddon.fit();
         if (oldRows !== this.terminal.rows || oldCols !== this.terminal.cols) {
             const termSize: TermSize = { rows: this.terminal.rows, cols: this.terminal.cols };
-            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {});
+            this.pendingTermSize = null;
+            RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, termsize: termSize }).catch(() => {
+                dlog("resize: shell not ready, storing pending termsize", termSize);
+                this.pendingTermSize = termSize;
+            });
         }
         dlog("resize", `${this.terminal.rows}x${this.terminal.cols}`, `${oldRows}x${oldCols}`, this.hasResized);
         if (!this.hasResized) {
@@ -494,6 +552,11 @@ export class TermWrap {
         e?.stopPropagation();
 
         try {
+            const blockORef = WOS.makeORef("block", this.blockId);
+            const block = WOS.getObjectValue<Block>(blockORef);
+            const shellProfile = block?.meta?.["shell:profile"] as string | undefined;
+            const isWsl = block?.meta?.["shell:iswsl"] || shellProfile?.startsWith("wsl:");
+
             const clipboardData = await extractAllClipboardData(e);
             let firstImage = true;
             for (const data of clipboardData) {
@@ -501,7 +564,16 @@ export class TermWrap {
                     if (!firstImage) {
                         await new Promise((r) => setTimeout(r, 150));
                     }
-                    const tempPath = await createTempFileFromBlob(data.image);
+                    let tempPath = await createTempFileFromBlob(data.image);
+
+                    if (isWsl) {
+                        const wslPath = windowsToWslPath(tempPath);
+                        if (wslPath) {
+                            dlog("pasteHandler: converted Windows path to WSL path:", tempPath, "->", wslPath);
+                            tempPath = wslPath;
+                        }
+                    }
+
                     this.terminal.paste(tempPath + " ");
                     firstImage = false;
                 }

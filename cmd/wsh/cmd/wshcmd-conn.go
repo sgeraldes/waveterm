@@ -1,11 +1,8 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/wavetermdev/waveterm/pkg/remote"
@@ -77,28 +74,19 @@ func init() {
 }
 
 func validateConnectionName(name string) error {
-	if !strings.HasPrefix(name, "wsl://") {
-		_, err := remote.ParseOpts(name)
-		if err != nil {
-			return fmt.Errorf("cannot parse connection name: %w", err)
-		}
+	_, err := remote.ParseOpts(name)
+	if err != nil {
+		return fmt.Errorf("cannot parse connection name: %w", err)
 	}
 	return nil
 }
 
 func getAllConnStatus() ([]wshrpc.ConnStatus, error) {
-	var allResp []wshrpc.ConnStatus
 	sshResp, err := wshclient.ConnStatusCommand(RpcClient, nil)
 	if err != nil {
 		return nil, fmt.Errorf("getting ssh connection status: %w", err)
 	}
-	allResp = append(allResp, sshResp...)
-	wslResp, err := wshclient.WslStatusCommand(RpcClient, nil)
-	if err != nil {
-		return nil, fmt.Errorf("getting wsl connection status: %w", err)
-	}
-	allResp = append(allResp, wslResp...)
-	return allResp, nil
+	return sshResp, nil
 }
 
 func connStatusRun(cmd *cobra.Command, args []string) error {

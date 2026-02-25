@@ -354,16 +354,15 @@ export function initIpcHandlers() {
         }
     });
 
-    electron.ipcMain.on("open-native-path", (event, filePath: string) => {
+    electron.ipcMain.handle("open-native-path", async (event, filePath: string) => {
         console.log("open-native-path", filePath);
         filePath = filePath.replace("~", electronApp.getPath("home"));
-        fireAndForget(() =>
-            callWithOriginalXdgCurrentDesktopAsync(() =>
-                electron.shell.openPath(filePath).then((excuse) => {
-                    if (excuse) console.error(`Failed to open ${filePath} in native application: ${excuse}`);
-                })
-            )
-        );
+        let excuse = "";
+        await callWithOriginalXdgCurrentDesktopAsync(async () => {
+            excuse = await electron.shell.openPath(filePath);
+            if (excuse) console.error(`Failed to open ${filePath} in native application: ${excuse}`);
+        });
+        return excuse;
     });
 
     electron.ipcMain.on("set-window-init-status", (event, status: "ready" | "wave-ready") => {

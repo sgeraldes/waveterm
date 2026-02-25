@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import {
     atoms,
     clearAllTabIndicators,
@@ -21,12 +18,13 @@ import clsx from "clsx";
 import { useAtomValue } from "jotai";
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { ObjectService } from "../store/services";
-import { TabStatusType } from "../store/tab-model";
+import { getTabModelByTabId, TabStatusType } from "../store/tab-model";
 import { makeORef, useWaveObjectValue } from "../store/wos";
 import { addPresetSubmenu } from "./tab-menu";
 import "./tab.scss";
 
-// Tab color palette for the context menu
+const MAX_TAB_NAME_LENGTH = 128;
+
 const TAB_COLORS = [
     { name: "Red", value: "#ef4444" },
     { name: "Orange", value: "#f97316" },
@@ -58,7 +56,7 @@ const Tab = memo(
             { id, active, isBeforeActive, isDragging, tabWidth, isNew, onLoaded, onSelect, onClose, onDragStart },
             ref
         ) => {
-            const [tabData, _] = useWaveObjectValue<Tab>(makeORef("tab", id));
+            const [tabData] = useWaveObjectValue<Tab>(makeORef("tab", id));
             const [originalName, setOriginalName] = useState("");
             const [isEditable, setIsEditable] = useState(false);
             const indicator = useAtomValue(getTabIndicatorAtom(id));
@@ -68,14 +66,8 @@ const Tab = memo(
             const loadedRef = useRef(false);
             const tabRef = useRef<HTMLDivElement>(null);
 
-            // Read terminal status from tab metadata (synced across webviews)
-            // Status shown on ALL tabs including active
             const tabStatus = (tabData?.meta?.["tab:termstatus"] as TabStatusType) || null;
 
-            // Clear status after a delay when tab becomes active AND webview is visible
-            // "finished" clears after 2 seconds, "stopped" clears after 3 seconds
-            // We must check document.visibilityState because each tab has its own webview,
-            // and the "active" prop is always true for the owning webview even when in background
             const [isDocVisible, setIsDocVisible] = useState(document.visibilityState === "visible");
             useEffect(() => {
                 const handleVisibilityChange = () => {
@@ -86,19 +78,11 @@ const Tab = memo(
             }, []);
 
             useEffect(() => {
-                // Only clear status when:
-                // 1. This tab is marked as active (matches this webview's staticTabId)
-                // 2. This webview is actually visible to the user (not a background webview)
-                // 3. Status is finished or stopped
-                if (active && isDocVisible && (tabStatus === "finished" || tabStatus === "stopped")) {
-                    const delay = tabStatus === "stopped" ? 3000 : 2000;
+                if (active && isDocVisible && tabStatus === "finished") {
+                    const delay = 2000;
                     const timer = setTimeout(() => {
-                        // Use fireAndForget to avoid unhandled promise rejection
-                        fireAndForget(() =>
-                            ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                                "tab:termstatus": null,
-                            })
-                        );
+                        const tabModel = getTabModelByTabId(id);
+                        tabModel.clearFinishedUnread();
                     }, delay);
                     return () => clearTimeout(timer);
                 }
@@ -155,7 +139,6 @@ const Tab = memo(
                     selectEditableText();
                     return;
                 }
-                // this counts glyphs, not characters
                 const curLen = Array.from(editableRef.current.innerText).length;
                 if (event.key === "Enter") {
                     event.preventDefault();
@@ -169,7 +152,7 @@ const Tab = memo(
                     editableRef.current.blur();
                     event.preventDefault();
                     event.stopPropagation();
-                } else if (curLen >= 14 && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+                } else if (curLen >= MAX_TAB_NAME_LENGTH && !["Backspace", "Delete", "ArrowLeft", "ArrowRight"].includes(event.key)) {
                     event.preventDefault();
                     event.stopPropagation();
                 }
@@ -190,7 +173,6 @@ const Tab = memo(
                 }
             }, [isNew, tabWidth]);
 
-            // Prevent drag from being triggered on mousedown
             const handleMouseDownOnClose = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
                 event.stopPropagation();
             };
@@ -282,7 +264,6 @@ const Tab = memo(
                 [id]
             );
 
-            // Tab indicator click handler - clear indicator on focus if configured
             const handleTabClick = () => {
                 const currentIndicator = globalStore.get(getTabIndicatorAtom(id));
                 if (currentIndicator?.clearonfocus) {
@@ -322,7 +303,6 @@ const Tab = memo(
                         { type: "separator" }
                     );
 
-                    // Base Directory submenu (fork feature)
                     const baseDirSubmenu: ContextMenuItem[] = [
                         {
                             label: "Set Base Directory...",
@@ -347,7 +327,6 @@ const Tab = memo(
                         { type: "separator" }
                     );
 
-                    // Tab Color submenu
                     const currentTabColor = tabData?.meta?.["tab:color"];
                     const colorSubmenu: ContextMenuItem[] = TAB_COLORS.map((color) => ({
                         label: color.name,
@@ -366,13 +345,11 @@ const Tab = memo(
                     const fullConfig = globalStore.get(atoms.fullConfigAtom);
                     const oref = makeORef("tab", id);
 
-                    // Tab Variables presets
                     addPresetSubmenu(menu, fullConfig, oref, "Tab Variables", {
                         prefix: "tabvar@",
                         stripPrefixFromLabel: true,
                     });
 
-                    // Background presets
                     addPresetSubmenu(menu, fullConfig, oref, "Backgrounds", {
                         prefix: "bg@",
                         sortByOrder: true,
@@ -425,10 +402,18 @@ const Tab = memo(
                         dragging: isDragging,
                         "before-active": isBeforeActive,
                         "new-tab": isNew,
-                        "has-color": !!tabColor,
                     })}
+                    role="tab"
+                    aria-selected={active}
                     onMouseDown={onDragStart}
                     onClick={handleTabClick}
+                    onAuxClick={(e) => {
+                        if (e.button === 1) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onClose(null);
+                        }
+                    }}
                     onContextMenu={handleContextMenu}
                     data-tab-id={id}
                 >

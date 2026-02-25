@@ -1,73 +1,39 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "electron-vite";
+import { mkdirSync, writeFileSync } from "node:fs";
+import nodePath from "node:path";
+import type { Plugin } from "vite";
 import { ViteImageOptimizer } from "vite-plugin-image-optimizer";
 import svgr from "vite-plugin-svgr";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-// from our electron build
 const CHROME = "chrome140";
 const NODE = "node22";
 
-// for debugging
-// target is like -- path.resolve(__dirname, "frontend/app/workspace/workspace-layout-model.ts");
-function whoImportsTarget(target: string) {
+/**
+ * Writes the Vite dev server URL to dist/.dev-server-url so the Electron
+ * main process can read it. This bridges the WSL2-to-Windows env var gap:
+ * electron-vite sets ELECTRON_RENDERER_URL in the WSL Node.js process, but
+ * that env var doesn't propagate to the Windows electron.exe child process.
+ */
+function writeDevServerUrl(): Plugin {
     return {
-        name: "who-imports-target",
-        buildEnd() {
-            // Build reverse graph: child -> [importers...]
-            const parents = new Map<string, string[]>();
-            for (const id of (this as any).getModuleIds()) {
-                const info = (this as any).getModuleInfo(id);
-                if (!info) continue;
-                for (const child of [...info.importedIds, ...info.dynamicallyImportedIds]) {
-                    const arr = parents.get(child) ?? [];
-                    arr.push(id);
-                    parents.set(child, arr);
+        name: "write-dev-server-url",
+        configureServer(server) {
+            server.httpServer?.once("listening", () => {
+                const address = server.httpServer?.address();
+                if (address && typeof address === "object") {
+                    const protocol = server.config.server.https ? "https" : "http";
+                    const host =
+                        address.address === "::" || address.address === "0.0.0.0" ? "localhost" : address.address;
+                    const url = `${protocol}://${host}:${address.port}`;
+                    const urlFilePath = nodePath.resolve("dist", ".dev-server-url");
+                    mkdirSync(nodePath.dirname(urlFilePath), { recursive: true });
+                    writeFileSync(urlFilePath, url, "utf-8");
+                    console.log(`[write-dev-server-url] wrote ${url} to ${urlFilePath}`);
                 }
-            }
-
-            // Walk upward from TARGET and print paths to entries
-            const entries = [...parents.keys()].filter((id) => {
-                const m = (this as any).getModuleInfo(id);
-                return m?.isEntry;
             });
-
-            const seen = new Set<string>();
-            const stack: string[] = [];
-            const dfs = (node: string) => {
-                if (seen.has(node)) return;
-                seen.add(node);
-                stack.push(node);
-                const ps = parents.get(node) || [];
-                if (ps.length === 0) {
-                    // hit a root (likely main entry or plugin virtual)
-                    console.log("\nImporter chain:");
-                    stack
-                        .slice()
-                        .reverse()
-                        .forEach((s) => console.log("  ↳", s));
-                } else {
-                    for (const p of ps) dfs(p);
-                }
-                stack.pop();
-            };
-
-            if (!parents.has(target)) {
-                console.log(`[who-imports] TARGET not in MAIN graph: ${target}`);
-            } else {
-                dfs(target);
-            }
-        },
-        async resolveId(id: any, importer: any) {
-            const r = await (this as any).resolve(id, importer, { skipSelf: true });
-            if (r?.id === target) {
-                console.log(`[resolve] ${importer} -> ${id} -> ${r.id}`);
-            }
-            return null;
         },
     };
 }
@@ -173,6 +139,7 @@ export default defineConfig({
             }),
             react({}),
             tailwindcss(),
+            writeDevServerUrl(),
         ],
     },
 });

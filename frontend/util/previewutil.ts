@@ -1,4 +1,4 @@
-import { createBlock, getApi } from "@/app/store/global";
+import { createBlock, getApi, pushNotification } from "@/app/store/global";
 import { makeNativeLabel } from "./platformutil";
 import { fireAndForget } from "./util";
 import { formatRemoteUri } from "./waveutil";
@@ -16,7 +16,19 @@ export function addOpenMenuItems(menu: ContextMenuItem[], conn: string, finfo: F
         menu.push({
             label: makeNativeLabel(true),
             click: () => {
-                getApi().openNativePath(finfo.isdir ? finfo.path : finfo.dir);
+                fireAndForget(async () => {
+                    const errMsg = await getApi().openNativePath(finfo.isdir ? finfo.path : finfo.dir);
+                    if (errMsg) {
+                        pushNotification({
+                            id: "open-native-error",
+                            icon: "triangle-exclamation",
+                            title: "Cannot Open File",
+                            message: errMsg,
+                            timestamp: Date.now().toString(),
+                            type: "error",
+                        });
+                    }
+                });
             },
         });
         // if the entry is a file, open it in the default application
@@ -24,7 +36,19 @@ export function addOpenMenuItems(menu: ContextMenuItem[], conn: string, finfo: F
             menu.push({
                 label: makeNativeLabel(false),
                 click: () => {
-                    getApi().openNativePath(finfo.path);
+                    fireAndForget(async () => {
+                        const errMsg = await getApi().openNativePath(finfo.path);
+                        if (errMsg) {
+                            pushNotification({
+                                id: "open-native-error",
+                                icon: "triangle-exclamation",
+                                title: "Cannot Open File",
+                                message: errMsg,
+                                timestamp: Date.now().toString(),
+                                type: "error",
+                            });
+                        }
+                    });
                 },
             });
         }

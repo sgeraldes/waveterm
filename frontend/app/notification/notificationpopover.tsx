@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { Button } from "@/element/button";
 import { Popover, PopoverButton, PopoverContent } from "@/element/popover";
 import { atoms } from "@/store/global";
@@ -65,7 +62,7 @@ const NotificationPopover = () => {
                 {getIcon()}
             </PopoverButton>
             {notifications.length > 0 && (
-                <PopoverContent className="flex w-[380px] pt-2.5 pb-0 px-0 flex-col items-start gap-x-2 rounded-lg border-[0.5px] border-white/12 bg-[#232323] shadow-[0px_8px_32px_0px_rgba(0,0,0,0.25)]">
+                <PopoverContent className="flex w-[380px] pt-2.5 pb-0 px-0 flex-col items-start gap-x-2 rounded-lg border-[0.5px] border-white/12 bg-[var(--main-bg-color)] shadow-[0px_8px_32px_0px_rgba(0,0,0,0.25)]">
                     <div className="flex items-center justify-between w-full px-2.5 pb-2 border-b border-white/8">
                         <span className="text-foreground text-sm font-semibold leading-4">Notifications</span>
                         <Button

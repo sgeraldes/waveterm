@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { Tooltip } from "@/app/element/tooltip";
 import { globalStore } from "@/app/store/jotaiStore";
 import { tryReinjectKey } from "@/app/store/keymodel";
@@ -49,8 +46,7 @@ const JsonEditorModal = memo(({ model, blockId, configFile, onClose }: JsonEdito
 
             const keyDownDisposer = editor.onKeyDown((e: MonacoTypes.IKeyboardEvent) => {
                 const waveEvent = adaptFromReactOrNativeKeyEvent(e.browserEvent);
-                // Allow Escape to close the modal
-                if (e.keyCode === 9 /* Escape */) {
+                if (e.browserEvent.key === "Escape") {
                     onClose();
                     e.stopPropagation();
                     e.preventDefault();
@@ -78,7 +74,6 @@ const JsonEditorModal = memo(({ model, blockId, configFile, onClose }: JsonEdito
         }
     }, [model, onClose]);
 
-    // Close on backdrop click
     const handleBackdropClick = useCallback(
         (e: React.MouseEvent) => {
             if (e.target === e.currentTarget) {
@@ -88,7 +83,6 @@ const JsonEditorModal = memo(({ model, blockId, configFile, onClose }: JsonEdito
         [onClose]
     );
 
-    // Handle keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = keydownWrapper((e: WaveKeyboardEvent) => {
             if (checkKeyPressed(e, "Cmd:s")) {
@@ -280,11 +274,8 @@ const WaveConfigView = memo(({ blockId, model }: ViewComponentProps<WaveConfigVi
         [model]
     );
 
-    // Open JSON modal for current file
     const handleEditJson = useCallback(async () => {
-        // Flush any pending settings changes first (in case visual component has unsaved changes)
         await settingsService.forceSave();
-        // Reload the current file to ensure we have the latest content
         if (selectedFile) {
             await model.loadFile(selectedFile);
         }
@@ -293,7 +284,6 @@ const WaveConfigView = memo(({ blockId, model }: ViewComponentProps<WaveConfigVi
 
     const handleCloseJsonModal = useCallback(() => {
         setIsJsonModalOpen(false);
-        // Reload the current file to refresh any changes
         if (selectedFile) {
             model.loadFile(selectedFile);
         }

@@ -113,8 +113,9 @@ const config = {
         fpm: ["--rpm-rpmbuild-define", "_build_id_links none"],
     },
     publish: {
-        provider: "generic",
-        url: "https://dl.waveterm.dev/releases-w2",
+        provider: "github",
+        owner: "sgeraldes",
+        repo: "waveterm",
     },
     afterPack: (context) => {
         // This is a workaround to restore file permissions to the wavesrv binaries on macOS after packaging the universal binary.

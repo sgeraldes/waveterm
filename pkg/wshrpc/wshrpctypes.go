@@ -1,7 +1,4 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
-// types and methods for wsh rpc calls
 package wshrpc
 
 import (
@@ -21,24 +18,19 @@ type RespOrErrorUnion[T any] struct {
 	Error    error
 }
 
-// Instructions for adding a new RPC call
-// * methods must end with Command
-// * methods must take context as their first parameter
-// * methods may take up to one parameter, and may return either just an error, or one return value plus an error
-// * after modifying WshRpcInterface, run `task generate` to regnerate bindings
 
 type WshRpcInterface interface {
 	AuthenticateCommand(ctx context.Context, data string) (CommandAuthenticateRtnData, error)
 	AuthenticateTokenCommand(ctx context.Context, data CommandAuthenticateTokenData) (CommandAuthenticateRtnData, error)
-	AuthenticateTokenVerifyCommand(ctx context.Context, data CommandAuthenticateTokenData) (CommandAuthenticateRtnData, error) // (special) validates token without binding, root router only
+	AuthenticateTokenVerifyCommand(ctx context.Context, data CommandAuthenticateTokenData) (CommandAuthenticateRtnData, error)
 	AuthenticateJobManagerCommand(ctx context.Context, data CommandAuthenticateJobManagerData) error
-	AuthenticateJobManagerVerifyCommand(ctx context.Context, data CommandAuthenticateJobManagerData) error // (special) validates job auth token without binding, root router only
+	AuthenticateJobManagerVerifyCommand(ctx context.Context, data CommandAuthenticateJobManagerData) error
 	DisposeCommand(ctx context.Context, data CommandDisposeData) error
-	RouteAnnounceCommand(ctx context.Context) error               // (special) announces a new route to the main router
-	RouteUnannounceCommand(ctx context.Context) error             // (special) unannounces a route to the main router
-	ControlGetRouteIdCommand(ctx context.Context) (string, error) // (special) gets the route for the link that we're on
+	RouteAnnounceCommand(ctx context.Context) error
+	RouteUnannounceCommand(ctx context.Context) error
+	ControlGetRouteIdCommand(ctx context.Context) (string, error)
 	SetPeerInfoCommand(ctx context.Context, peerInfo string) error
-	GetJwtPublicKeyCommand(ctx context.Context) (string, error) // (special) gets the public JWT signing key
+	GetJwtPublicKeyCommand(ctx context.Context) (string, error)
 
 	MessageCommand(ctx context.Context, data CommandMessageData) error
 	GetMetaCommand(ctx context.Context, data CommandGetMetaData) (waveobj.MetaMapType, error)
@@ -85,16 +77,12 @@ type WshRpcInterface interface {
 	GetTabCommand(ctx context.Context, tabId string) (*waveobj.Tab, error)
 	GetAllTabIndicatorsCommand(ctx context.Context) (map[string]*TabIndicator, error)
 
-	// connection functions
 	ConnStatusCommand(ctx context.Context) ([]ConnStatus, error)
-	WslStatusCommand(ctx context.Context) ([]ConnStatus, error)
 	ConnEnsureCommand(ctx context.Context, data ConnExtData) error
 	ConnReinstallWshCommand(ctx context.Context, data ConnExtData) error
 	ConnConnectCommand(ctx context.Context, connRequest ConnRequest) error
 	ConnDisconnectCommand(ctx context.Context, connName string) error
 	ConnListCommand(ctx context.Context) ([]string, error)
-	WslListCommand(ctx context.Context) ([]string, error)
-	WslDefaultDistroCommand(ctx context.Context) (string, error)
 	DismissWshFailCommand(ctx context.Context, connName string) error
 	ConnUpdateWshCommand(ctx context.Context, remoteInfo RemoteInfo) (bool, error)
 	FindGitBashCommand(ctx context.Context, rescan bool) (string, error)
@@ -102,12 +90,11 @@ type WshRpcInterface interface {
 	SetShellProfileCommand(ctx context.Context, data SetShellProfileRequest) error
 	DeleteShellProfileCommand(ctx context.Context, data DeleteShellProfileRequest) error
 	MergeShellProfilesCommand(ctx context.Context, data MergeShellProfilesRequest) (MergeShellProfilesResponse, error)
+	WslPathStatCommand(ctx context.Context, data WslPathStatRequest) (*WslPathStatResponse, error)
 	ConnServerInitCommand(ctx context.Context, data CommandConnServerInitData) error
 
-	// eventrecv is special, it's handled internally by WshRpc with EventListener
 	EventRecvCommand(ctx context.Context, data wps.WaveEvent) error
 
-	// remotes
 	WshRpcRemoteFileInterface
 	RemoteStreamCpuDataCommand(ctx context.Context) chan RespOrErrorUnion[TimeSeriesData]
 	RemoteGetInfoCommand(ctx context.Context) (RemoteInfo, error)
@@ -117,7 +104,6 @@ type WshRpcInterface interface {
 	RemoteDisconnectFromJobManagerCommand(ctx context.Context, data CommandRemoteDisconnectFromJobManagerData) error
 	RemoteTerminateJobManagerCommand(ctx context.Context, data CommandRemoteTerminateJobManagerData) error
 
-	// emain
 	WebSelectorCommand(ctx context.Context, data CommandWebSelectorData) ([]string, error)
 	NotifyCommand(ctx context.Context, notificationOptions WaveNotificationOptions) error
 	FocusWindowCommand(ctx context.Context, windowId string) error
@@ -126,7 +112,6 @@ type WshRpcInterface interface {
 	NetworkOnlineCommand(ctx context.Context) (bool, error)
 	ElectronSystemBellCommand(ctx context.Context) error
 
-	// secrets
 	GetSecretsCommand(ctx context.Context, names []string) (map[string]string, error)
 	GetSecretsNamesCommand(ctx context.Context) ([]string, error)
 	SetSecretsCommand(ctx context.Context, secrets map[string]*string) error
@@ -135,7 +120,6 @@ type WshRpcInterface interface {
 	WorkspaceListCommand(ctx context.Context) ([]WorkspaceInfoData, error)
 	GetUpdateChannelCommand(ctx context.Context) (string, error)
 
-	// ai
 	AiSendMessageCommand(ctx context.Context, data AiMessageData) error
 	GetWaveAIChatCommand(ctx context.Context, data CommandGetWaveAIChatData) (*uctypes.UIChat, error)
 	GetWaveAIRateLimitCommand(ctx context.Context) (*uctypes.RateLimitInfo, error)
@@ -143,7 +127,6 @@ type WshRpcInterface interface {
 	WaveAIAddContextCommand(ctx context.Context, data CommandWaveAIAddContextData) error
 	WaveAIGetToolDiffCommand(ctx context.Context, data CommandWaveAIGetToolDiffData) (*CommandWaveAIGetToolDiffRtnData, error)
 
-	// screenshot
 	CaptureBlockScreenshotCommand(ctx context.Context, data CommandCaptureBlockScreenshotData) (string, error)
 
 	// block focus
@@ -153,26 +136,21 @@ type WshRpcInterface interface {
 	GetRTInfoCommand(ctx context.Context, data CommandGetRTInfoData) (*waveobj.ObjRTInfo, error)
 	SetRTInfoCommand(ctx context.Context, data CommandSetRTInfoData) error
 
-	// terminal
 	TermGetScrollbackLinesCommand(ctx context.Context, data CommandTermGetScrollbackLinesData) (*CommandTermGetScrollbackLinesRtnData, error)
 
-	// file
 	WshRpcFileInterface
 	WaveFileReadStreamCommand(ctx context.Context, data CommandWaveFileReadStreamData) (*WaveFileInfo, error)
 
-	// streams
 	StreamDataCommand(ctx context.Context, data CommandStreamData) error
 	StreamDataAckCommand(ctx context.Context, data CommandStreamAckData) error
 
-	// jobs
 	AuthenticateToJobManagerCommand(ctx context.Context, data CommandAuthenticateToJobData) error
 	StartJobCommand(ctx context.Context, data CommandStartJobData) (*CommandStartJobRtnData, error)
 	JobPrepareConnectCommand(ctx context.Context, data CommandJobPrepareConnectData) (*CommandJobConnectRtnData, error)
 	JobStartStreamCommand(ctx context.Context, data CommandJobStartStreamData) error
 	JobInputCommand(ctx context.Context, data CommandJobInputData) error
-	JobCmdExitedCommand(ctx context.Context, data CommandJobCmdExitedData) error // this is sent FROM the job manager => main server
+	JobCmdExitedCommand(ctx context.Context, data CommandJobCmdExitedData) error
 
-	// job controller
 	JobControllerDeleteJobCommand(ctx context.Context, jobId string) error
 	JobControllerListCommand(ctx context.Context) ([]*waveobj.Job, error)
 	JobControllerStartJobCommand(ctx context.Context, data CommandJobControllerStartJobData) (string, error)
@@ -184,25 +162,21 @@ type WshRpcInterface interface {
 	JobControllerAttachJobCommand(ctx context.Context, data CommandJobControllerAttachJobData) error
 	JobControllerDetachJobCommand(ctx context.Context, jobId string) error
 
-	// OMP (Oh-My-Posh) integration
 	OmpGetConfigInfoCommand(ctx context.Context) (CommandOmpGetConfigInfoRtnData, error)
 	OmpWritePaletteCommand(ctx context.Context, data CommandOmpWritePaletteData) (CommandOmpWritePaletteRtnData, error)
 	OmpAnalyzeCommand(ctx context.Context, data CommandOmpAnalyzeData) (CommandOmpAnalyzeRtnData, error)
 	OmpApplyHighContrastCommand(ctx context.Context, data CommandOmpApplyHighContrastData) (CommandOmpApplyHighContrastRtnData, error)
 	OmpRestoreBackupCommand(ctx context.Context, data CommandOmpRestoreBackupData) (CommandOmpRestoreBackupRtnData, error)
 
-	// OMP Configurator - Full config read/write
 	OmpReadConfigCommand(ctx context.Context) (CommandOmpReadConfigRtnData, error)
 	OmpWriteConfigCommand(ctx context.Context, data CommandOmpWriteConfigData) (CommandOmpWriteConfigRtnData, error)
 
-	// OMP reinit command for live reload
 	OmpReinitCommand(ctx context.Context, data CommandOmpReinitData) error
 
 	JobControllerGetAllJobManagerStatusCommand(ctx context.Context) ([]*JobManagerStatusUpdate, error)
 	BlockJobStatusCommand(ctx context.Context, blockId string) (*BlockJobStatusData, error)
 }
 
-// for frontend
 type WshServerCommandMeta struct {
 	CommandType string `json:"commandtype"`
 }
@@ -212,16 +186,16 @@ type RpcOpts struct {
 	NoResponse bool   `json:"noresponse,omitempty"`
 	Route      string `json:"route,omitempty"`
 
-	StreamCancelFn func(context.Context) error `json:"-"` // this is an *output* parameter, set by the handler
+	StreamCancelFn func(context.Context) error `json:"-"`
 }
 
 type RpcContext struct {
-	SockName  string `json:"sockname,omitempty"`  // the domain socket name
-	RouteId   string `json:"routeid"`             // the routeid from the jwt
-	ProcRoute bool   `json:"procroute,omitempty"` // use a random procid for route
-	BlockId   string `json:"blockid,omitempty"`   // blockid for this rpc
-	Conn      string `json:"conn,omitempty"`      // the conn name
-	IsRouter  bool   `json:"isrouter,omitempty"`  // if this is for a sub-router
+	SockName  string `json:"sockname,omitempty"`
+	RouteId   string `json:"routeid"`
+	ProcRoute bool   `json:"procroute,omitempty"`
+	BlockId   string `json:"blockid,omitempty"`
+	Conn      string `json:"conn,omitempty"`
+	IsRouter  bool   `json:"isrouter,omitempty"`
 }
 
 func (rc RpcContext) GenerateRouteId() string {
@@ -234,7 +208,6 @@ func (rc RpcContext) GenerateRouteId() string {
 type CommandAuthenticateRtnData struct {
 	RouteId string `json:"routeid"`
 
-	// these fields are only set when doing a token swap
 	Env            map[string]string `json:"env,omitempty"`
 	InitScriptText string            `json:"initscripttext,omitempty"`
 	RpcContext     *RpcContext       `json:"rpccontext,omitempty"`
@@ -246,7 +219,6 @@ type CommandAuthenticateTokenData struct {
 
 type CommandDisposeData struct {
 	RouteId string `json:"routeid"`
-	// auth token travels in the packet directly
 }
 
 type CommandMessageData struct {
@@ -279,7 +251,7 @@ type CommandCreateBlockData struct {
 	Ephemeral     bool                 `json:"ephemeral,omitempty"`
 	Focused       bool                 `json:"focused,omitempty"`
 	TargetBlockId string               `json:"targetblockid,omitempty"`
-	TargetAction  string               `json:"targetaction,omitempty"` // "replace", "splitright", "splitdown", "splitleft", "splitup"
+	TargetAction  string               `json:"targetaction,omitempty"`
 }
 
 type CommandCreateSubBlockData struct {
@@ -448,7 +420,7 @@ type ConnStatus struct {
 	WshEnabled    bool   `json:"wshenabled"`
 	Connection    string `json:"connection"`
 	Connected     bool   `json:"connected"`
-	HasConnected  bool   `json:"hasconnected"` // true if it has *ever* connected successfully
+	HasConnected  bool   `json:"hasconnected"`
 	ActiveConnNum int    `json:"activeconnnum"`
 	Error         string `json:"error,omitempty"`
 	WshError      string `json:"wsherror,omitempty"`
@@ -682,7 +654,7 @@ type CommandElectronEncryptData struct {
 
 type CommandElectronEncryptRtnData struct {
 	CipherText     string `json:"ciphertext"`
-	StorageBackend string `json:"storagebackend"` // only returned for linux
+	StorageBackend string `json:"storagebackend"`
 }
 
 type CommandElectronDecryptData struct {
@@ -691,30 +663,30 @@ type CommandElectronDecryptData struct {
 
 type CommandElectronDecryptRtnData struct {
 	PlainText      string `json:"plaintext"`
-	StorageBackend string `json:"storagebackend"` // only returned for linux
+	StorageBackend string `json:"storagebackend"`
 }
 
 type CommandStreamData struct {
-	Id     string `json:"id"`  // streamid
-	Seq    int64  `json:"seq"` // start offset (bytes)
+	Id     string `json:"id"`
+	Seq    int64  `json:"seq"`
 	Data64 string `json:"data64,omitempty"`
-	Eof    bool   `json:"eof,omitempty"`   // can be set with data or without
-	Error  string `json:"error,omitempty"` // stream terminated with error
+	Eof    bool   `json:"eof,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 type CommandStreamAckData struct {
-	Id     string `json:"id"`               // streamid
-	Seq    int64  `json:"seq"`              // next expected byte
-	RWnd   int64  `json:"rwnd"`             // receive window size
-	Fin    bool   `json:"fin,omitempty"`    // observed end-of-stream (eof or error)
-	Delay  int64  `json:"delay,omitempty"`  // ack delay in microseconds (from when data was received to when we sent out ack -- monotonic clock)
-	Cancel bool   `json:"cancel,omitempty"` // used to cancel the stream
-	Error  string `json:"error,omitempty"`  // reason for cancel (may only be set if cancel is true)
+	Id     string `json:"id"`
+	Seq    int64  `json:"seq"`
+	RWnd   int64  `json:"rwnd"`
+	Fin    bool   `json:"fin,omitempty"`
+	Delay  int64  `json:"delay,omitempty"`
+	Cancel bool   `json:"cancel,omitempty"`
+	Error  string `json:"error,omitempty"`
 }
 
 type StreamMeta struct {
-	Id            string `json:"id"`   // streamid
-	RWnd          int64  `json:"rwnd"` // initial receive window size
+	Id            string `json:"id"`
+	RWnd          int64  `json:"rwnd"`
 	ReaderRouteId string `json:"readerrouteid"`
 	WriterRouteId string `json:"writerrouteid"`
 }
@@ -820,30 +792,29 @@ type CommandJobControllerAttachJobData struct {
 	BlockId string `json:"blockid"`
 }
 
-// Shell detection types
 
 type DetectShellsRequest struct {
-	ConnectionName string `json:"connectionname,omitempty"` // Empty = local
-	Rescan         bool   `json:"rescan,omitempty"`         // Force cache refresh
+	ConnectionName string `json:"connectionname,omitempty"`
+	Rescan         bool   `json:"rescan,omitempty"`
 }
 
 type DetectedShell struct {
-	ID        string `json:"id"`                  // "pwsh-a1b2c3d4" (hash of path)
-	Name      string `json:"name"`                // "PowerShell 7"
-	ShellPath string `json:"shellpath"`           // "C:\...\pwsh.exe"
-	ShellType string `json:"shelltype"`           // "pwsh", "bash", "zsh", "fish", "cmd"
-	Version   string `json:"version,omitempty"`   // "7.4"
-	Source    string `json:"source"`              // "file", "wsl", etc.
-	Icon      string `json:"icon,omitempty"`      // "powershell", "terminal", "linux"
-	IsDefault bool   `json:"isdefault,omitempty"` // true if system default
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	ShellPath string `json:"shellpath"`
+	ShellType string `json:"shelltype"`
+	Version   string `json:"version,omitempty"`
+	Source    string `json:"source"`
+	Icon      string `json:"icon,omitempty"`
+	IsDefault bool   `json:"isdefault,omitempty"`
+	WslDistro string `json:"wsldistro,omitempty"`
 }
 
 type DetectShellsResponse struct {
 	Shells []DetectedShell `json:"shells"`
-	Error  string          `json:"error,omitempty"` // Non-fatal errors
+	Error  string          `json:"error,omitempty"`
 }
 
-// Shell profile management types
 
 type ShellProfileData struct {
 	ProfileID    string   `json:"profileid"`
@@ -871,7 +842,7 @@ type DeleteShellProfileRequest struct {
 }
 
 type MergeShellProfilesRequest struct {
-	Rescan bool `json:"rescan,omitempty"` // Force detection refresh
+	Rescan bool `json:"rescan,omitempty"`
 }
 
 type MergeShellProfilesResponse struct {
@@ -879,9 +850,19 @@ type MergeShellProfilesResponse struct {
 	Error string `json:"error,omitempty"`
 }
 
-// OMP (Oh-My-Posh) configuration types
+type WslPathStatRequest struct {
+	Distro string `json:"distro"`
+	Path   string `json:"path"`
+}
 
-// CommandOmpGetConfigInfoRtnData contains OMP config info
+type WslPathStatResponse struct {
+	Exists  bool   `json:"exists"`
+	IsDir   bool   `json:"isdir,omitempty"`
+	Size    int64  `json:"size,omitempty"`
+	ModTime int64  `json:"modtime,omitempty"`
+	Error   string `json:"error,omitempty"`
+}
+
 type CommandOmpGetConfigInfoRtnData struct {
 	ConfigPath     string            `json:"configpath"`
 	Format         string            `json:"format"`
@@ -892,23 +873,19 @@ type CommandOmpGetConfigInfoRtnData struct {
 	Error          string            `json:"error,omitempty"`
 }
 
-// CommandOmpWritePaletteData contains palette write request
 type CommandOmpWritePaletteData struct {
 	Palette      map[string]string `json:"palette"`
 	CreateBackup bool              `json:"createbackup"`
 }
 
-// CommandOmpWritePaletteRtnData contains write result
 type CommandOmpWritePaletteRtnData struct {
 	Success    bool   `json:"success"`
 	BackupPath string `json:"backuppath,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
-// CommandOmpAnalyzeData contains analysis request (empty - uses $POSH_THEME)
 type CommandOmpAnalyzeData struct{}
 
-// TransparentSegmentInfo contains info about a segment with transparent background
 type TransparentSegmentInfo struct {
 	BlockIndex   int    `json:"blockindex"`
 	SegmentIndex int    `json:"segmentindex"`
@@ -916,19 +893,16 @@ type TransparentSegmentInfo struct {
 	Foreground   string `json:"foreground"`
 }
 
-// CommandOmpAnalyzeRtnData contains analysis result
 type CommandOmpAnalyzeRtnData struct {
 	TransparentSegments []TransparentSegmentInfo `json:"transparentsegments"`
 	HasTransparency     bool                     `json:"hastransparency"`
 	Error               string                   `json:"error,omitempty"`
 }
 
-// CommandOmpApplyHighContrastData contains high contrast mode request
 type CommandOmpApplyHighContrastData struct {
 	CreateBackup bool `json:"createbackup"`
 }
 
-// CommandOmpApplyHighContrastRtnData contains high contrast mode result
 type CommandOmpApplyHighContrastRtnData struct {
 	Success      bool   `json:"success"`
 	BackupPath   string `json:"backuppath,omitempty"`
@@ -936,20 +910,14 @@ type CommandOmpApplyHighContrastRtnData struct {
 	Error        string `json:"error,omitempty"`
 }
 
-// CommandOmpRestoreBackupData contains restore backup request (empty)
 type CommandOmpRestoreBackupData struct{}
 
-// CommandOmpRestoreBackupRtnData contains restore backup result
 type CommandOmpRestoreBackupRtnData struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
 }
 
-// ============================================
-// OMP Configurator RPC Types (Full Config Read/Write)
-// ============================================
 
-// OmpConfigData represents the full OMP configuration for the configurator
 type OmpConfigData struct {
 	Schema                   string                  `json:"$schema,omitempty"`
 	Version                  int                     `json:"version,omitempty"`
@@ -967,7 +935,6 @@ type OmpConfigData struct {
 	UpgradeNotice            bool                    `json:"upgrade_notice,omitempty"`
 }
 
-// OmpBlockData represents a block in the OMP config
 type OmpBlockData struct {
 	Type      string           `json:"type"`
 	Alignment string           `json:"alignment"`
@@ -977,7 +944,6 @@ type OmpBlockData struct {
 	Overflow  string           `json:"overflow,omitempty"`
 }
 
-// OmpSegmentData represents a segment in the OMP config
 type OmpSegmentData struct {
 	Type                    string                 `json:"type"`
 	Style                   string                 `json:"style"`
@@ -1001,7 +967,6 @@ type OmpSegmentData struct {
 	Cache                   *OmpCacheData          `json:"cache,omitempty"`
 }
 
-// OmpTransientData represents transient prompt settings
 type OmpTransientData struct {
 	Foreground string `json:"foreground,omitempty"`
 	Background string `json:"background,omitempty"`
@@ -1010,21 +975,18 @@ type OmpTransientData struct {
 	Newline    bool   `json:"newline,omitempty"`
 }
 
-// OmpSecondaryPromptData represents secondary prompt settings
 type OmpSecondaryPromptData struct {
 	Foreground string `json:"foreground,omitempty"`
 	Background string `json:"background,omitempty"`
 	Template   string `json:"template,omitempty"`
 }
 
-// OmpDebugPromptData represents debug prompt settings
 type OmpDebugPromptData struct {
 	Foreground string `json:"foreground,omitempty"`
 	Background string `json:"background,omitempty"`
 	Template   string `json:"template,omitempty"`
 }
 
-// OmpTooltipData represents a tooltip configuration
 type OmpTooltipData struct {
 	Type       string                 `json:"type"`
 	Tips       []string               `json:"tips"`
@@ -1035,40 +997,34 @@ type OmpTooltipData struct {
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// OmpCacheData represents cache settings for a segment
 type OmpCacheData struct {
 	Duration string `json:"duration,omitempty"`
 	Strategy string `json:"strategy,omitempty"`
 }
 
-// CommandOmpReadConfigData is empty - uses $POSH_THEME
 type CommandOmpReadConfigData struct{}
 
-// CommandOmpReadConfigRtnData contains the full OMP config
 type CommandOmpReadConfigRtnData struct {
 	ConfigPath   string         `json:"configpath"`
 	Config       *OmpConfigData `json:"config,omitempty"`
 	RawContent   string         `json:"rawcontent,omitempty"`
 	Format       string         `json:"format"`
-	Source       string         `json:"source"` // "POSH_THEME" or "default"
+	Source       string         `json:"source"`
 	BackupExists bool           `json:"backupexists"`
 	Error        string         `json:"error,omitempty"`
 }
 
-// CommandOmpWriteConfigData contains config to write
 type CommandOmpWriteConfigData struct {
 	Config       *OmpConfigData `json:"config"`
 	CreateBackup bool           `json:"createbackup"`
 }
 
-// CommandOmpWriteConfigRtnData contains write result
 type CommandOmpWriteConfigRtnData struct {
 	Success    bool   `json:"success"`
 	BackupPath string `json:"backuppath,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
-// CommandOmpReinitData contains OMP reinit request
 type CommandOmpReinitData struct {
 	BlockId string `json:"blockid"`
 }
@@ -1097,7 +1053,6 @@ type CommandWaveFileReadStreamData struct {
 	StreamMeta StreamMeta `json:"streammeta"`
 }
 
-// see blockstore.go (WaveFile)
 type WaveFileInfo struct {
 	ZoneId    string   `json:"zoneid"`
 	Name      string   `json:"name"`

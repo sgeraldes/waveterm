@@ -1,0 +1,16 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.shell-selector-menu {
+    min-width: 180px;
+}
+
+.shell-selector-header {
+    font-size: 11px;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+    padding: 4px 12px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    margin-bottom: 4px;
+}

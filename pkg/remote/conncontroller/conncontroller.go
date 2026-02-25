@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package conncontroller
 
@@ -66,14 +64,14 @@ var clientControllerMap = make(map[remote.SSHOpts]*SSHConn)
 var activeConnCounter = &atomic.Int32{}
 
 type SSHConn struct {
-	lock          *sync.Mutex // this lock protects the fields in the struct from concurrent access
-	lifecycleLock *sync.Mutex // this protects the lifecycle from concurrent calls
+	lock          *sync.Mutex
+	lifecycleLock *sync.Mutex
 
 	Status             string
 	WshEnabled         *atomic.Bool
 	Opts               *remote.SSHOpts
 	Client             *ssh.Client
-	DomainSockName     string // if "", then no domain socket
+	DomainSockName     string
 	DomainSockListener net.Listener
 	ConnController     *ssh.Session
 	Error              string
@@ -90,32 +88,18 @@ var ConnServerCmdTemplate = strings.TrimSpace(
 		"exec %s connserver --conn %s %s %s",
 	}, "\n"))
 
-// IsLocalConnName returns true if the connection name represents a local connection.
-// This includes:
-// - Empty string (default local)
-// - "local" literal
-// - Names starting with "local:" (e.g., "local:gitbash")
-// - Connection profiles in connections.json with "conn:local": true
-// - Connection profiles with "conn:shellpath" but no SSH host configuration
 func IsLocalConnName(connName string) bool {
-	// Check for built-in local connection patterns
 	if strings.HasPrefix(connName, "local:") || connName == "local" || connName == "" {
 		return true
 	}
 
-	// Check if this connection is defined as a local shell profile in connections.json
 	if IsLocalShellProfile(connName) {
 		return true
 	}
 
-	// Check if this is a local shell profile ID from shell:profiles settings
 	return IsLocalShellProfileId(connName)
 }
 
-// IsLocalShellProfile checks if a connection name refers to a local shell profile
-// defined in connections.json. A connection is considered local if:
-// - It has "conn:local": true explicitly set, OR
-// - It has "conn:shellpath" set but NO SSH-related fields (ssh:hostname, etc.)
 func IsLocalShellProfile(connName string) bool {
 	if connName == "" {
 		return false
@@ -127,13 +111,10 @@ func IsLocalShellProfile(connName string) bool {
 		return false
 	}
 
-	// If explicitly marked as local, return true
 	if connSettings.ConnLocal != nil && *connSettings.ConnLocal {
 		return true
 	}
 
-	// If it has a shell path but no SSH hostname, it's a local shell profile
-	// This allows users to define local shell profiles without needing to set conn:local
 	if connSettings.ConnShellPath != "" && connSettings.SshHostName == nil {
 		return true
 	}
@@ -233,7 +214,6 @@ func (conn *SSHConn) Close() error {
 	defer conn.FireConnChangeEvent()
 	conn.WithLock(func() {
 		if conn.Status == Status_Connected || conn.Status == Status_Connecting {
-			// if status is init, disconnected, or error don't change it
 			conn.Status = Status_Disconnected
 		}
 	})
@@ -242,13 +222,10 @@ func (conn *SSHConn) Close() error {
 }
 
 func (conn *SSHConn) closeInternal_withlifecyclelock() {
-	// does not set status (that should happen at another level)
 	client := WithLockRtn(conn, func() *ssh.Client {
 		return conn.Client
 	})
 	if client != nil {
-		// this MUST go first to force close the connection.
-		// the DomainSockListener.Close() sends SSH protocol packets which can block on a dead network conn
 		startTime := time.Now()
 		client.Close()
 		duration := time.Since(startTime).Milliseconds()
@@ -303,7 +280,6 @@ func (conn *SSHConn) GetStatus() string {
 }
 
 func (conn *SSHConn) GetName() string {
-	// no lock required because opts is immutable
 	return conn.Opts.String()
 }
 
@@ -316,7 +292,7 @@ func (conn *SSHConn) OpenDomainSocketListener(ctx context.Context) error {
 		return fmt.Errorf("cannot open domain socket for %q when status is %q", conn.GetName(), conn.GetStatus())
 	}
 	client := conn.GetClient()
-	randStr, err := utilfn.RandomHexString(16) // 64-bits of randomness
+	randStr, err := utilfn.RandomHexString(16)
 	if err != nil {
 		return fmt.Errorf("error generating random string: %w", err)
 	}
@@ -344,9 +320,6 @@ func (conn *SSHConn) OpenDomainSocketListener(ctx context.Context) error {
 	return nil
 }
 
-// expects the output of `wsh version` which looks like `wsh v0.10.4` or "not-installed [os] [arch]"
-// returns (up-to-date, semver, osArchStr, error)
-// if not up to date, or error, version might be ""
 func IsWshVersionUpToDate(logCtx context.Context, wshVersionLine string) (bool, string, string, error) {
 	wshVersionLine = strings.TrimSpace(wshVersionLine)
 	if strings.HasPrefix(wshVersionLine, "not-installed") {
@@ -364,7 +337,6 @@ func IsWshVersionUpToDate(logCtx context.Context, wshVersionLine string) (bool, 
 	return true, clientVersion, "", nil
 }
 
-// for testing only -- trying to determine the env difference when attaching or not attaching a pty to an ssh session
 func (conn *SSHConn) GetEnvironmentMaps(ctx context.Context) (map[string]string, map[string]string, error) {
 	client := conn.GetClient()
 	if client == nil {
@@ -460,10 +432,6 @@ func (conn *SSHConn) GetConfigShellPath() string {
 	return config.ConnShellPath
 }
 
-// returns (needsInstall, clientVersion, osArchStr, error)
-// if wsh is not installed, the clientVersion will be "not-installed", and it will also return an osArchStr
-// if clientVersion is set, then no osArchStr will be returned
-// if useRouterMode is true, will start connserver with --router-domainsocket flag
 func (conn *SSHConn) StartConnServer(ctx context.Context, afterUpdate bool, useRouterMode bool) (bool, string, string, error) {
 	conn.Infof(ctx, "running StartConnServer (routerMode=%v)...\n", useRouterMode)
 	allowed := WithLockRtn(conn, func() bool {
@@ -550,7 +518,6 @@ func (conn *SSHConn) StartConnServer(ctx context.Context, afterUpdate bool, useR
 	}
 	conn.Infof(ctx, "got jwt status line: %s\n", jwtLine)
 	if strings.TrimSpace(jwtLine) == wavebase.NeedJwtConst {
-		// write the jwt
 		conn.Infof(ctx, "writing jwt token to connserver\n")
 		_, err = fmt.Fprintf(stdinPipe, "%s\n", jwtToken)
 		if err != nil {
@@ -561,12 +528,10 @@ func (conn *SSHConn) StartConnServer(ctx context.Context, afterUpdate bool, useR
 	conn.WithLock(func() {
 		conn.ConnController = sshSession
 	})
-	// service the I/O
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("conncontroller:sshSession.Wait", recover())
 		}()
-		// wait for termination, clear the controller
 		var waitErr error
 		defer conn.WithLock(func() {
 			if conn.ConnController != nil {
@@ -647,7 +612,6 @@ func (conn *SSHConn) UpdateWsh(ctx context.Context, clientDisplayName string, re
 
 }
 
-// returns (allowed, error)
 func (conn *SSHConn) getPermissionToInstallWsh(ctx context.Context, clientDisplayName string) (bool, error) {
 	conn.Infof(ctx, "running getPermissionToInstallWsh...\n")
 	queryText := fmt.Sprintf(queryTextTemplate, clientDisplayName)
@@ -685,7 +649,6 @@ func (conn *SSHConn) getPermissionToInstallWsh(ctx context.Context, clientDispla
 		}
 		setConfigErr := wconfig.SetBaseConfigValue(meta)
 		if setConfigErr != nil {
-			// this is not a critical error, just log and continue
 			log.Printf("warning: error writing to base config file: %v", err)
 		}
 	}
@@ -750,7 +713,6 @@ func (conn *SSHConn) WaitForConnect(ctx context.Context) error {
 	}
 }
 
-// does not return an error since that error is stored inside of SSHConn
 func (conn *SSHConn) Connect(ctx context.Context, connFlags *wconfig.ConnKeywords) error {
 	conn.lifecycleLock.Lock()
 	defer conn.lifecycleLock.Unlock()
@@ -780,7 +742,6 @@ func (conn *SSHConn) Connect(ctx context.Context, connFlags *wconfig.ConnKeyword
 			conn.Error = err.Error()
 		})
 		conn.closeInternal_withlifecyclelock()
-		// Telemetry removed - no connection error telemetry
 	} else {
 		conn.Infof(ctx, "successfully connected (wsh:%v)\n\n", conn.WshEnabled.Load())
 		conn.WithLock(func() {
@@ -790,22 +751,18 @@ func (conn *SSHConn) Connect(ctx context.Context, connFlags *wconfig.ConnKeyword
 				conn.ActiveConnNum = int(activeConnCounter.Add(1))
 			}
 		})
-		// Telemetry removed - no connection success telemetry
 	}
 	conn.FireConnChangeEvent()
 	if err != nil {
 		return err
 	}
 
-	// logic for saving connection and potential flags (we only save once a connection has been made successfully)
-	// at the moment, identity files is the only saved flag
 	var identityFiles []string
 	existingConnection, ok := conn.getConnectionConfig()
 	if ok {
 		identityFiles = existingConnection.SshIdentityFile
 	}
 	if err != nil {
-		// i do not consider this a critical failure
 		log.Printf("config read error: unable to save connection %s: %v", conn.GetName(), err)
 	}
 
@@ -821,7 +778,6 @@ func (conn *SSHConn) Connect(ctx context.Context, connFlags *wconfig.ConnKeyword
 	}
 	err = wconfig.SetConnectionsConfigValue(conn.GetName(), meta)
 	if err != nil {
-		// i do not consider this a critical failure
 		log.Printf("config write error: unable to save connection %s: %v", conn.GetName(), err)
 	}
 	return nil
@@ -839,7 +795,6 @@ func WithLockRtn[T any](conn *SSHConn, fn func() T) T {
 	return fn()
 }
 
-// returns (enable-wsh, ask-before-install)
 func (conn *SSHConn) getConnWshSettings() (bool, bool) {
 	config := wconfig.GetWatcher().GetFullConfig()
 	enableWsh := config.Settings.ConnWshEnabled
@@ -849,7 +804,6 @@ func (conn *SSHConn) getConnWshSettings() (bool, bool) {
 		if connSettings.ConnWshEnabled != nil {
 			enableWsh = *connSettings.ConnWshEnabled
 		}
-		// if the connection object exists, and conn:askbeforewshinstall is not set, the user must have allowed it
 		// TODO: in v0.12+ this should be removed.  we'll explicitly write a "false" into the connection object on successful connection
 		if connSettings.ConnAskBeforeWshInstall == nil {
 			askBeforeInstall = false
@@ -868,7 +822,6 @@ type WshCheckResult struct {
 	WshError      error
 }
 
-// returns (wsh-enabled, clientVersion, text-reason, wshError)
 func (conn *SSHConn) tryEnableWsh(ctx context.Context, clientDisplayName string) WshCheckResult {
 	conn.Infof(ctx, "running tryEnableWsh...\n")
 	enableWsh, askBeforeInstall := conn.getConnWshSettings()
@@ -950,10 +903,8 @@ func (conn *SSHConn) persistWshInstalled(ctx context.Context, result WshCheckRes
 		conn.Infof(ctx, "WARN could not write conn:wshenabled=%v to connections.json: %v\n", result.WshEnabled, err)
 		log.Printf("warning: error writing to connections file: %v", err)
 	}
-	// doesn't return an error since none of this is required for connection to work
 }
 
-// returns (connect-error)
 func (conn *SSHConn) connectInternal(ctx context.Context, connFlags *wconfig.ConnKeywords) error {
 	conn.Infof(ctx, "connectInternal %s\n", conn.GetName())
 	client, _, err := remote.ConnectToClient(ctx, conn.Opts, nil, 0, connFlags)
@@ -982,7 +933,6 @@ func (conn *SSHConn) connectInternal(ctx context.Context, connFlags *wconfig.Con
 		} else {
 			conn.Infof(ctx, "wsh not enabled: %s\n", wshResult.NoWshReason)
 		}
-		// Telemetry removed - no nowsh telemetry
 	}
 	conn.persistWshInstalled(ctx, wshResult)
 	return nil
@@ -998,9 +948,6 @@ func (conn *SSHConn) waitForDisconnect() {
 	conn.lifecycleLock.Lock()
 	defer conn.lifecycleLock.Unlock()
 	conn.WithLock(func() {
-		// disconnects happen for a variety of reasons (like network, etc. and are typically transient)
-		// so we just set the status to "disconnected" here (not error)
-		// don't overwrite any existing error (or error status)
 		if err != nil && conn.Error == "" {
 			conn.Error = err.Error()
 		}
@@ -1044,7 +991,6 @@ func getConnInternal(opts *remote.SSHOpts, createIfNotExists bool) *SSHConn {
 	return rtn
 }
 
-// does NOT connect, does not return nil
 func GetConn(opts *remote.SSHOpts) *SSHConn {
 	conn := getConnInternal(opts, true)
 	return conn
@@ -1065,7 +1011,6 @@ func IsConnected(connName string) (bool, error) {
 	return conn.GetStatus() == Status_Connected, nil
 }
 
-// Convenience function for ensuring a connection is established
 func EnsureConnection(ctx context.Context, connName string) error {
 	if IsLocalConnName(connName) {
 		return nil
@@ -1103,11 +1048,9 @@ func DisconnectClient(opts *remote.SSHOpts) error {
 }
 
 func resolveSshConfigPatterns(configFiles []string) ([]string, error) {
-	// using two separate containers to track order and have O(1) lookups
-	// since go does not have an ordered map primitive
 	var discoveredPatterns []string
 	alreadyUsed := make(map[string]bool)
-	alreadyUsed[""] = true // this excludes the empty string from potential alias
+	alreadyUsed[""] = true
 	var openedFiles []fs.File
 
 	defer func() {
@@ -1127,7 +1070,6 @@ func resolveSshConfigPatterns(configFiles []string) ([]string, error) {
 
 		cfg, _ := ssh_config.Decode(fd, true)
 		for _, host := range cfg.Hosts {
-			// for each host, find the first good alias
 			for _, hostPattern := range host.Patterns {
 				hostPatternStr := hostPattern.String()
 				if hostPatternStr == "" || strings.Contains(hostPatternStr, "*") || strings.Contains(hostPatternStr, "?") || strings.Contains(hostPatternStr, "!") {
@@ -1158,7 +1100,6 @@ func GetConnectionsList() ([]string, error) {
 	var currentlyRunning []string
 	var hasConnected []string
 
-	// populate all lists
 	for _, stat := range existing {
 		if stat.Connected {
 			currentlyRunning = append(currentlyRunning, stat.Connection)
@@ -1173,11 +1114,9 @@ func GetConnectionsList() ([]string, error) {
 
 	fromConfig, err := GetConnectionsFromConfig()
 	if err != nil {
-		// this is not a fatal error. do not return
 		log.Printf("warning: no connections from ssh config found: %v", err)
 	}
 
-	// sort into one final list and remove duplicates
 	alreadyUsed := make(map[string]struct{})
 	var connList []string
 
@@ -1197,10 +1136,6 @@ func GetConnectionsFromInternalConfig() []string {
 	var internalNames []string
 	config := wconfig.GetWatcher().GetFullConfig()
 	for internalName := range config.Connections {
-		if strings.HasPrefix(internalName, "wsl://") {
-			// don't add wsl conns to this list
-			continue
-		}
 		internalNames = append(internalNames, internalName)
 	}
 	return internalNames

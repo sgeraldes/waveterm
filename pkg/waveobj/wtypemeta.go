@@ -14,7 +14,7 @@ type MetaTSType struct {
 	Url            string   `json:"url,omitempty"`
 	PinnedUrl      string   `json:"pinnedurl,omitempty"`
 	Connection     string   `json:"connection,omitempty"`
-	ShellProfile   string   `json:"shell:profile,omitempty"` // shell profile ID for local shells (new shell selector feature)
+	ShellProfile   string   `json:"shell:profile,omitempty"`
 	Edit           bool     `json:"edit,omitempty"`
 	History        []string `json:"history,omitempty"`
 	HistoryForward []string `json:"history:forward,omitempty"`
@@ -95,8 +95,13 @@ type MetaTSType struct {
 	BgText              string  `json:"bg:text,omitempty"`
 	TabBaseDir          string  `json:"tab:basedir,omitempty"`
 	TabBaseDirLock      bool    `json:"tab:basedirlock,omitempty"`
+	TabWslDistro        string  `json:"tab:wsldistro,omitempty"`
 	TabColor            string  `json:"tab:color,omitempty"`
 	TabTermStatus       string  `json:"tab:termstatus,omitempty"`
+	TabGroup            string  `json:"tab:group,omitempty"`
+	TabGroupColor       string  `json:"tab:groupcolor,omitempty"`
+	TabFavorite         bool    `json:"tab:favorite,omitempty"`
+	TabIcon             string  `json:"tab:icon,omitempty"`
 
 	WaveAiPanelOpen     bool   `json:"waveai:panelopen,omitempty"`
 	WaveAiPanelWidth    int    `json:"waveai:panelwidth,omitempty"`
@@ -121,6 +126,7 @@ type MetaTSType struct {
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
 	TermDurable             *bool    `json:"term:durable,omitempty"`
 	TermReportFocus         *bool    `json:"term:reportfocus,omitempty"`
+	TermTitle               string   `json:"term:title,omitempty"`
 
 	TermHistoryBlockId string `json:"termhistory:blockid,omitempty"`
 

@@ -241,8 +241,11 @@ const ShellSelectorModal = React.memo(
 
             const loadWsl = async () => {
                 try {
-                    const list = await RpcApi.WslListCommand(TabRpcClient, { timeout: 2000 });
-                    setWslList(list ?? []);
+                    const resp = await RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 });
+                    const wslDistros = (resp.shells ?? [])
+                        .filter((s) => s.source === "wsl" && s.wsldistro)
+                        .map((s) => s.wsldistro);
+                    setWslList(wslDistros);
                 } catch (e) {
                     // WSL not available on this system - that's fine
                 }

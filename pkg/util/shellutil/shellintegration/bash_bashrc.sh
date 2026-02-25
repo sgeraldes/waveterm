@@ -1,4 +1,8 @@
 
+# Save initial working directory before profile scripts can change it.
+# Git Bash's /etc/profile does "cd $HOME" which overrides the cwd set by Wave.
+_WAVETERM_INITIAL_CWD="$PWD"
+
 # Source /etc/profile if it exists
 if [ -f /etc/profile ]; then
     . /etc/profile
@@ -21,6 +25,13 @@ elif [ -f ~/.bash_login ]; then
 elif [ -f ~/.profile ]; then
     . ~/.profile
 fi
+
+# Restore working directory if Wave explicitly set it and profiles changed it
+if [ "$WAVETERM_FORCE_CWD" = "1" ] && [ "$PWD" != "$_WAVETERM_INITIAL_CWD" ] && [ -d "$_WAVETERM_INITIAL_CWD" ]; then
+    cd "$_WAVETERM_INITIAL_CWD"
+fi
+unset _WAVETERM_INITIAL_CWD
+unset WAVETERM_FORCE_CWD
 
 if [[ ":$PATH:" != *":$WAVETERM_WSHBINDIR:"* ]]; then
     export PATH="$WAVETERM_WSHBINDIR:$PATH"

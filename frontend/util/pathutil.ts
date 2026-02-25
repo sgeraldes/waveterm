@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 /**
  * Path validation utilities for sanitizing untrusted paths from terminal output.
  * Provides defense against path traversal, injection, and other security attacks.
@@ -16,10 +13,8 @@
 
 import { PLATFORM, PlatformWindows } from "@/util/platformutil";
 
-// Maximum allowed path length (prevent DoS via extremely long paths)
 const MAX_PATH_LENGTH = 4096;
 
-// Windows device names (special files that can cause issues)
 const WINDOWS_DEVICE_NAMES = [
     "CON",
     "PRN",
@@ -45,7 +40,6 @@ const WINDOWS_DEVICE_NAMES = [
     "LPT9",
 ];
 
-// Blocked directory patterns by platform
 const BLOCKED_PATHS_UNIX = [
     "/etc",
     "/root",
@@ -54,9 +48,9 @@ const BLOCKED_PATHS_UNIX = [
     "/sys",
     "/proc",
     "/dev",
-    "/private/etc", // macOS
-    "/private/var", // macOS
-    "/System", // macOS
+    "/private/etc",
+    "/private/var",
+    "/System",
     "/Library/System",
 ];
 
@@ -83,28 +77,18 @@ export function hasNullBytes(str: string): boolean {
  * Detects both Unix (..) and Windows-style traversal patterns.
  */
 export function containsPathTraversal(path: string): boolean {
-    // Check for .. sequences in various forms
-    // Unix: ../ or /..
-    // Windows: ..\ or \..
-    // Exact match: just ".."
-    // Trailing: ends with ".."
-
-    // Pattern: .. followed by / or \
-    if (/\.\.[\/\\]/.test(path)) {
+    if (/\.\.[/\\]/.test(path)) {
         return true;
     }
 
-    // Pattern: / or \ followed by ..
-    if (/[\/\\]\.\./.test(path)) {
+    if (/[/\\]\.\./.test(path)) {
         return true;
     }
 
-    // Pattern: exactly ".."
     if (path === "..") {
         return true;
     }
 
-    // Pattern: ends with ".." (Windows trailing dots attack vector)
     if (path.endsWith("..")) {
         return true;
     }
@@ -113,22 +97,39 @@ export function containsPathTraversal(path: string): boolean {
 }
 
 /**
+ * Checks if a path is a WSL UNC path (safe local virtualization path).
+ * WSL UNC paths look like \\wsl.localhost\Ubuntu\... or \\wsl$\Ubuntu\...
+ * These are safe because they access the local WSL filesystem, not a network share.
+ */
+export function isWslUncPath(path: string): boolean {
+    const lower = path.toLowerCase();
+    if (lower.startsWith("\\\\wsl.localhost\\")) {
+        return true;
+    }
+    if (lower.startsWith("\\\\wsl$\\")) {
+        return true;
+    }
+    return false;
+}
+
+/**
  * Checks if a path is a UNC path (Windows network path).
  * UNC paths start with \\ and can be used for data exfiltration.
+ * WSL UNC paths (\\wsl.localhost\, \\wsl$\) are explicitly allowed.
  */
 export function isUncPath(path: string): boolean {
-    // Standard UNC: \\server\share
+    if (isWslUncPath(path)) {
+        return false;
+    }
+
     if (path.startsWith("\\\\")) {
         return true;
     }
 
-    // URL-style UNC that might slip through: //server/share
-    // (if it starts with // followed by non-slash)
-    if (/^\/\/[^\/]/.test(path)) {
+    if (/^\/\/[^/]/.test(path)) {
         return true;
     }
 
-    // UNC path that was prefixed with / (from URL parsing)
     if (path.startsWith("/\\\\")) {
         return true;
     }
@@ -142,15 +143,13 @@ export function isUncPath(path: string): boolean {
  */
 export function hasInvalidChars(path: string, platform: string): boolean {
     if (platform === PlatformWindows) {
-        // Windows reserved characters (except \ and / which are path separators)
-        // < > : " | ? * and control characters
         // Note: : is allowed as second char for drive letter
         const pathWithoutDrive = path.length >= 2 && path[1] === ":" ? path.substring(2) : path;
         if (/[<>"|?*]/.test(pathWithoutDrive)) {
             return true;
         }
-        // Control characters (0x00-0x1F)
-        if (/[\x00-\x1F]/.test(path)) {
+        // eslint-disable-next-line no-control-regex
+        if (/[\u0000-\u001F]/.test(path)) {
             return true;
         }
     }
@@ -162,11 +161,9 @@ export function hasInvalidChars(path: string, platform: string): boolean {
  * Device names like CON, NUL, AUX can cause issues.
  */
 function isWindowsDeviceName(path: string): boolean {
-    // Get just the filename/last component
-    const parts = path.split(/[\/\\]/);
+    const parts = path.split(/[/\\]/);
     const filename = parts[parts.length - 1] || path;
 
-    // Extract name without extension
     const nameWithoutExt = filename.split(".")[0].toUpperCase();
 
     return WINDOWS_DEVICE_NAMES.includes(nameWithoutExt);
@@ -184,10 +181,8 @@ export function isBlockedPath(normalizedPath: string): boolean {
     const lowerPath = normalizedForComparison.toLowerCase();
 
     for (const blocked of blockedPaths) {
-        // Also normalize blocked paths to forward slashes on Windows
         const normalizedBlocked = PLATFORM === PlatformWindows ? blocked.replace(/\\/g, "/") : blocked;
         const lowerBlocked = normalizedBlocked.toLowerCase();
-        // Check exact match or path starts with blocked + separator
         if (lowerPath === lowerBlocked || lowerPath.startsWith(lowerBlocked + "/")) {
             return true;
         }
@@ -209,40 +204,31 @@ export type PathValidationResult = {
  * @returns Validation result with valid flag and optional reason for rejection
  */
 export function quickValidatePath(rawPath: string): PathValidationResult {
-    // Allow empty/whitespace paths - they represent "no path" or "clear"
-    // This enables OSC 7 to clear tab:basedir by sending an empty path
-    // The caller can decide how to handle empty paths
     if (!rawPath || rawPath.trim() === "") {
         return { valid: true };
     }
 
-    // Check length limit
     if (rawPath.length > MAX_PATH_LENGTH) {
         return { valid: false, reason: "path too long" };
     }
 
-    // Check for null bytes (path truncation attack)
     if (hasNullBytes(rawPath)) {
         return { valid: false, reason: "null byte detected" };
     }
 
-    // Check for path traversal patterns
     if (containsPathTraversal(rawPath)) {
         return { valid: false, reason: "path traversal detected" };
     }
 
-    // Check for UNC paths (Windows network paths - security risk)
     if (isUncPath(rawPath)) {
         return { valid: false, reason: "UNC path detected" };
     }
 
-    // Check for Windows device names
     if (PLATFORM === PlatformWindows) {
         if (isWindowsDeviceName(rawPath)) {
             return { valid: false, reason: "Windows device name" };
         }
 
-        // Check for invalid characters on Windows
         if (hasInvalidChars(rawPath, PlatformWindows)) {
             return { valid: false, reason: "invalid characters" };
         }
@@ -266,25 +252,51 @@ export function quickValidatePath(rawPath: string): PathValidationResult {
  * @returns Validated path string or null if rejected
  */
 export function sanitizeOsc7Path(rawPath: string): string | null {
-    // Quick synchronous checks first
     const quickResult = quickValidatePath(rawPath);
     if (!quickResult.valid) {
         console.warn(`[Security] OSC 7 path rejected (${quickResult.reason}):`, rawPath);
         return null;
     }
 
-    // Normalize the path for blocked path checking
     // Note: We don't resolve symlinks here - that requires filesystem access
-    let normalizedPath = rawPath;
+    const normalizedPath = rawPath;
 
-    // Check against blocked paths
     if (isBlockedPath(normalizedPath)) {
         console.warn("[Security] OSC 7 blocked path rejected:", normalizedPath);
         return null;
     }
 
-    // Path passed all synchronous checks
-    // Non-existent paths are allowed per spec-005 - they will be warned about
-    // when used, but not rejected here
     return normalizedPath;
+}
+
+/**
+ * Converts a Windows path to WSL path format.
+ * Example: "C:\Users\foo\bar.png" -> "/mnt/c/Users/foo/bar.png"
+ *
+ * @param windowsPath - A Windows-style path (e.g., "C:\Users\...")
+ * @returns The WSL-compatible path, or null if the input is not a valid Windows path
+ */
+export function windowsToWslPath(windowsPath: string): string | null {
+    if (!windowsPath || windowsPath.length < 3) {
+        return null;
+    }
+
+    // Check for UNC paths - not supported
+    if (windowsPath.startsWith("\\\\") || windowsPath.startsWith("//")) {
+        return null;
+    }
+
+    // Check for drive letter pattern: X:\ or X:/
+    const driveMatch = windowsPath.match(/^([a-zA-Z]):[/\\]/);
+    if (!driveMatch) {
+        return null;
+    }
+
+    const driveLetter = driveMatch[1].toLowerCase();
+    const restOfPath = windowsPath.substring(3); // Skip "X:\" or "X:/"
+
+    // Convert backslashes to forward slashes
+    const unixPath = restOfPath.replace(/\\/g, "/");
+
+    return `/mnt/${driveLetter}/${unixPath}`;
 }

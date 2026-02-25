@@ -1,10 +1,11 @@
 // Copyright 2026, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
 import { BlockNodeModel } from "@/app/block/blocktypes";
 import { appHandleKeyDown } from "@/app/store/keymodel";
-import { activeTabIdAtom, type TabModel } from "@/app/store/tab-model";
+import { type TabModel } from "@/app/store/tab-model";
 import { waveEventSubscribe } from "@/app/store/wps";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { makeFeBlockRouteId } from "@/app/store/wshrouter";
@@ -98,7 +99,6 @@ export class TermViewModel implements ViewModel {
             const defaultShell = fullConfig?.settings?.["shell:default"] || "";
             const effectiveShell = shellProfile || defaultShell;
 
-            // Return appropriate icon for the shell
             const lowerId = effectiveShell.toLowerCase();
             if (effectiveShell.startsWith("wsl:")) return "brands@linux";
             if (lowerId === "cmd") return "brands@windows";
@@ -111,13 +111,16 @@ export class TermViewModel implements ViewModel {
             if (blockData?.meta?.controller == "cmd") {
                 return "";
             }
+            const termTitle = blockData?.meta?.["term:title"] as string;
+            if (termTitle) {
+                return termTitle;
+            }
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
             const defaultShell = fullConfig?.settings?.["shell:default"] || "";
             const effectiveShell = shellProfile || defaultShell;
             const isDefault = !shellProfile || effectiveShell === defaultShell;
 
-            // Format shell name for display
             let displayName: string;
             if (effectiveShell.startsWith("wsl:")) {
                 displayName = effectiveShell.substring(4);
@@ -229,8 +232,6 @@ export class TermViewModel implements ViewModel {
                 return boundNumber(value, 0, 1);
             });
         });
-        // Terminal background is applied directly to the terminal content area via termBgColor,
-        // not to the whole block. This keeps the header using the app theme background.
         this.blockBg = jotai.atom(() => null);
         this.termBgColor = jotai.atom((get) => {
             const fullConfig = get(atoms.fullConfigAtom);
@@ -316,10 +317,7 @@ export class TermViewModel implements ViewModel {
             .then((rts) => {
                 this.updateShellProcStatus(rts);
             })
-            .catch(() => {
-                // Expected during startup - controller may not be ready yet.
-                // Status will be updated via the controllerstatus event subscription.
-            });
+            .catch(() => {});
         this.shellProcStatusUnsubFn = waveEventSubscribe({
             eventType: "controllerstatus",
             scope: WOS.makeORef("block", blockId),
@@ -465,22 +463,8 @@ export class TermViewModel implements ViewModel {
         }
         const curStatus = globalStore.get(this.shellProcFullStatus);
         if (curStatus == null || curStatus.version < fullStatus.version) {
-            // Check if process just completed (running -> done) while tab is in background
-            const wasRunning = curStatus?.shellprocstatus === "running";
-            const isNowDone = fullStatus.shellprocstatus === "done";
-            if (wasRunning && isNowDone) {
-                // Check if this tab is currently active
-                const activeTabId = globalStore.get(activeTabIdAtom);
-                const isTabActive = activeTabId === this.tabModel?.tabId;
-                if (!isTabActive && this.tabModel) {
-                    // Mark tab as having unread completions
-                    this.tabModel.setFinishedUnread();
-                }
-            }
-
             globalStore.set(this.shellProcFullStatus, fullStatus);
 
-            // Update tab's terminal status tracking for reactive status icons
             this.updateTabTerminalStatus();
         }
     }
@@ -501,11 +485,8 @@ export class TermViewModel implements ViewModel {
 
         const procStatus = globalStore.get(this.shellProcFullStatus);
 
-        // First, try to get shell integration status from local atom (for active tabs)
-        // This is the most up-to-date value since it's set synchronously on OSC 16162
         const localShellIntegrationStatus = readAtom(this.termRef?.current?.shellIntegrationStatusAtom);
 
-        // If we have a local value, use it immediately (active tab case)
         if (localShellIntegrationStatus != null) {
             this.tabModel.updateBlockTerminalStatus(this.blockId, {
                 shellProcStatus: procStatus?.shellprocstatus ?? null,
@@ -515,8 +496,6 @@ export class TermViewModel implements ViewModel {
             return;
         }
 
-        // For background tabs or when termRef isn't ready, query RTInfo
-        // RTInfo stores the shell state written by the tab that processes OSC 16162
         RpcApi.GetRTInfoCommand(TabRpcClient, {
             oref: WOS.makeORef("block", this.blockId),
         })
@@ -530,7 +509,6 @@ export class TermViewModel implements ViewModel {
                 });
             })
             .catch((err) => {
-                // If RTInfo query fails, update with null shell integration status
                 this.tabModel.updateBlockTerminalStatus(this.blockId, {
                     shellProcStatus: procStatus?.shellprocstatus ?? null,
                     shellProcExitCode: procStatus?.shellprocexitcode ?? null,
@@ -576,7 +554,6 @@ export class TermViewModel implements ViewModel {
             if (shellIntegrationStatus === "ready") {
                 recordTEvent("action:term", { "action:type": "term:ctrlr" });
             }
-            // just for telemetry, we allow this keybinding through, back to the terminal
             return false;
         }
         if (keyutil.checkKeyPressed(waveEvent, "Shift:End")) {
@@ -619,21 +596,17 @@ export class TermViewModel implements ViewModel {
     }
 
     shouldHandleCtrlVPaste(): boolean {
-        // macOS never uses Ctrl-V for paste (uses Cmd-V)
         if (isMacOS()) {
             return false;
         }
 
-        // Get the app:ctrlvpaste setting
         const ctrlVPasteAtom = getSettingsKeyAtom("app:ctrlvpaste");
         const ctrlVPasteSetting = globalStore.get(ctrlVPasteAtom);
 
-        // If setting is explicitly set, use it
         if (ctrlVPasteSetting != null) {
             return ctrlVPasteSetting;
         }
 
-        // Default behavior: Windows=true, Linux/other=false
         return isWindows();
     }
 
@@ -643,10 +616,8 @@ export class TermViewModel implements ViewModel {
             return true;
         }
 
-        // Handle Escape key during IME composition
         if (keyutil.checkKeyPressed(waveEvent, "Escape")) {
             if (this.termRef.current?.isComposing) {
-                // Reset composition state when Escape is pressed during composition
                 this.termRef.current.resetCompositionState();
             }
         }
@@ -659,13 +630,13 @@ export class TermViewModel implements ViewModel {
 
         if (isMacOS()) {
             if (keyutil.checkKeyPressed(waveEvent, "Cmd:ArrowLeft")) {
-                this.sendDataToController("\x01"); // Ctrl-A (beginning of line)
+                this.sendDataToController("\x01");
                 event.preventDefault();
                 event.stopPropagation();
                 return false;
             }
             if (keyutil.checkKeyPressed(waveEvent, "Cmd:ArrowRight")) {
-                this.sendDataToController("\x05"); // Ctrl-E (end of line)
+                this.sendDataToController("\x05");
                 event.preventDefault();
                 event.stopPropagation();
                 return false;
@@ -682,7 +653,6 @@ export class TermViewModel implements ViewModel {
             }
         }
 
-        // Check for Ctrl-V paste (platform-dependent)
         if (this.shouldHandleCtrlVPaste() && keyutil.checkKeyPressed(waveEvent, "Ctrl:v")) {
             event.preventDefault();
             event.stopPropagation();
@@ -694,7 +664,6 @@ export class TermViewModel implements ViewModel {
             event.preventDefault();
             event.stopPropagation();
             getApi().nativePaste();
-            // this.termRef.current?.pasteHandler();
             return false;
         } else if (keyutil.checkKeyPressed(waveEvent, "Ctrl:Shift:c")) {
             event.preventDefault();
@@ -806,9 +775,7 @@ export class TermViewModel implements ViewModel {
                     if (url.protocol.startsWith("http")) {
                         selectionURL = url;
                     }
-                } catch (e) {
-                    // not a valid URL
-                }
+                } catch (e) {}
             }
 
             if (selectionURL) {

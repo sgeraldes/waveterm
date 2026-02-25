@@ -56,7 +56,7 @@ contextBridge.exposeInMainWorld("api", {
     onWaveActivate: (callback) => ipcRenderer.on("wave-activate", () => callback()),
     sendLog: (log) => ipcRenderer.send("fe-log", log),
     onQuicklook: (filePath: string) => ipcRenderer.send("quicklook", filePath),
-    openNativePath: (filePath: string) => ipcRenderer.send("open-native-path", filePath),
+    openNativePath: (filePath: string) => ipcRenderer.invoke("open-native-path", filePath),
     captureScreenshot: (rect: Rectangle) => ipcRenderer.invoke("capture-screenshot", rect),
     setKeyboardChordMode: () => ipcRenderer.send("set-keyboard-chord-mode"),
     clearWebviewStorage: (webContentsId: number) => ipcRenderer.invoke("clear-webview-storage", webContentsId),

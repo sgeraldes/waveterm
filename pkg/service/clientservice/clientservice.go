@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package clientservice
 
@@ -13,7 +11,6 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
 	"github.com/wavetermdev/waveterm/pkg/wcore"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
 
@@ -40,11 +37,9 @@ func (cs *ClientService) GetTab(tabId string) (*waveobj.Tab, error) {
 
 func (cs *ClientService) GetAllConnStatus(ctx context.Context) ([]wshrpc.ConnStatus, error) {
 	sshStatuses := conncontroller.GetAllConnStatus()
-	wslStatuses := wslconn.GetAllConnStatus()
-	return append(sshStatuses, wslStatuses...), nil
+	return sshStatuses, nil
 }
 
-// moves the window to the front of the windowId stack
 func (cs *ClientService) FocusWindow(ctx context.Context, windowId string) error {
 	return wcore.FocusWindow(ctx, windowId)
 }
@@ -65,9 +60,6 @@ func (cs *ClientService) AgreeTos(ctx context.Context) (waveobj.UpdatesRtnType, 
 	return waveobj.ContextGetUpdatesRtn(ctx), nil
 }
 
-// TelemetryUpdate is a no-op - telemetry has been removed from this fork.
-// Kept for API compatibility with frontend.
 func (cs *ClientService) TelemetryUpdate(ctx context.Context, telemetryEnabled bool) error {
-	// Telemetry removed - this is now a no-op
 	return nil
 }

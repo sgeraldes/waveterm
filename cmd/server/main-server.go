@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-
 	"runtime"
 	"sync"
 	"time"
@@ -40,7 +39,6 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshremote"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshserver"
 	"github.com/wavetermdev/waveterm/pkg/wshutil"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 
 	"net/http"
@@ -59,7 +57,6 @@ var shutdownOnce sync.Once
 
 var _ = secretstore.CountSecrets
 var _ = conncontroller.GetNumSSHHasConnected
-var _ = wslconn.GetNumWSLHasConnected
 
 func init() {
 	envFilePath := os.Getenv("WAVETERM_ENVFILE")
@@ -232,6 +229,39 @@ func maybeStartPprofServer() {
 	}()
 }
 
+// migrateWslBlocks converts legacy wsl:// connection blocks to the new shell profile model.
+// Blocks with connection=wsl://<distro> get connection cleared and shell:profile=wsl:<distro> set.
+func migrateWslBlocks() {
+	ctx, cancelFn := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelFn()
+	blocks, err := wstore.DBGetAllObjsByType[*waveobj.Block](ctx, waveobj.OType_Block)
+	if err != nil {
+		log.Printf("migrateWslBlocks: error getting blocks: %v\n", err)
+		return
+	}
+	for _, block := range blocks {
+		conn := block.Meta.GetString(waveobj.MetaKey_Connection, "")
+		if len(conn) < 6 || conn[:6] != "wsl://" {
+			continue
+		}
+		distro := conn[6:]
+		if distro == "" {
+			continue
+		}
+		profileId := "wsl:" + wconfig.SanitizeProfileId(distro)
+		oref := waveobj.ORef{OType: waveobj.OType_Block, OID: block.OID}
+		newMeta := waveobj.MetaMapType{
+			waveobj.MetaKey_Connection:   nil,
+			waveobj.MetaKey_ShellProfile: profileId,
+		}
+		if err := wstore.UpdateObjectMeta(ctx, oref, newMeta, false); err != nil {
+			log.Printf("migrateWslBlocks: error updating block %s: %v\n", block.OID, err)
+		} else {
+			log.Printf("migrateWslBlocks: migrated block %s (wsl://%s -> shell:profile=%s)\n", block.OID, distro, profileId)
+		}
+	}
+}
+
 func main() {
 	log.SetFlags(0)
 	log.SetPrefix("[wavesrv] ")
@@ -310,6 +340,7 @@ func main() {
 			log.Printf("error initializing wsh and shell-integration files: %v\n", err)
 		}
 	}()
+	migrateWslBlocks()
 	firstLaunch, err := wcore.EnsureInitialData()
 	if err != nil {
 		log.Printf("error ensuring initial data: %v\n", err)
@@ -341,7 +372,6 @@ func main() {
 	if err != nil {
 		log.Printf("error fixing up wave zsh history: %v\n", err)
 	}
-	// Auto-detect shells on startup and merge with existing profiles
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("AutoDetectShells", recover())
@@ -357,7 +387,6 @@ func main() {
 			log.Printf("error detecting shells: %v\n", err)
 			return
 		}
-		// Convert to ShellProfileType for merging
 		profiles := make([]wconfig.ShellProfileType, len(detectedShells))
 		for i, shell := range detectedShells {
 			profiles[i] = wconfig.ShellProfileType{
