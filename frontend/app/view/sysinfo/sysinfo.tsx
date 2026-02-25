@@ -564,20 +564,22 @@ const SysinfoViewInner = React.memo(({ model }: SysinfoViewProps) => {
                     "grid-cols-2": cols2,
                 })}
             >
-                {yvals.map((yval, idx) => {
-                    return (
-                        <SingleLinePlot
-                            key={`plot-${model.blockId}-${yval}`}
-                            plotData={plotData}
-                            yval={yval}
-                            yvalMeta={plotMeta.get(yval)}
-                            blockId={model.blockId}
-                            defaultColor={"var(--accent-color)"}
-                            title={title}
-                            targetLen={targetLen}
-                        />
-                    );
-                })}
+                {plotData &&
+                    plotData.length > 0 &&
+                    yvals.map((yval, idx) => {
+                        return (
+                            <SingleLinePlot
+                                key={`plot-${model.blockId}-${yval}`}
+                                plotData={plotData}
+                                yval={yval}
+                                yvalMeta={plotMeta.get(yval)}
+                                blockId={model.blockId}
+                                defaultColor={"var(--accent-color)"}
+                                title={title}
+                                targetLen={targetLen}
+                            />
+                        );
+                    })}
             </div>
         </OverlayScrollbarsComponent>
     );

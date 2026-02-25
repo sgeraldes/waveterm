@@ -169,7 +169,9 @@
     border-radius: 4px;
     color: var(--secondary-text-color);
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 
     &:hover:not(:disabled) {
         background: var(--hover-bg-color);
@@ -246,7 +248,9 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 
     &:hover {
         background: var(--hover-bg-color);
@@ -536,7 +540,9 @@
     border-radius: 4px;
     font-size: 13px;
     cursor: pointer;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        opacity 0.15s ease;
 
     &.primary {
         background: var(--accent-color);

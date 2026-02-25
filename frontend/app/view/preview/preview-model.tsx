@@ -124,6 +124,7 @@ export class PreviewModel implements ViewModel {
     viewText: Atom<HeaderElem[]>;
     preIconButton: Atom<IconButtonDecl>;
     endIconButtons: Atom<IconButtonDecl[]>;
+    hideViewName: Atom<boolean>;
     previewTextRef: React.RefObject<HTMLDivElement>;
     editMode: Atom<boolean>;
     canPreview: PrimitiveAtom<boolean>;
@@ -216,6 +217,7 @@ export class PreviewModel implements ViewModel {
             return blockData?.meta?.edit ?? false;
         });
         this.viewName = atom("Preview");
+        this.hideViewName = atom(true);
         this.viewText = atom((get) => {
             let headerPath = get(this.metaFilePath);
             const connStatus = get(this.connStatus);

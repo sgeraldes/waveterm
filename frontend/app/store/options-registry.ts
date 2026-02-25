@@ -10,11 +10,11 @@
 
 import type { OptionsProvider } from "./settings-options-provider";
 import {
-    termThemesProvider,
     aiModeProvider,
-    defaultBlockProvider,
-    autoUpdateChannelProvider,
     apiTypeProvider,
+    autoUpdateChannelProvider,
+    defaultBlockProvider,
+    termThemesProvider,
 } from "./settings-options-provider";
 
 /**

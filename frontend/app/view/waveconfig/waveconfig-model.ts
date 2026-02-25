@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { BlockNodeModel } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import { getApi, getBlockMetaKeyAtom, WOS } from "@/app/store/global";
 import { globalStore } from "@/app/store/jotaiStore";
+import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { AiPresetsContent } from "@/app/view/waveconfig/aipresets-content";
@@ -42,12 +42,7 @@ export type ConfigFile = {
 export const SecretNameRegex = /^[A-Za-z][A-Za-z0-9_]*$/;
 
 // Key allowlist for tabvar@ presets
-const TABVAR_ALLOWED_KEYS = new Set([
-    "tab:basedir",
-    "tab:basedirlock",
-    "display:name",
-    "display:order"
-]);
+const TABVAR_ALLOWED_KEYS = new Set(["tab:basedir", "tab:basedirlock", "display:name", "display:order"]);
 
 function validateTabVarsJson(parsed: any): ValidationResult {
     const keys = Object.keys(parsed);
@@ -61,7 +56,7 @@ function validateTabVarsJson(parsed: any): ValidationResult {
         // Validate key name format
         if (!/^tabvar@[a-zA-Z0-9_-]+$/.test(key)) {
             return {
-                error: `Invalid preset name "${key}": must contain only letters, numbers, underscores, and hyphens`
+                error: `Invalid preset name "${key}": must contain only letters, numbers, underscores, and hyphens`,
             };
         }
 
@@ -75,8 +70,9 @@ function validateTabVarsJson(parsed: any): ValidationResult {
             // Check if key is in allowlist
             if (!TABVAR_ALLOWED_KEYS.has(presetKey)) {
                 return {
-                    error: `Invalid key "${presetKey}" in preset "${key}": not allowed in tab variable presets. ` +
-                           `Allowed keys: ${Array.from(TABVAR_ALLOWED_KEYS).join(", ")}`
+                    error:
+                        `Invalid key "${presetKey}" in preset "${key}": not allowed in tab variable presets. ` +
+                        `Allowed keys: ${Array.from(TABVAR_ALLOWED_KEYS).join(", ")}`,
                 };
             }
 

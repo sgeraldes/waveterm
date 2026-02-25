@@ -19,6 +19,7 @@ const (
 )
 
 var windowsDriveRegex = regexp.MustCompile(`^[a-zA-Z]:`)
+var wslConnRegex = regexp.MustCompile(`^wsl://[^/]+`)
 
 type Connection struct {
 	Scheme string
@@ -87,21 +88,29 @@ func GetConnNameFromContext(ctx context.Context) (string, error) {
 }
 
 func ParseURI(uri string) (*Connection, error) {
-	split := strings.SplitN(uri, "://", 2)
 	var scheme string
 	var rest string
-	if len(split) > 1 {
-		scheme = split[0]
-		rest = strings.TrimPrefix(split[1], "//")
+
+	// Detect "//" shorthand prefix before splitting on "://" to avoid
+	// mis-splitting URIs like "//wsl://Ubuntu/path" on the inner "://".
+	if strings.HasPrefix(uri, "//") {
+		scheme = ""
+		rest = strings.TrimPrefix(uri, "//")
 	} else {
-		rest = split[0]
+		split := strings.SplitN(uri, "://", 2)
+		if len(split) > 1 {
+			scheme = split[0]
+			rest = split[1]
+		} else {
+			rest = split[0]
+		}
 	}
 
 	var host string
 	var remotePath string
 
 	parseGenericPath := func() {
-		split = strings.SplitN(rest, "/", 2)
+		split := strings.SplitN(rest, "/", 2)
 		host = split[0]
 		if len(split) > 1 && split[1] != "" {
 			remotePath = split[1]
@@ -111,14 +120,22 @@ func ParseURI(uri string) (*Connection, error) {
 			remotePath = ""
 		}
 	}
+	parseWshPath := func() {
+		if strings.HasPrefix(rest, "wsl://") {
+			host = wslConnRegex.FindString(rest)
+			remotePath = strings.TrimPrefix(rest, host)
+		} else {
+			parseGenericPath()
+		}
+	}
 	addPrecedingSlash := true
 
 	if scheme == "" {
 		scheme = ConnectionTypeWsh
 		addPrecedingSlash = false
-		if len(rest) != len(uri) {
-			// This accounts for when the uri starts with "//", which would get trimmed in the first split.
-			parseGenericPath()
+		if strings.HasPrefix(uri, "//") {
+			// "//" shorthand: the rest (with "//" stripped) is host/path
+			parseWshPath()
 		} else if strings.HasPrefix(rest, "/~") {
 			host = wshrpc.LocalConnName
 			remotePath = rest
@@ -127,7 +144,7 @@ func ParseURI(uri string) (*Connection, error) {
 			remotePath = rest
 		}
 	} else if scheme == ConnectionTypeWsh {
-		parseGenericPath()
+		parseWshPath()
 	} else {
 		parseGenericPath()
 	}

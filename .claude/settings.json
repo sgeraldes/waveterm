@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__plugin_compound-engineering_pw__*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo BLOCKED: Do not use Playwright on this Electron project. Use Electron MCP tools instead. && exit 1"
+          }
+        ]
+      }
+    ]
+  }
+}

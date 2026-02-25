@@ -129,11 +129,14 @@ type WshRpcInterface interface {
 
 	CaptureBlockScreenshotCommand(ctx context.Context, data CommandCaptureBlockScreenshotData) (string, error)
 
+	// block focus
+	SetBlockFocusCommand(ctx context.Context, blockId string) error
+
+	// rtinfo
 	GetRTInfoCommand(ctx context.Context, data CommandGetRTInfoData) (*waveobj.ObjRTInfo, error)
 	SetRTInfoCommand(ctx context.Context, data CommandSetRTInfoData) error
 
 	TermGetScrollbackLinesCommand(ctx context.Context, data CommandTermGetScrollbackLinesData) (*CommandTermGetScrollbackLinesRtnData, error)
-	TermUpdateAttachedJobCommand(ctx context.Context, data CommandTermUpdateAttachedJobData) error
 
 	WshRpcFileInterface
 	WaveFileReadStreamCommand(ctx context.Context, data CommandWaveFileReadStreamData) (*WaveFileInfo, error)
@@ -169,6 +172,9 @@ type WshRpcInterface interface {
 	OmpWriteConfigCommand(ctx context.Context, data CommandOmpWriteConfigData) (CommandOmpWriteConfigRtnData, error)
 
 	OmpReinitCommand(ctx context.Context, data CommandOmpReinitData) error
+
+	JobControllerGetAllJobManagerStatusCommand(ctx context.Context) ([]*JobManagerStatusUpdate, error)
+	BlockJobStatusCommand(ctx context.Context, blockId string) (*BlockJobStatusData, error)
 }
 
 type WshServerCommandMeta struct {
@@ -1035,6 +1041,11 @@ type TabIndicatorEventData struct {
 	Indicator *TabIndicator `json:"indicator"`
 }
 
+type JobManagerStatusUpdate struct {
+	JobId            string `json:"jobid"`
+	JobManagerStatus string `json:"jobmanagerstatus"`
+}
+
 type CommandWaveFileReadStreamData struct {
 	ZoneId     string     `json:"zoneid"`
 	Name       string     `json:"name"`
@@ -1049,4 +1060,16 @@ type WaveFileInfo struct {
 	Size      int64    `json:"size"`
 	ModTs     int64    `json:"modts"`
 	Meta      FileMeta `json:"meta"`
+}
+
+type BlockJobStatusData struct {
+	BlockId       string `json:"blockid"`
+	JobId         string `json:"jobid"`
+	Status        string `json:"status,omitempty" tstype:"null | \"init\" | \"connected\" | \"disconnected\" | \"done\""`
+	VersionTs     int64  `json:"versionts"`
+	DoneReason    string `json:"donereason,omitempty"`
+	StartupError  string `json:"startuperror,omitempty"`
+	CmdExitTs     int64  `json:"cmdexitts,omitempty"`
+	CmdExitCode   *int   `json:"cmdexitcode,omitempty"`
+	CmdExitSignal string `json:"cmdexitsignal,omitempty"`
 }

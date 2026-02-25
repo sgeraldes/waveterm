@@ -1,6 +1,16 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
 import { computeConnColorNum } from "@/app/block/blockutil";
 import { TypeAheadModal } from "@/app/modals/typeaheadmodal";
-import { atoms, createBlock, getConnStatusAtom, getHostName, getUserName, globalStore, WOS } from "@/app/store/global";
+import {
+    atoms,
+    createBlock,
+    getConnStatusAtom,
+    getLocalHostDisplayNameAtom,
+    globalStore,
+    WOS,
+} from "@/app/store/global";
 import { globalRefocusWithTimeout } from "@/app/store/keymodel";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
@@ -9,6 +19,9 @@ import * as keyutil from "@/util/keyutil";
 import * as util from "@/util/util";
 import * as jotai from "jotai";
 import * as React from "react";
+
+// newConnList -> connList => filteredList -> remoteItems -> sortedRemoteItems => remoteSuggestion
+// filteredList -> createNew
 
 function filterConnections(
     connList: Array<string>,
@@ -59,6 +72,66 @@ function createRemoteSuggestionItems(
     });
 }
 
+/**
+ * Get shell-specific icon based on connection name and config
+ * Returns { icon: string, isBrand: boolean }
+ */
+function getShellIconForConnection(connName: string, connSettings?: ConnKeywords): { icon: string; isBrand: boolean } {
+    const nameLower = connName.toLowerCase();
+    const shellPath = connSettings?.["conn:shellpath"]?.toLowerCase() || "";
+
+    // WSL distro-specific icons
+    if (nameLower.includes("ubuntu")) return { icon: "ubuntu", isBrand: true };
+    if (nameLower.includes("debian")) return { icon: "debian", isBrand: true };
+    if (nameLower.includes("fedora")) return { icon: "fedora", isBrand: true };
+    if (nameLower.includes("opensuse") || nameLower.includes("suse")) return { icon: "suse", isBrand: true };
+    if (nameLower.includes("centos")) return { icon: "centos", isBrand: true };
+    if (nameLower.includes("redhat") || nameLower.includes("rhel")) return { icon: "redhat", isBrand: true };
+    if (nameLower.startsWith("wsl://") || nameLower.includes("wsl")) return { icon: "linux", isBrand: true };
+
+    // Git Bash
+    if (nameLower.includes("git") || shellPath.includes("git")) return { icon: "git-alt", isBrand: true };
+
+    // Command Prompt
+    if (nameLower === "cmd" || shellPath.includes("cmd.exe")) return { icon: "windows", isBrand: true };
+
+    // PowerShell (both Windows PowerShell and PowerShell Core)
+    if (
+        nameLower.includes("powershell") ||
+        nameLower.includes("pwsh") ||
+        shellPath.includes("powershell") ||
+        shellPath.includes("pwsh")
+    ) {
+        return { icon: "terminal", isBrand: false };
+    }
+
+    // Default to terminal icon
+    return { icon: "terminal", isBrand: false };
+}
+
+function createWslSuggestionItems(
+    filteredList: Array<string>,
+    connection: string,
+    connStatusMap: Map<string, ConnStatus>
+): Array<SuggestionConnectionItem> {
+    return filteredList.map((connName) => {
+        const connStatus = connStatusMap.get(`wsl://${connName}`);
+        const connColorNum = computeConnColorNum(connStatus);
+        const iconInfo = getShellIconForConnection(connName);
+        const icon = iconInfo.isBrand ? `brands@${iconInfo.icon}` : iconInfo.icon;
+        const item: SuggestionConnectionItem = {
+            status: "connected",
+            icon: icon,
+            iconColor:
+                connStatus?.status == "connected" ? `var(--conn-icon-color-${connColorNum})` : "var(--grey-text-color)",
+            value: "wsl://" + connName,
+            label: "wsl://" + connName,
+            current: "wsl://" + connName == connection,
+        };
+        return item;
+    });
+}
+
 function createFilteredLocalSuggestionItem(
     localName: string,
     connection: string,
@@ -81,7 +154,8 @@ function createFilteredLocalSuggestionItem(
 function getReconnectItem(
     connStatus: ConnStatus,
     connSelected: string,
-    blockId: string
+    blockId: string,
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
 ): SuggestionConnectionItem | null {
     if (connSelected != "" || (connStatus.status != "disconnected" && connStatus.status != "error")) {
         return null;
@@ -93,6 +167,7 @@ function getReconnectItem(
         label: `Reconnect to ${connStatus.connection}`,
         value: "",
         onSelect: async () => {
+            globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnConnectCommand(
                 TabRpcClient,
                 { host: connStatus.connection, logblockid: blockId },
@@ -106,12 +181,21 @@ function getReconnectItem(
 
 function getLocalSuggestions(
     localName: string,
+    wslList: Array<string>,
     connection: string,
     connSelected: string,
-    fullConfig: FullConfigType
+    connStatusMap: Map<string, ConnStatus>,
+    fullConfig: FullConfigType,
+    filterOutNowsh: boolean
 ): SuggestionConnectionScope | null {
+    // WSL distributions represent different filesystem environments, so they stay here
+    // Local shell profiles (pwsh, cmd, bash) are now handled by the shell selector
+    const wslFiltered = filterConnections(wslList, connSelected, fullConfig, filterOutNowsh);
+    const wslSuggestionItems = createWslSuggestionItems(wslFiltered, connection, connStatusMap);
     const localSuggestionItem = createFilteredLocalSuggestionItem(localName, connection, connSelected);
-    const sortedSuggestionItems = sortConnSuggestionItems(localSuggestionItem, fullConfig);
+
+    const combinedSuggestionItems = [...localSuggestionItem, ...wslSuggestionItems];
+    const sortedSuggestionItems = sortConnSuggestionItems(combinedSuggestionItems, fullConfig);
     if (sortedSuggestionItems.length == 0) {
         return null;
     }
@@ -146,8 +230,10 @@ function getRemoteSuggestions(
 function getDisconnectItem(
     connection: string,
     connStatusMap: Map<string, ConnStatus>,
-    fullConfig: FullConfigType
+    fullConfig: FullConfigType,
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
 ): SuggestionConnectionItem | null {
+    // Don't show disconnect for local connections (including local shell profiles)
     if (util.isLocalConnection(connection, fullConfig.connections)) {
         return null;
     }
@@ -162,6 +248,7 @@ function getDisconnectItem(
         label: `Disconnect ${connStatus.connection}`,
         value: "",
         onSelect: async () => {
+            globalStore.set(changeConnModalAtom, false);
             const prtn = RpcApi.ConnDisconnectCommand(TabRpcClient, connection, { timeout: 60000 });
             prtn.catch((e) => console.log("error disconnecting", connStatus.connection, e));
         },
@@ -202,11 +289,14 @@ function getNewConnectionSuggestionItem(
     connSelected: string,
     localName: string,
     remoteConns: Array<string>,
+    wslConns: Array<string>,
     changeConnection: (connName: string) => Promise<void>,
     changeConnModalAtom: jotai.PrimitiveAtom<boolean>
 ): SuggestionConnectionItem | null {
-    const allCons = ["", localName, ...remoteConns];
+    const allCons = ["", localName, ...remoteConns, ...wslConns];
     if (allCons.includes(connSelected)) {
+        // do not offer to create a new connection if one
+        // with the exact name already exists
         return null;
     }
     const newConnectionSuggestion: SuggestionConnectionItem = {
@@ -247,11 +337,13 @@ const ChangeConnectionBlockModal = React.memo(
         const connStatusAtom = getConnStatusAtom(connection);
         const connStatus = jotai.useAtomValue(connStatusAtom);
         const [connList, setConnList] = React.useState<Array<string>>([]);
+        const [wslList, setWslList] = React.useState<Array<string>>([]);
         const allConnStatus = jotai.useAtomValue(atoms.allConnStatus);
         const [rowIndex, setRowIndex] = React.useState(0);
         const connStatusMap = new Map<string, ConnStatus>();
         const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
         const filterOutNowsh = util.useAtomValueSafe(viewModel.filterOutNowsh) ?? true;
+        const localName = jotai.useAtomValue(getLocalHostDisplayNameAtom());
 
         let maxActiveConnNum = 1;
         for (const conn of allConnStatus) {
@@ -269,6 +361,16 @@ const ChangeConnectionBlockModal = React.memo(
             prtn.then((newConnList) => {
                 setConnList(newConnList ?? []);
             }).catch((e) => console.log("unable to load conn list from backend. using blank list: ", e));
+            RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 })
+                .then((resp) => {
+                    const wslDistros = (resp.shells ?? [])
+                        .filter((s) => s.id.startsWith("wsl:"))
+                        .map((s) => s.id.substring(4));
+                    setWslList(wslDistros);
+                })
+                .catch(() => {
+                    // WSL not available on this system
+                });
         }, [changeConnModalOpen]);
 
         const changeConnection = React.useCallback(
@@ -299,12 +401,20 @@ const ChangeConnectionBlockModal = React.memo(
             [blockId, blockData]
         );
 
-        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId);
-        const localName = getUserName() + "@" + getHostName();
+        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom);
 
+        // Filter out local shell profiles from connList - they're now handled by shell selector
         const remoteConnections = connList.filter((conn) => !util.isLocalShellProfile(conn, fullConfig.connections));
 
-        const localSuggestions = getLocalSuggestions(localName, connection, connSelected, fullConfig);
+        const localSuggestions = getLocalSuggestions(
+            localName,
+            wslList,
+            connection,
+            connSelected,
+            connStatusMap,
+            fullConfig,
+            filterOutNowsh
+        );
         const remoteSuggestions = getRemoteSuggestions(
             remoteConnections,
             connection,
@@ -314,11 +424,12 @@ const ChangeConnectionBlockModal = React.memo(
             filterOutNowsh
         );
         const connectionsEditItem = getConnectionsEditItem(changeConnModalAtom, connSelected);
-        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig);
+        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig, changeConnModalAtom);
         const newConnectionSuggestionItem = getNewConnectionSuggestionItem(
             connSelected,
             localName,
             connList,
+            wslList,
             changeConnection,
             changeConnModalAtom
         );
@@ -339,6 +450,7 @@ const ChangeConnectionBlockModal = React.memo(
             return item;
         });
 
+        // quick way to change icon color when highlighted
         selectionList = selectionList.map((item, index) => {
             if (index == rowIndex && item.iconColor == "var(--grey-text-color)") {
                 item.iconColor = "var(--main-text-color)";
@@ -380,8 +492,11 @@ const ChangeConnectionBlockModal = React.memo(
             [changeConnModalAtom, viewModel, blockId, connSelected, selectionList]
         );
         React.useEffect(() => {
+            // this is specifically for the case when the list shrinks due
+            // to a search filter
             setRowIndex((idx) => Math.min(idx, selectionList.flat().length - 1));
         }, [selectionList, setRowIndex]);
+        // this check was also moved to BlockFrame to prevent all the above code from running unnecessarily
         if (!changeConnModalOpen) {
             return null;
         }

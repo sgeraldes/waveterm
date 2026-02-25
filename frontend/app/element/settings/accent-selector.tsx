@@ -81,7 +81,9 @@ const AccentSelector = memo(
             if (!onSaveCustomAccent || !themeOverrides) return;
             const hasOverrides = Object.keys(themeOverrides).length > 0;
             if (!hasOverrides) {
-                alert("Customize some palette colors first using the Color Palette swatches above, then save as a custom accent.");
+                alert(
+                    "Customize some palette colors first using the Color Palette swatches above, then save as a custom accent."
+                );
                 return;
             }
             const name = prompt("Name your custom accent theme:");

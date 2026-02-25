@@ -73,7 +73,7 @@ func TestReadDirCallback(t *testing.T) {
 	foundFiles := 0
 	foundDirs := 0
 	for _, entry := range entries {
-		if entry["is_dir"].(bool) {
+		if dir, ok := entry["dir"].(bool); ok && dir {
 			foundDirs++
 		} else {
 			foundFiles++
@@ -213,7 +213,7 @@ func TestReadDirSortBeforeTruncate(t *testing.T) {
 	// Count directories in the result
 	dirCount := 0
 	for _, entry := range entries {
-		if entry["is_dir"].(bool) {
+		if dir, ok := entry["dir"].(bool); ok && dir {
 			dirCount++
 		}
 	}
@@ -225,7 +225,8 @@ func TestReadDirSortBeforeTruncate(t *testing.T) {
 
 	// First 3 entries should be directories
 	for i := 0; i < 3; i++ {
-		if !entries[i]["is_dir"].(bool) {
+		dir, ok := entries[i]["dir"].(bool)
+		if !ok || !dir {
 			t.Errorf("Expected entry %d to be a directory, but it was a file", i)
 		}
 	}

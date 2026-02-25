@@ -1,7 +1,13 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+import { Button } from "@/app/element/button";
+import { modalsModel } from "@/app/store/modalmodel";
 import { addRecentlyClosed } from "@/app/store/recently-closed";
 import { cleanupOsc7DebounceForTab } from "@/app/view/term/termwrap";
+import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
 import { deleteLayoutModelForTab } from "@/layout/index";
-import { atoms, createTab, getApi, globalStore } from "@/store/global";
+import { atoms, createTab, getApi, globalStore, setActiveTab } from "@/store/global";
 import * as WOS from "@/store/wos";
 import { isMacOS, isWindows } from "@/util/platformutil";
 import { makeIconClass } from "@/util/util";

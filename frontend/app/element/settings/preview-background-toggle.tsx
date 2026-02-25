@@ -11,8 +11,8 @@
  */
 
 import { memo } from "react";
-import { SegmentedToggle } from "./segmented-toggle";
 import type { SegmentedToggleOption } from "./segmented-toggle";
+import { SegmentedToggle } from "./segmented-toggle";
 
 import "./preview-background-toggle.scss";
 

@@ -82,10 +82,7 @@ const NotificationItem = ({
                                 <Button
                                     key={index}
                                     onClick={(e) => onActionClick(e, action, id)}
-                                    className={clsx(
-                                        action.color,
-                                        "py-[4px] px-[8px] text-[13px] rounded-[4px]"
-                                    )}
+                                    className={clsx(action.color, "py-[4px] px-[8px] text-[13px] rounded-[4px]")}
                                     disabled={action.disabled}
                                 >
                                     {action.label}

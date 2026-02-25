@@ -20,6 +20,7 @@ test("layoutTreeStateReducer - compute move", () => {
         type: LayoutTreeActionType.ComputeMove,
         nodeId: treeState.rootNode.id,
         nodeToMoveId: node1.id,
+        nodeToMove: node1,
         direction: DropDirection.Bottom,
     });
     const insertOperation = pendingAction as LayoutTreeMoveNodeAction;
@@ -39,6 +40,7 @@ test("layoutTreeStateReducer - compute move", () => {
         type: LayoutTreeActionType.ComputeMove,
         nodeId: node1.id,
         nodeToMoveId: node2.id,
+        nodeToMove: node2,
         direction: DropDirection.Bottom,
     });
     const insertOperation2 = pendingAction as LayoutTreeMoveNodeAction;

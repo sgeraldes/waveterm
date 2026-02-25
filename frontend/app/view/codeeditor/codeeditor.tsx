@@ -81,9 +81,11 @@ export function CodeEditor({
         monaco: typeof MonacoModule
     ): () => void {
         if (onMount) {
-            unmountRef.current = onMount(editor, monaco);
+            const cleanup = onMount(editor, monaco);
+            unmountRef.current = cleanup;
+            return cleanup;
         }
-        return null;
+        return undefined;
     }
 
     const editorOpts = useMemo(() => {

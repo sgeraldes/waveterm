@@ -1,3 +1,7 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
 import { FocusManager } from "@/app/store/focusManager";
 import {

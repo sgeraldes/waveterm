@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package service
 
@@ -12,6 +10,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/service/blockservice"
 	"github.com/wavetermdev/waveterm/pkg/service/clientservice"
 	"github.com/wavetermdev/waveterm/pkg/service/objectservice"
+	"github.com/wavetermdev/waveterm/pkg/service/sessionhistoryservice"
 	"github.com/wavetermdev/waveterm/pkg/service/userinputservice"
 	"github.com/wavetermdev/waveterm/pkg/service/windowservice"
 	"github.com/wavetermdev/waveterm/pkg/service/workspaceservice"
@@ -22,12 +21,13 @@ import (
 )
 
 var ServiceMap = map[string]any{
-	"block":     blockservice.BlockServiceInstance,
-	"object":    &objectservice.ObjectService{},
-	"client":    &clientservice.ClientService{},
-	"window":    &windowservice.WindowService{},
-	"workspace": &workspaceservice.WorkspaceService{},
-	"userinput": &userinputservice.UserInputService{},
+	"block":          blockservice.BlockServiceInstance,
+	"object":         &objectservice.ObjectService{},
+	"client":         &clientservice.ClientService{},
+	"window":         &windowservice.WindowService{},
+	"workspace":      &workspaceservice.WorkspaceService{},
+	"userinput":      &userinputservice.UserInputService{},
+	"sessionhistory": sessionhistoryservice.GetSessionHistoryService(),
 }
 
 var contextRType = reflect.TypeOf((*context.Context)(nil)).Elem()
@@ -287,7 +287,6 @@ func convertReturnValues(rtnVals []reflect.Value) *WebReturnType {
 			continue
 		}
 		if valType == updatesRType {
-			// has a special MarshalJSON method
 			rtn.Updates = val.Interface().([]waveobj.WaveObjUpdate)
 			continue
 		}
@@ -352,12 +351,8 @@ func CallService(ctx context.Context, webCall WebCallType) *WebReturnType {
 	return convertReturnValues(retValArr)
 }
 
-// ValidateServiceArg validates the argument type for a service method
-// does not allow interfaces (and the obvious invalid types)
-// arguments + return values have special handling for wave objects
 func baseValidateServiceArg(argType reflect.Type) error {
 	if argType == waveObjUpdateRType {
-		// has special MarshalJSON method, so it is safe
 		return nil
 	}
 	switch argType.Kind() {
@@ -384,7 +379,6 @@ func baseValidateServiceArg(argType reflect.Type) error {
 }
 
 func validateMethodReturnArg(retType reflect.Type) error {
-	// specifically allow waveobj.WaveObj, []waveobj.WaveObj, map[string]waveobj.WaveObj, and error
 	if isSpecialWaveArgType(retType) || retType == errorRType {
 		return nil
 	}
@@ -392,7 +386,6 @@ func validateMethodReturnArg(retType reflect.Type) error {
 }
 
 func validateMethodArg(argType reflect.Type) error {
-	// specifically allow waveobj.WaveObj, []waveobj.WaveObj, map[string]waveobj.WaveObj, and context.Context
 	if isSpecialWaveArgType(argType) || argType == contextRType {
 		return nil
 	}
@@ -406,7 +399,6 @@ func validateServiceMethod(service string, method reflect.Method) error {
 		}
 	}
 	for idx := 1; idx < method.Type.NumIn(); idx++ {
-		// skip the first argument which is the receiver
 		if err := validateMethodArg(method.Type.In(idx)); err != nil {
 			return fmt.Errorf("invalid argument type %s.%s %s: %v", service, method.Name, method.Type.In(idx), err)
 		}

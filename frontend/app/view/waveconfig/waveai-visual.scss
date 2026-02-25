@@ -280,7 +280,9 @@ $waveai-sidebar-width: 260px;
                 border-radius: 4px;
                 font-size: 12px;
                 cursor: pointer;
-                transition: background-color 0.15s ease, color 0.15s ease;
+                transition:
+                    background-color 0.15s ease,
+                    color 0.15s ease;
 
                 &:hover {
                     background: rgb(from var(--error-color) r g b / 0.1);
@@ -438,7 +440,9 @@ $waveai-sidebar-width: 260px;
         border-radius: 4px;
         color: var(--main-text-color);
         font-size: 13px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
 
         &:focus {
             outline: none;
@@ -475,7 +479,9 @@ $waveai-sidebar-width: 260px;
         background-position: right 8px center;
         background-repeat: no-repeat;
         background-size: 16px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
 
         &:focus {
             outline: none;
@@ -499,7 +505,9 @@ $waveai-sidebar-width: 260px;
         font-size: 13px;
         resize: vertical;
         min-height: 60px;
-        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        transition:
+            border-color 0.15s ease,
+            box-shadow 0.15s ease;
 
         &:focus {
             outline: none;
@@ -560,7 +568,9 @@ $waveai-sidebar-width: 260px;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             cursor: pointer;
-            transition: border-color 0.15s ease, background-color 0.15s ease;
+            transition:
+                border-color 0.15s ease,
+                background-color 0.15s ease;
 
             input[type="radio"] {
                 accent-color: var(--accent-color);
@@ -763,7 +773,9 @@ $waveai-sidebar-width: 260px;
         border-radius: 50%;
         flex-shrink: 0;
         cursor: help;
-        transition: transform 0.15s ease, opacity 0.15s ease;
+        transition:
+            transform 0.15s ease,
+            opacity 0.15s ease;
 
         &:hover {
             transform: scale(1.1);

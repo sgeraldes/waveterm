@@ -57,6 +57,7 @@ func EnsureInitialData() (bool, error) {
 		}
 	}
 	log.Printf("clientid: %s\n", client.OID)
+	wstore.SetClientId(client.OID)
 	if len(client.WindowIds) == 1 {
 		log.Println("client has one window")
 		CheckAndFixWindow(ctx, client.WindowIds[0])

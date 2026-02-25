@@ -104,12 +104,17 @@ func getWaveAISettings(premium bool, builderMode bool, rtInfo waveobj.ObjRTInfo,
 	if thinkingLevel == "" {
 		thinkingLevel = uctypes.ThinkingLevelMedium
 	}
+	verbosity := config.Verbosity
+	if verbosity == "" {
+		verbosity = uctypes.ThinkingLevelMedium // default to medium
+	}
 	opts := &uctypes.AIOptsType{
 		Provider:      config.Provider,
 		APIType:       config.APIType,
 		Model:         config.Model,
 		MaxTokens:     maxTokens,
 		ThinkingLevel: thinkingLevel,
+		Verbosity:     verbosity,
 		AIMode:        aiMode,
 		Endpoint:      baseUrl,
 		Capabilities:  config.Capabilities,
@@ -639,17 +644,10 @@ func WaveAIPostMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get client ID from database
-	client, err := wstore.DBGetSingleton[*waveobj.Client](r.Context())
-	if err != nil {
-		http.Error(w, fmt.Sprintf("Failed to get client: %v", err), http.StatusInternalServerError)
-		return
-	}
-
 	// Call the core WaveAIPostMessage function
 	chatOpts := uctypes.WaveChatOpts{
 		ChatId:               req.ChatID,
-		ClientId:             client.OID,
+		ClientId:             wstore.GetClientId(),
 		Config:               *aiOpts,
 		WidgetAccess:         req.WidgetAccess,
 		AllowNativeWebSearch: true,

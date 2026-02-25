@@ -151,30 +151,130 @@ const apiTypeOptions: SelectOption[] = [
  */
 class OmpThemesProvider implements OptionsProvider {
     private static OFFICIAL_THEMES = [
-        "1_shell", "M365Princess", "agnoster", "agnoster.minimal", "agnosterplus",
-        "aliens", "amro", "atomic", "atomicBit", "avit", "blue-owl", "blueish",
-        "bubbles", "bubblesextra", "bubblesline", "capr4n", "catppuccin",
-        "catppuccin_frappe", "catppuccin_latte", "catppuccin_macchiato",
-        "catppuccin_mocha", "cert", "chips", "cinnamon", "clean-detailed",
-        "cloud-context", "cloud-native-azure", "cobalt2", "craver", "darkblood",
-        "devious-diamonds", "di4am0nd", "dracula", "easy-term", "emodipt",
-        "emodipt-extend", "fish", "free-ukraine", "froczh", "glowsticks", "gmay",
-        "grandpa-style", "gruvbox", "half-life", "honukai", "hotstick.minimal",
-        "hul10", "hunk", "huvix", "if_tea", "illusi0n", "iterm2", "jandedobbeleer",
-        "jblab_2021", "jonnychipz", "json", "jtracey93", "jv_sitecorian", "kali",
-        "kushal", "lambda", "lambdageneration", "larserikfinholt", "lightgreen",
-        "marcduiker", "markbull", "material", "microverse-power", "mojada",
-        "montys", "mt", "multiverse-neon", "negligible", "neko", "night-owl",
-        "nordtron", "nu4a", "onehalf.minimal", "paradox", "pararussel",
-        "patriksvensson", "peru", "pixelrobots", "plague", "poshmon",
-        "powerlevel10k_classic", "powerlevel10k_lean", "powerlevel10k_modern",
-        "powerlevel10k_rainbow", "powerline", "probua.minimal", "pure",
-        "quick-term", "remk", "robbyrussell", "rudolfs-dark", "rudolfs-light",
-        "sim-web", "slim", "slimfat", "smoothie", "sonicboom_dark",
-        "sonicboom_light", "sorin", "space", "spaceship", "star", "stelbent",
-        "stelbent-compact.minimal", "takuya", "the-unnamed", "thecyberden",
-        "tiwahu", "tokyo", "tokyonight_storm", "tonybaloney", "uew", "unicorn",
-        "velvet", "wholespace", "wopian", "xtoys", "ys", "zash"
+        "1_shell",
+        "M365Princess",
+        "agnoster",
+        "agnoster.minimal",
+        "agnosterplus",
+        "aliens",
+        "amro",
+        "atomic",
+        "atomicBit",
+        "avit",
+        "blue-owl",
+        "blueish",
+        "bubbles",
+        "bubblesextra",
+        "bubblesline",
+        "capr4n",
+        "catppuccin",
+        "catppuccin_frappe",
+        "catppuccin_latte",
+        "catppuccin_macchiato",
+        "catppuccin_mocha",
+        "cert",
+        "chips",
+        "cinnamon",
+        "clean-detailed",
+        "cloud-context",
+        "cloud-native-azure",
+        "cobalt2",
+        "craver",
+        "darkblood",
+        "devious-diamonds",
+        "di4am0nd",
+        "dracula",
+        "easy-term",
+        "emodipt",
+        "emodipt-extend",
+        "fish",
+        "free-ukraine",
+        "froczh",
+        "glowsticks",
+        "gmay",
+        "grandpa-style",
+        "gruvbox",
+        "half-life",
+        "honukai",
+        "hotstick.minimal",
+        "hul10",
+        "hunk",
+        "huvix",
+        "if_tea",
+        "illusi0n",
+        "iterm2",
+        "jandedobbeleer",
+        "jblab_2021",
+        "jonnychipz",
+        "json",
+        "jtracey93",
+        "jv_sitecorian",
+        "kali",
+        "kushal",
+        "lambda",
+        "lambdageneration",
+        "larserikfinholt",
+        "lightgreen",
+        "marcduiker",
+        "markbull",
+        "material",
+        "microverse-power",
+        "mojada",
+        "montys",
+        "mt",
+        "multiverse-neon",
+        "negligible",
+        "neko",
+        "night-owl",
+        "nordtron",
+        "nu4a",
+        "onehalf.minimal",
+        "paradox",
+        "pararussel",
+        "patriksvensson",
+        "peru",
+        "pixelrobots",
+        "plague",
+        "poshmon",
+        "powerlevel10k_classic",
+        "powerlevel10k_lean",
+        "powerlevel10k_modern",
+        "powerlevel10k_rainbow",
+        "powerline",
+        "probua.minimal",
+        "pure",
+        "quick-term",
+        "remk",
+        "robbyrussell",
+        "rudolfs-dark",
+        "rudolfs-light",
+        "sim-web",
+        "slim",
+        "slimfat",
+        "smoothie",
+        "sonicboom_dark",
+        "sonicboom_light",
+        "sorin",
+        "space",
+        "spaceship",
+        "star",
+        "stelbent",
+        "stelbent-compact.minimal",
+        "takuya",
+        "the-unnamed",
+        "thecyberden",
+        "tiwahu",
+        "tokyo",
+        "tokyonight_storm",
+        "tonybaloney",
+        "uew",
+        "unicorn",
+        "velvet",
+        "wholespace",
+        "wopian",
+        "xtoys",
+        "ys",
+        "zash",
     ];
 
     // Color palettes for known themes
@@ -203,17 +303,26 @@ class OmpThemesProvider implements OptionsProvider {
     };
 
     // Default colors for unknown themes
-    private static DEFAULT_COLORS = ["#1c1c1c", "#e74856", "#16c60c", "#f9f1a5", "#3b78ff", "#b4009e", "#61d6d6", "#cccccc"];
+    private static DEFAULT_COLORS = [
+        "#1c1c1c",
+        "#e74856",
+        "#16c60c",
+        "#f9f1a5",
+        "#3b78ff",
+        "#b4009e",
+        "#61d6d6",
+        "#cccccc",
+    ];
 
     async getOptions(): Promise<SelectOption[]> {
-        return OmpThemesProvider.OFFICIAL_THEMES.map(name => ({
+        return OmpThemesProvider.OFFICIAL_THEMES.map((name) => ({
             value: name,
             label: this.formatThemeName(name),
         })).sort((a, b) => a.label.localeCompare(b.label));
     }
 
-    async getThemes(): Promise<Array<{name: string, displayName: string, colors: string[]}>> {
-        return OmpThemesProvider.OFFICIAL_THEMES.map(name => ({
+    async getThemes(): Promise<Array<{ name: string; displayName: string; colors: string[] }>> {
+        return OmpThemesProvider.OFFICIAL_THEMES.map((name) => ({
             name,
             displayName: this.formatThemeName(name),
             colors: this.getThemeColors(name),
@@ -222,10 +331,10 @@ class OmpThemesProvider implements OptionsProvider {
 
     private formatThemeName(name: string): string {
         return name
-            .replace(/[-_]/g, ' ')
-            .replace(/\b\w/g, c => c.toUpperCase())
-            .replace(/\.minimal/i, ' (Minimal)')
-            .replace(/Omp\.json$/i, '');
+            .replace(/[-_]/g, " ")
+            .replace(/\b\w/g, (c) => c.toUpperCase())
+            .replace(/\.minimal/i, " (Minimal)")
+            .replace(/Omp\.json$/i, "");
     }
 
     private getThemeColors(themeName: string): string[] {
@@ -252,4 +361,4 @@ export const autoUpdateChannelProvider = new StaticOptionsProvider(autoUpdateCha
 export const apiTypeProvider = new StaticOptionsProvider(apiTypeOptions);
 
 // Re-export the static options for convenience
-export { defaultBlockOptions, autoUpdateChannelOptions, apiTypeOptions };
+export { apiTypeOptions, autoUpdateChannelOptions, defaultBlockOptions };

@@ -198,6 +198,9 @@ func StartRemoteShellProc(ctx context.Context, logCtx context.Context, termSize 
 	if err != nil {
 		return nil, fmt.Errorf("unable to obtain client info: %w", err)
 	}
+	if remoteInfo.HomeDir == "" {
+		return nil, fmt.Errorf("unable to obtain home directory from remote machine")
+	}
 	log.Printf("client info collected: %+#v", remoteInfo)
 	var shellPath string
 	if cmdOpts.ShellPath != "" {
@@ -234,17 +237,21 @@ func StartRemoteShellProc(ctx context.Context, logCtx context.Context, termSize 
 	if cmdStr == "" {
 		/* transform command in order to inject environment vars */
 		if shellType == shellutil.ShellType_bash {
-			bashPath := fmt.Sprintf("~/.waveterm/%s/.bashrc", shellutil.BashIntegrationDir)
+			// add --rcfile
+			// cant set -l or -i with --rcfile
+			bashPath := fmt.Sprintf("%s/.waveterm/%s/.bashrc", remoteInfo.HomeDir, shellutil.BashIntegrationDir)
 			shellOpts = append(shellOpts, "--rcfile", bashPath)
 		} else if shellType == shellutil.ShellType_fish {
 			if cmdOpts.Login {
 				shellOpts = append(shellOpts, "-l")
 			}
-			waveFishPath := fmt.Sprintf("~/.waveterm/%s/wave.fish", shellutil.FishIntegrationDir)
+			// source the wave.fish file
+			waveFishPath := fmt.Sprintf("%s/.waveterm/%s/wave.fish", remoteInfo.HomeDir, shellutil.FishIntegrationDir)
 			carg := fmt.Sprintf(`"source %s"`, waveFishPath)
 			shellOpts = append(shellOpts, "-C", carg)
 		} else if shellType == shellutil.ShellType_pwsh {
-			pwshPath := fmt.Sprintf("~/.waveterm/%s/wavepwsh.ps1", shellutil.PwshIntegrationDir)
+			pwshPath := fmt.Sprintf("%s/.waveterm/%s/wavepwsh.ps1", remoteInfo.HomeDir, shellutil.PwshIntegrationDir)
+			// powershell is weird about quoted path executables and requires an ampersand first
 			shellPath = "& " + shellPath
 			shellOpts = append(shellOpts, "-NoProfile", "-ExecutionPolicy", "Bypass", "-NoExit", "-File", pwshPath)
 		} else {
@@ -319,12 +326,15 @@ func StartRemoteShellProc(ctx context.Context, logCtx context.Context, termSize 
 	return &ShellProc{Cmd: sessionWrap, ConnName: conn.GetName(), CloseOnce: &sync.Once{}, DoneCh: make(chan any)}, nil
 }
 
-func StartRemoteShellJob(ctx context.Context, logCtx context.Context, termSize waveobj.TermSize, cmdStr string, cmdOpts CommandOptsType, conn *conncontroller.SSHConn) (string, error) {
+func StartRemoteShellJob(ctx context.Context, logCtx context.Context, termSize waveobj.TermSize, cmdStr string, cmdOpts CommandOptsType, conn *conncontroller.SSHConn, optBlockId string) (string, error) {
 	connRoute := wshutil.MakeConnectionRouteId(conn.GetName())
 	rpcClient := wshclient.GetBareRpcClient()
 	remoteInfo, err := wshclient.RemoteGetInfoCommand(rpcClient, &wshrpc.RpcOpts{Route: connRoute, Timeout: 2000})
 	if err != nil {
 		return "", fmt.Errorf("unable to obtain client info: %w", err)
+	}
+	if remoteInfo.HomeDir == "" {
+		return "", fmt.Errorf("unable to obtain home directory from remote machine")
 	}
 	log.Printf("client info collected: %+#v", remoteInfo)
 	var shellPath string
@@ -354,18 +364,17 @@ func StartRemoteShellJob(ctx context.Context, logCtx context.Context, termSize w
 
 	if cmdStr == "" {
 		if shellType == shellutil.ShellType_bash {
-			bashPath := fmt.Sprintf("~/.waveterm/%s/.bashrc", shellutil.BashIntegrationDir)
+			bashPath := fmt.Sprintf("%s/.waveterm/%s/.bashrc", remoteInfo.HomeDir, shellutil.BashIntegrationDir)
 			shellOpts = append(shellOpts, "--rcfile", bashPath)
 		} else if shellType == shellutil.ShellType_fish {
 			if cmdOpts.Login {
 				shellOpts = append(shellOpts, "-l")
 			}
-			waveFishPath := fmt.Sprintf("~/.waveterm/%s/wave.fish", shellutil.FishIntegrationDir)
-			carg := fmt.Sprintf(`"source %s"`, waveFishPath)
+			waveFishPath := fmt.Sprintf("%s/.waveterm/%s/wave.fish", remoteInfo.HomeDir, shellutil.FishIntegrationDir)
+			carg := fmt.Sprintf(`source %s`, waveFishPath)
 			shellOpts = append(shellOpts, "-C", carg)
 		} else if shellType == shellutil.ShellType_pwsh {
-			pwshPath := fmt.Sprintf("~/.waveterm/%s/wavepwsh.ps1", shellutil.PwshIntegrationDir)
-			shellPath = "& " + shellPath
+			pwshPath := fmt.Sprintf("%s/.waveterm/%s/wavepwsh.ps1", remoteInfo.HomeDir, shellutil.PwshIntegrationDir)
 			shellOpts = append(shellOpts, "-ExecutionPolicy", "Bypass", "-NoExit", "-File", pwshPath)
 		} else {
 			if cmdOpts.Login {
@@ -417,6 +426,7 @@ func StartRemoteShellJob(ctx context.Context, logCtx context.Context, termSize w
 		Args:     shellOpts,
 		Env:      env,
 		TermSize: &termSize,
+		BlockId:  optBlockId,
 	}
 	jobId, err := jobcontroller.StartJob(ctx, jobParams)
 	if err != nil {

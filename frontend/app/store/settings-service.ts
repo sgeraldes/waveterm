@@ -10,17 +10,11 @@
 
 import { atoms } from "@/app/store/global";
 import { globalStore } from "@/app/store/jotaiStore";
+import { getDefaultValue, getSettingMetadata, settingsRegistry } from "@/app/store/settings-registry";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { getDefaultValue, getSettingMetadata, settingsRegistry } from "@/app/store/settings-registry";
 import { debounce } from "throttle-debounce";
-import {
-    allSettingsAtom,
-    isSavingAtom,
-    pendingSettingsAtom,
-    savedSettingsAtom,
-    saveErrorAtom,
-} from "./settings-atoms";
+import { allSettingsAtom, isSavingAtom, pendingSettingsAtom, savedSettingsAtom, saveErrorAtom } from "./settings-atoms";
 
 type SettingsSubscriber = (settings: Record<string, unknown>) => void;
 

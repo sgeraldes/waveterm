@@ -234,11 +234,11 @@ function DirectoryTable({
             newDirectory,
         },
     });
-
+    const sortingState = table.getState().sorting;
     useEffect(() => {
         const allRows = table.getRowModel()?.flatRows || [];
         setSelectedPath((allRows[focusIndex]?.getValue("path") as string) ?? null);
-    }, [table, focusIndex, data]);
+    }, [focusIndex, data, setSelectedPath, sortingState]);
 
     const columnSizeVars = useMemo(() => {
         const headers = table.getFlatHeaders();
@@ -493,18 +493,9 @@ type TableRowProps = {
     handleFileContextMenu: (e: any, finfo: FileInfo) => Promise<void>;
 };
 
-function TableRow({
-    model,
-    row,
-    focusIndex,
-    setFocusIndex,
-    setSearch,
-    idx,
-    handleFileContextMenu,
-}: TableRowProps) {
-    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
-    const dirPath = jotaiLoadableValue(loadableFileInfo, null)?.path;
-    const connection = useAtomValue(model.connectionImmediate);
+function TableRow({ model, row, focusIndex, setFocusIndex, setSearch, idx, handleFileContextMenu }: TableRowProps) {
+    const dirPath = useAtomValue(model.statFilePath);
+    const connection = useAtomValue(model.connection);
 
     const dragItem: DraggedFile = {
         relName: row.getValue("name") as string,

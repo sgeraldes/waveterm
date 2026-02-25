@@ -209,7 +209,9 @@
     border: 1px solid var(--border-color);
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 
     &:hover {
         background: var(--hover-bg-color);
@@ -251,7 +253,9 @@
     color: var(--grey-text-color);
     cursor: pointer;
     border-radius: 3px;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 
     &:hover:not(:disabled) {
         background: var(--hover-bg-color);
@@ -356,7 +360,9 @@
     color: var(--secondary-text-color);
     cursor: pointer;
     border-radius: 4px;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
     flex-shrink: 0;
 
     &:hover {
@@ -584,7 +590,9 @@
     border-radius: 4px;
     font-size: 13px;
     cursor: pointer;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        opacity 0.15s ease;
 
     &.primary {
         background: var(--accent-color);
@@ -724,7 +732,10 @@
     color: var(--secondary-text-color);
     font-size: 16px;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
 
     &:hover {
         background: var(--hover-bg-color);
@@ -810,7 +821,9 @@
     border: 2px solid transparent;
     border-radius: 4px;
     cursor: pointer;
-    transition: border-color 0.15s ease, transform 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        transform 0.15s ease;
 
     &:hover {
         transform: scale(1.1);
@@ -857,7 +870,9 @@
         color: var(--secondary-text-color);
         font-size: 12px;
         cursor: pointer;
-        transition: background-color 0.15s ease, color 0.15s ease;
+        transition:
+            background-color 0.15s ease,
+            color 0.15s ease;
 
         &:hover {
             background: var(--hover-bg-color);

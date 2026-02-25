@@ -19,6 +19,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/baseds"
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
 	"github.com/wavetermdev/waveterm/pkg/remote/fileshare/wshfs"
+	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/util/packetparser"
 	"github.com/wavetermdev/waveterm/pkg/util/sigutil"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
@@ -42,6 +43,7 @@ var connServerRouterDomainSocket bool
 var connServerConnName string
 var connServerDev bool
 var ConnServerWshRouter *wshutil.WshRouter
+var connServerInitialEnv map[string]string
 
 func init() {
 	serverCmd.Flags().BoolVar(&connServerRouter, "router", false, "run in local router mode (stdio upstream)")
@@ -120,7 +122,7 @@ func runListener(listener net.Listener, router *wshutil.WshRouter) {
 	}
 }
 
-func setupConnServerRpcClientWithRouter(router *wshutil.WshRouter) (*wshutil.WshRpc, error) {
+func setupConnServerRpcClientWithRouter(router *wshutil.WshRouter, sockName string) (*wshutil.WshRpc, error) {
 	routeId := wshutil.MakeConnectionRouteId(connServerConnName)
 	rpcCtx := wshrpc.RpcContext{
 		RouteId: routeId,
@@ -131,7 +133,7 @@ func setupConnServerRpcClientWithRouter(router *wshutil.WshRouter) (*wshutil.Wsh
 	bareClient := wshutil.MakeWshRpc(wshrpc.RpcContext{}, &wshclient.WshServer{}, bareRouteId)
 	router.RegisterTrustedLeaf(bareClient, bareRouteId)
 
-	connServerClient := wshutil.MakeWshRpc(rpcCtx, wshremote.MakeRemoteRpcServerImpl(os.Stdout, router, bareClient, false, nil, getRemoteDomainSocketName()), routeId)
+	connServerClient := wshutil.MakeWshRpc(rpcCtx, wshremote.MakeRemoteRpcServerImpl(os.Stdout, router, bareClient, false, connServerInitialEnv, sockName), routeId)
 	router.RegisterTrustedLeaf(connServerClient, routeId)
 	return connServerClient, nil
 }
@@ -170,8 +172,10 @@ func serverRunRouter() error {
 	}()
 	router.RegisterUpstream(termProxy)
 
+	sockName := getRemoteDomainSocketName()
+
 	// setup the connserver rpc client first
-	client, err := setupConnServerRpcClientWithRouter(router)
+	client, err := setupConnServerRpcClientWithRouter(router, sockName)
 	if err != nil {
 		return fmt.Errorf("error setting up connserver rpc client: %v", err)
 	}
@@ -267,15 +271,11 @@ func serverRunRouterDomainSocket(jwtToken string) error {
 	// register the domain socket connection as upstream
 	router.RegisterUpstream(upstreamProxy)
 
-	// setup the connserver rpc client (leaf)
-	client, err := setupConnServerRpcClientWithRouter(router)
-	if err != nil {
-		return fmt.Errorf("error setting up connserver rpc client: %v", err)
-	}
-	wshfs.RpcClient = client
+	// use the router's control RPC to authenticate with upstream
+	controlRpc := router.GetControlRpc()
 
 	// authenticate with the upstream router using the JWT
-	_, err = wshclient.AuthenticateCommand(client, jwtToken, &wshrpc.RpcOpts{Route: wshutil.ControlRoute})
+	_, err = wshclient.AuthenticateCommand(controlRpc, jwtToken, &wshrpc.RpcOpts{Route: wshutil.ControlRootRoute})
 	if err != nil {
 		return fmt.Errorf("error authenticating with upstream: %v", err)
 	}
@@ -283,7 +283,7 @@ func serverRunRouterDomainSocket(jwtToken string) error {
 
 	// fetch and set JWT public key
 	log.Printf("trying to get JWT public key")
-	jwtPublicKeyB64, err := wshclient.GetJwtPublicKeyCommand(client, nil)
+	jwtPublicKeyB64, err := wshclient.GetJwtPublicKeyCommand(controlRpc, nil)
 	if err != nil {
 		return fmt.Errorf("error getting jwt public key: %v", err)
 	}
@@ -296,6 +296,13 @@ func serverRunRouterDomainSocket(jwtToken string) error {
 		return fmt.Errorf("error setting jwt public key: %v", err)
 	}
 	log.Printf("got JWT public key")
+
+	// now setup the connserver rpc client
+	client, err := setupConnServerRpcClientWithRouter(router, sockName)
+	if err != nil {
+		return fmt.Errorf("error setting up connserver rpc client: %v", err)
+	}
+	wshfs.RpcClient = client
 
 	// set up the local domain socket listener for local wsh commands
 	unixListener, err := MakeRemoteUnixListener()
@@ -323,7 +330,11 @@ func serverRunRouterDomainSocket(jwtToken string) error {
 }
 
 func serverRunNormal(jwtToken string) error {
-	err := setupRpcClient(wshremote.MakeRemoteRpcServerImpl(os.Stdout, nil, nil, false, nil, getRemoteDomainSocketName()), jwtToken)
+	sockName, err := wshutil.ExtractUnverifiedSocketName(jwtToken)
+	if err != nil {
+		return fmt.Errorf("error extracting socket name from JWT: %v", err)
+	}
+	err = setupRpcClient(wshremote.MakeRemoteRpcServerImpl(os.Stdout, nil, nil, false, connServerInitialEnv, sockName), jwtToken)
 	if err != nil {
 		return err
 	}
@@ -359,10 +370,13 @@ func askForJwtToken() (string, error) {
 }
 
 func serverRun(cmd *cobra.Command, args []string) error {
+	connServerInitialEnv = envutil.PruneInitialEnv(envutil.SliceToMap(os.Environ()))
+
 	var logFile *os.File
 	if connServerDev {
 		var err error
-		logFile, err = os.OpenFile("/tmp/connserver.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		logFilePath := fmt.Sprintf("/tmp/waveterm-connserver-%d.log", os.Getuid())
+		logFile, err = os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "failed to open log file: %v\n", err)
 			log.SetFlags(log.LstdFlags | log.Lmicroseconds)

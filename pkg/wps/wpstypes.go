@@ -3,7 +3,9 @@
 
 package wps
 
-import "github.com/wavetermdev/waveterm/pkg/util/utilfn"
+import (
+	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
+)
 
 const (
 	Event_BlockClose          = "blockclose"
@@ -18,10 +20,11 @@ const (
 	Event_UserInput           = "userinput"
 	Event_RouteDown           = "route:down"
 	Event_RouteUp             = "route:up"
-	Event_WorkspaceUpdate  = "workspace:update"
-	Event_WaveAIRateLimit  = "waveai:ratelimit"
-	Event_AIModeConfig     = "waveai:modeconfig"
-	Event_TabIndicator     = "tab:indicator"
+	Event_WorkspaceUpdate     = "workspace:update"
+	Event_WaveAIRateLimit     = "waveai:ratelimit"
+	Event_AIModeConfig        = "waveai:modeconfig"
+	Event_TabIndicator        = "tab:indicator"
+	Event_BlockJobStatus      = "block:jobstatus" // type: BlockJobStatusData
 )
 
 type WaveEvent struct {

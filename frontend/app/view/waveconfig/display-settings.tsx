@@ -9,9 +9,9 @@
  * (modified indicator, reset button, same row layout).
  */
 
-import { SettingControl } from "@/app/element/settings/setting-control";
 import { ColorControl } from "@/app/element/settings/color-control";
 import { FontControl } from "@/app/element/settings/font-control";
+import { SettingControl } from "@/app/element/settings/setting-control";
 import { SliderControl } from "@/app/element/settings/slider-control";
 import { ToggleControl } from "@/app/element/settings/toggle-control";
 import { getSettingsKeyAtom } from "@/app/store/global";
@@ -67,7 +67,8 @@ export const DisplaySettings = memo(() => {
 
     // Cast makeSetter result for SettingControl's onChange prop type
     const makeOnChange = useCallback(
-        (key: string) => makeSetter(key) as (value: boolean | number | string | string[] | Record<string, unknown> | null) => void,
+        (key: string) =>
+            makeSetter(key) as (value: boolean | number | string | string[] | Record<string, unknown> | null) => void,
         [makeSetter]
     );
 

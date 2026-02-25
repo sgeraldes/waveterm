@@ -45,6 +45,10 @@
         color: #ef4444 !important;
     }
 
+    &.status-attention .name {
+        color: #eab308 !important;
+        animation: text-pulse 1.5s ease-in-out infinite;
+    }
 
     &::after {
         content: "";
@@ -311,7 +315,8 @@ body.nohover .tab.active .close {
 }
 
 @keyframes text-pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
     }
     50% {

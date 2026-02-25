@@ -1,10 +1,10 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import type { BlockNodeModel } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import logoUrl from "@/app/asset/logo.svg?url";
+import type { BlockNodeModel } from "@/app/block/blocktypes";
 import { atoms, globalStore, replaceBlock } from "@/app/store/global";
+import type { TabModel } from "@/app/store/tab-model";
 import { checkKeyPressed, keydownWrapper } from "@/util/keyutil";
 import { isBlank, makeIconClass } from "@/util/util";
 import clsx from "clsx";
@@ -137,7 +137,7 @@ export class LauncherViewModel implements ViewModel {
     }
 }
 
-const LauncherView: React.FC<ViewComponentProps<LauncherViewModel>> = ({ blockId, model }) => {
+function LauncherView({ blockId, model }: ViewComponentProps<LauncherViewModel>) {
     // Search and selection state
     const [searchTerm, setSearchTerm] = useAtom(model.searchTerm);
     const [selectedIndex, setSelectedIndex] = useAtom(model.selectedIndex);
@@ -282,6 +282,6 @@ const LauncherView: React.FC<ViewComponentProps<LauncherViewModel>> = ({ blockId
             </div>
         </div>
     );
-};
+}
 
 export default LauncherView;

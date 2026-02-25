@@ -24,6 +24,7 @@ import {
     getPrefixedSettings,
     isBlank,
     isLocalConnName,
+    isWslConnName,
 } from "@/util/util";
 import { atom, Atom, PrimitiveAtom, useAtomValue } from "jotai";
 import { globalStore } from "./jotaiStore";
@@ -423,6 +424,54 @@ function getSingleOrefAtomCache(oref: string): Map<string, Atom<any>> {
     return orefCache;
 }
 
+// this function should be kept up to date with IsBlockTermDurable in pkg/jobcontroller/jobcontroller.go
+// Note: null/false both map to false in the Go code, but this returns a special null value
+// to indicate when the block is not even eligible to be durable
+function getBlockTermDurableAtom(blockId: string): Atom<null | boolean> {
+    const blockCache = getSingleBlockAtomCache(blockId);
+    const durableAtomName = "#termdurable";
+    let durableAtom = blockCache.get(durableAtomName);
+    if (durableAtom != null) {
+        return durableAtom;
+    }
+    durableAtom = atom((get) => {
+        const blockAtom = WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", blockId));
+        const block = get(blockAtom);
+
+        if (block == null) {
+            return null;
+        }
+
+        // Check if view is "term", and controller is "shell"
+        if (block.meta?.view != "term" || block.meta?.controller != "shell") {
+            return null;
+        }
+
+        // 1. Check if block has a JobId
+        if (block.jobid != null && block.jobid != "") {
+            return true;
+        }
+
+        // 2. Check if connection is local or WSL (not eligible for durability)
+        const connName = block.meta?.connection ?? "";
+        if (isLocalConnName(connName) || isWslConnName(connName)) {
+            return null;
+        }
+
+        // 3. Check config hierarchy: blockmeta → connection → global (default true)
+        const durableConfigAtom = getOverrideConfigAtom(blockId, "term:durable");
+        const durableConfig = get(durableConfigAtom);
+        if (durableConfig != null) {
+            return durableConfig;
+        }
+
+        // Default to true for non-local connections
+        return true;
+    });
+    blockCache.set(durableAtomName, durableAtom);
+    return durableAtom;
+}
+
 function useBlockAtom<T>(blockId: string, name: string, makeFn: () => Atom<T>): Atom<T> {
     const blockCache = getSingleBlockAtomCache(blockId);
     let atom = blockCache.get(name);
@@ -612,6 +661,18 @@ function getHostName(): string {
         cachedHostName = getApi().getHostName();
     }
     return cachedHostName;
+}
+
+const LocalHostDisplayNameAtom: Atom<string> = atom((get) => {
+    const configValue = get(getSettingsKeyAtom("conn:localhostdisplayname"));
+    if (configValue != null) {
+        return configValue;
+    }
+    return getUserName() + "@" + getHostName();
+});
+
+function getLocalHostDisplayNameAtom(): Atom<string> {
+    return LocalHostDisplayNameAtom;
 }
 
 /**
@@ -914,9 +975,11 @@ export {
     getApi,
     getBlockComponentModel,
     getBlockMetaKeyAtom,
+    getBlockTermDurableAtom,
     getConnStatusAtom,
     getFocusedBlockId,
     getHostName,
+    getLocalHostDisplayNameAtom,
     getObjectId,
     getOrefMetaKeyAtom,
     getOverrideConfigAtom,

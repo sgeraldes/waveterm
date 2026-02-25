@@ -81,6 +81,7 @@ function isNetworkPath(path: string): boolean {
     return false;
 }
 
+// Validate path with timeout
 async function validatePathWithTimeout(basedir: string, timeout: number): Promise<PathValidationResult> {
     const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("ETIMEDOUT")), timeout);
@@ -170,6 +171,7 @@ async function validateWithNetworkRetry(
     return { valid: false, path: basedir, reason: "network_error" };
 }
 
+// Main validation function
 export async function validateTabBasedir(tabId: string, basedir: string): Promise<PathValidationResult> {
     if (!basedir || basedir.trim() === "") {
         return { valid: true, path: basedir };
@@ -209,6 +211,7 @@ function getReasonMessage(reason: StalePathReason, path: string): string {
     }
 }
 
+// Clear stale path and notify user
 export async function handleStaleBasedir(tabId: string, path: string, reason: StalePathReason): Promise<void> {
     const tabORef = WOS.makeORef("tab", tabId);
 

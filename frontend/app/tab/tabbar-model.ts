@@ -1,8 +1,8 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { atom, type PrimitiveAtom } from "jotai";
 import { globalStore } from "@/app/store/jotaiStore";
+import { atom, type PrimitiveAtom } from "jotai";
 
 export class TabBarModel {
     private static instance: TabBarModel | null = null;

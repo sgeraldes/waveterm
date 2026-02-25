@@ -18,6 +18,7 @@ declare global {
         "ai:apitype"?: string;
         "ai:model"?: string;
         "ai:thinkinglevel"?: string;
+        "ai:verbosity"?: string;
         "ai:endpoint"?: string;
         "ai:azureapiversion"?: string;
         "ai:apitoken"?: string;
@@ -103,6 +104,20 @@ declare global {
         files: WaveFileInfo[];
     };
 
+    // wshrpc.BlockJobStatusData
+    type BlockJobStatusData = {
+        blockid: string;
+        jobid: string;
+        status?: null | "init" | "connected" | "disconnected" | "done";
+        versionts: number;
+        donereason?: string;
+        startuperror?: string;
+        cmdexitts?: number;
+        cmdexitcode?: number;
+        cmdexitsignal?: string;
+    };
+
+    // wshrpc.BlocksListEntry
     type BlocksListEntry = {
         windowid: string;
         workspaceid: string;
@@ -593,6 +608,7 @@ declare global {
         "term:fontsize"?: number;
         "term:fontfamily"?: string;
         "term:theme"?: string;
+        "term:durable"?: boolean;
         "cmd:env"?: {[key: string]: string};
         "cmd:initscript"?: string;
         "cmd:initscript.sh"?: string;
@@ -764,6 +780,7 @@ declare global {
         cmdenv?: {[key: string]: string};
         jobauthtoken: string;
         attachedblockid?: string;
+        waveversion?: string;
         terminateonreconnect?: boolean;
         jobmanagerstatus: string;
         jobmanagerdonereason?: string;
@@ -781,6 +798,13 @@ declare global {
         streamerror?: string;
     };
 
+    // wshrpc.JobManagerStatusUpdate
+    type JobManagerStatusUpdate = {
+        jobid: string;
+        jobmanagerstatus: string;
+    };
+
+    // waveobj.LayoutActionData
     type LayoutActionData = {
         actiontype: string;
         actionid: string;
@@ -920,11 +944,13 @@ declare global {
         "term:conndebug"?: string;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:durable"?: boolean;
         "term:reportfocus"?: boolean;
         "term:title"?: string;
         "term:cursorstyle"?: string;
         "term:cursorblink"?: boolean;
         "term:lineheight"?: number;
+        "termhistory:blockid"?: string;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
         "web:partition"?: string;
@@ -1111,6 +1137,29 @@ declare global {
         winsize?: WinSize;
     };
 
+    // sessionhistory.SegmentInfo
+    type SegmentInfo = {
+        filename: string;
+        sizeBytes: number;
+        modTimeMs: number;
+        isRolling: boolean;
+    };
+
+    // sessionhistory.SessionInfo
+    type SessionInfo = {
+        blockId: string;
+        tabId: string;
+        tabBaseDir: string;
+        connection?: string;
+        cwd?: string;
+        createdAt: number;
+        lastUpdatedAt: number;
+        totalBytes: number;
+        segmentCount: number;
+        segments: SegmentInfo[];
+    };
+
+    // wshrpc.SetShellProfileRequest
     type SetShellProfileRequest = {
         profileid: string;
         profile: ShellProfileData;
@@ -1162,6 +1211,7 @@ declare global {
         "term:omptheme"?: string;
         "term:bellsound"?: boolean;
         "term:bellindicator"?: boolean;
+        "term:durable"?: boolean;
         "term:reportfocus"?: boolean;
         "editor:minimapenabled"?: boolean;
         "editor:stickyscrollenabled"?: boolean;
@@ -1172,8 +1222,6 @@ declare global {
         "web:openlinksinternally"?: boolean;
         "web:defaulturl"?: string;
         "web:defaultsearch"?: string;
-        "blockheader:*"?: boolean;
-        "blockheader:showblockids"?: boolean;
         "autoupdate:*"?: boolean;
         "autoupdate:enabled"?: boolean;
         "autoupdate:intervalms"?: number;
@@ -1210,6 +1258,7 @@ declare global {
         "conn:*"?: boolean;
         "conn:askbeforewshinstall"?: boolean;
         "conn:wshenabled"?: boolean;
+        "conn:localhostdisplayname"?: string;
         "shell:*"?: boolean;
         "shell:default"?: string;
         "shell:profiles"?: {[key: string]: ShellProfileType};

@@ -5,8 +5,6 @@
  * Hook for managing individual setting values with optimistic updates.
  */
 
-import { useAtom, useAtomValue } from "jotai";
-import { useCallback, useMemo } from "react";
 import {
     allSettingsAtom,
     getSettingAtom,
@@ -14,8 +12,10 @@ import {
     isSavingAtom,
     saveErrorAtom,
 } from "@/app/store/settings-atoms";
-import { settingsService } from "@/app/store/settings-service";
 import { getDefaultValue, getSettingMetadata } from "@/app/store/settings-registry";
+import { settingsService } from "@/app/store/settings-service";
+import { useAtom, useAtomValue } from "jotai";
+import { useCallback, useMemo } from "react";
 
 interface UseSettingValueResult<T> {
     /** Current value of the setting (includes pending changes) */

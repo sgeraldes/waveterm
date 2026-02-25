@@ -68,11 +68,7 @@ const ImportAction = memo(({ onImport }: { onImport: (config: OmpConfigData) => 
 
     return (
         <>
-            <button
-                className="advanced-action"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={importing}
-            >
+            <button className="advanced-action" onClick={() => fileInputRef.current?.click()} disabled={importing}>
                 {importing ? (
                     <i className="fa fa-solid fa-spinner fa-spin" />
                 ) : (
@@ -164,65 +160,57 @@ CopyAction.displayName = "CopyAction";
 /**
  * Restore from backup action component
  */
-const RestoreAction = memo(
-    ({
-        backupExists,
-        onReload,
-    }: {
-        backupExists: boolean;
-        onReload: () => void;
-    }) => {
-        const [restoring, setRestoring] = useState(false);
+const RestoreAction = memo(({ backupExists, onReload }: { backupExists: boolean; onReload: () => void }) => {
+    const [restoring, setRestoring] = useState(false);
 
-        const handleRestore = useCallback(async () => {
-            if (!confirm("Restore from backup? This will replace your current configuration.")) {
-                return;
-            }
-
-            setRestoring(true);
-            try {
-                const result = await RpcApi.OmpRestoreBackupCommand(TabRpcClient, {});
-                if (result.error) {
-                    alert(`Failed to restore: ${result.error}`);
-                    return;
-                }
-                onReload();
-                await reinitOmpInAllTerminals();
-            } catch (err) {
-                console.error("Failed to restore backup:", err);
-                alert(`Failed to restore: ${err}`);
-            } finally {
-                setRestoring(false);
-            }
-        }, [onReload]);
-
-        if (!backupExists) {
-            return (
-                <div className="advanced-action disabled">
-                    <i className="fa fa-solid fa-rotate-left" />
-                    <div>
-                        <div className="action-label">Restore from Backup</div>
-                        <div className="action-description">No backup available</div>
-                    </div>
-                </div>
-            );
+    const handleRestore = useCallback(async () => {
+        if (!confirm("Restore from backup? This will replace your current configuration.")) {
+            return;
         }
 
+        setRestoring(true);
+        try {
+            const result = await RpcApi.OmpRestoreBackupCommand(TabRpcClient, {});
+            if (result.error) {
+                alert(`Failed to restore: ${result.error}`);
+                return;
+            }
+            onReload();
+            await reinitOmpInAllTerminals();
+        } catch (err) {
+            console.error("Failed to restore backup:", err);
+            alert(`Failed to restore: ${err}`);
+        } finally {
+            setRestoring(false);
+        }
+    }, [onReload]);
+
+    if (!backupExists) {
         return (
-            <button className="advanced-action" onClick={handleRestore} disabled={restoring}>
-                {restoring ? (
-                    <i className="fa fa-solid fa-spinner fa-spin" />
-                ) : (
-                    <i className="fa fa-solid fa-rotate-left" />
-                )}
+            <div className="advanced-action disabled">
+                <i className="fa fa-solid fa-rotate-left" />
                 <div>
                     <div className="action-label">Restore from Backup</div>
-                    <div className="action-description">Revert to last saved version</div>
+                    <div className="action-description">No backup available</div>
                 </div>
-            </button>
+            </div>
         );
     }
-);
+
+    return (
+        <button className="advanced-action" onClick={handleRestore} disabled={restoring}>
+            {restoring ? (
+                <i className="fa fa-solid fa-spinner fa-spin" />
+            ) : (
+                <i className="fa fa-solid fa-rotate-left" />
+            )}
+            <div>
+                <div className="action-label">Restore from Backup</div>
+                <div className="action-description">Revert to last saved version</div>
+            </div>
+        </button>
+    );
+});
 
 RestoreAction.displayName = "RestoreAction";
 

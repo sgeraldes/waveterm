@@ -13,7 +13,6 @@ import { atoms, getApi } from "@/store/global";
 import * as WOS from "@/store/wos";
 import { useAtomValue } from "jotai";
 import React, { memo, useEffect, useMemo, useRef } from "react";
-import "./workspace.scss";
 import {
     ImperativePanelGroupHandle,
     ImperativePanelHandle,
@@ -21,6 +20,7 @@ import {
     PanelGroup,
     PanelResizeHandle,
 } from "react-resizable-panels";
+import "./workspace.scss";
 
 /**
  * Formats a file path as breadcrumb segments.

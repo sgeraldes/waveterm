@@ -8,7 +8,7 @@ require (
 	github.com/creack/pty v1.1.24
 	github.com/emirpasic/gods v1.18.1
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/golang-jwt/jwt/v5 v5.3.0
+	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/generative-ai-go v0.20.1
 	github.com/google/uuid v1.6.0
@@ -34,7 +34,7 @@ require (
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.40.0
 	golang.org/x/term v0.39.0
-	google.golang.org/api v0.262.0
+	google.golang.org/api v0.264.0
 )
 
 require (

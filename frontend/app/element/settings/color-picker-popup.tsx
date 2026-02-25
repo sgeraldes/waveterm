@@ -282,389 +282,375 @@ const SLIDER_CHANNELS = [
     { key: "b" as const, label: "Blue" },
 ];
 
-const ColorPickerPopup = memo(({ initialColor, defaultColor, anchorRect, onChange, onCommit, onCancel }: ColorPickerPopupProps) => {
-    const initial = useMemo(() => parseColor(initialColor), [initialColor]);
-    const initialHsv = useMemo(() => rgbToHsv(initial.r, initial.g, initial.b), [initial]);
-    const defaultRgba = useMemo(() => parseColor(defaultColor ?? initialColor), [defaultColor, initialColor]);
-    const defaultHsv = useMemo(() => rgbToHsv(defaultRgba.r, defaultRgba.g, defaultRgba.b), [defaultRgba]);
+const ColorPickerPopup = memo(
+    ({ initialColor, defaultColor, anchorRect, onChange, onCommit, onCancel }: ColorPickerPopupProps) => {
+        const initial = useMemo(() => parseColor(initialColor), [initialColor]);
+        const initialHsv = useMemo(() => rgbToHsv(initial.r, initial.g, initial.b), [initial]);
+        const defaultRgba = useMemo(() => parseColor(defaultColor ?? initialColor), [defaultColor, initialColor]);
+        const defaultHsv = useMemo(() => rgbToHsv(defaultRgba.r, defaultRgba.g, defaultRgba.b), [defaultRgba]);
 
-    const [hsv, setHsv] = useState<HSV>(initialHsv);
-    const [alpha, setAlpha] = useState(initial.a);
-    const [tab, setTab] = useState<PickerTab>("grid");
-    const [hexInput, setHexInput] = useState(rgbaToHex6(initial));
-    const [recentColors, setRecentColors] = useState(() => getRecentColors());
+        const [hsv, setHsv] = useState<HSV>(initialHsv);
+        const [alpha, setAlpha] = useState(initial.a);
+        const [tab, setTab] = useState<PickerTab>("grid");
+        const [hexInput, setHexInput] = useState(rgbaToHex6(initial));
+        const [recentColors, setRecentColors] = useState(() => getRecentColors());
 
-    const mountedRef = useRef(false);
+        const mountedRef = useRef(false);
 
-    // Current RGBA from HSV + alpha
-    const currentRgba = useMemo((): RGBA => {
-        const { r, g, b } = hsvToRgb(hsv.h, hsv.s, hsv.v);
-        return { r, g, b, a: alpha };
-    }, [hsv, alpha]);
+        // Current RGBA from HSV + alpha
+        const currentRgba = useMemo((): RGBA => {
+            const { r, g, b } = hsvToRgb(hsv.h, hsv.s, hsv.v);
+            return { r, g, b, a: alpha };
+        }, [hsv, alpha]);
 
-    const currentColorString = useMemo(() => rgbaToString(currentRgba), [currentRgba]);
-    const currentHex = useMemo(() => rgbaToHex6(currentRgba), [currentRgba]);
-    const currentRgb = useMemo(() => hsvToRgb(hsv.h, hsv.s, hsv.v), [hsv]);
-    const defaultHex = useMemo(() => rgbaToHex6(defaultRgba), [defaultRgba]);
-    const hasChanged = currentHex.toLowerCase() !== defaultHex.toLowerCase() || alpha !== defaultRgba.a;
+        const currentColorString = useMemo(() => rgbaToString(currentRgba), [currentRgba]);
+        const currentHex = useMemo(() => rgbaToHex6(currentRgba), [currentRgba]);
+        const currentRgb = useMemo(() => hsvToRgb(hsv.h, hsv.s, hsv.v), [hsv]);
+        const defaultHex = useMemo(() => rgbaToHex6(defaultRgba), [defaultRgba]);
+        const hasChanged = currentHex.toLowerCase() !== defaultHex.toLowerCase() || alpha !== defaultRgba.a;
 
-    // Notify parent of live color changes (skip initial render)
-    useEffect(() => {
-        if (!mountedRef.current) {
-            mountedRef.current = true;
-            return;
-        }
-        onChange(currentColorString);
-    }, [currentColorString, onChange]);
-
-    // Sync hex input when color changes from non-text interaction
-    useEffect(() => {
-        setHexInput(currentHex);
-    }, [currentHex]);
-
-    // Escape = cancel, revert to initial
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "Escape") {
-                onChange(initialColor);
-                onCancel();
+        // Notify parent of live color changes (skip initial render)
+        useEffect(() => {
+            if (!mountedRef.current) {
+                mountedRef.current = true;
+                return;
             }
-        };
-        document.addEventListener("keydown", handleKeyDown);
-        return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [initialColor, onChange, onCancel]);
+            onChange(currentColorString);
+        }, [currentColorString, onChange]);
 
-    // Commit: save to recent and persist
-    const handleCommit = useCallback(() => {
-        addRecentColor(currentColorString);
-        setRecentColors(getRecentColors());
-        onCommit(currentColorString);
-    }, [currentColorString, onCommit]);
+        // Sync hex input when color changes from non-text interaction
+        useEffect(() => {
+            setHexInput(currentHex);
+        }, [currentHex]);
 
-    // Grid cell click
-    const handleGridClick = useCallback((color: string) => {
-        const rgba = parseColor(color);
-        setHsv(rgbToHsv(rgba.r, rgba.g, rgba.b));
-    }, []);
-
-    // Spectrum area interaction (hue × brightness, saturation fixed at 1.0)
-    const spectrumRef = useRef<HTMLDivElement>(null);
-    const handleSpectrumInteraction = useCallback((clientX: number, clientY: number) => {
-        const el = spectrumRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        const h = clamp((clientX - rect.left) / rect.width, 0, 1) * 360;
-        const v = 1 - clamp((clientY - rect.top) / rect.height, 0, 1);
-        setHsv({ h, s: 1, v });
-    }, []);
-
-    const handleSpectrumMouseDown = useCallback(
-        (e: React.MouseEvent) => {
-            e.preventDefault();
-            handleSpectrumInteraction(e.clientX, e.clientY);
-            const onMove = (ev: MouseEvent) => handleSpectrumInteraction(ev.clientX, ev.clientY);
-            const onUp = () => {
-                document.removeEventListener("mousemove", onMove);
-                document.removeEventListener("mouseup", onUp);
+        // Escape = cancel, revert to initial
+        useEffect(() => {
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === "Escape") {
+                    onChange(initialColor);
+                    onCancel();
+                }
             };
-            document.addEventListener("mousemove", onMove);
-            document.addEventListener("mouseup", onUp);
-        },
-        [handleSpectrumInteraction]
-    );
+            document.addEventListener("keydown", handleKeyDown);
+            return () => document.removeEventListener("keydown", handleKeyDown);
+        }, [initialColor, onChange, onCancel]);
 
-    // Hue slider (used in Grid tab)
-    const handleHueChange = useCallback((normalized: number) => {
-        setHsv((prev) => ({ ...prev, h: normalized * 360 }));
-    }, []);
+        // Commit: save to recent and persist
+        const handleCommit = useCallback(() => {
+            addRecentColor(currentColorString);
+            setRecentColors(getRecentColors());
+            onCommit(currentColorString);
+        }, [currentColorString, onCommit]);
 
-    // RGB slider changes
-    const handleRgbChange = useCallback(
-        (channel: "r" | "g" | "b", value: number) => {
-            const rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
-            rgb[channel] = Math.round(value);
-            const newHsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
-            if (newHsv.s === 0) newHsv.h = hsv.h;
-            setHsv(newHsv);
-        },
-        [hsv]
-    );
+        // Grid cell click
+        const handleGridClick = useCallback((color: string) => {
+            const rgba = parseColor(color);
+            setHsv(rgbToHsv(rgba.r, rgba.g, rgba.b));
+        }, []);
 
-    // Hex text input
-    const handleHexInputChange = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const val = e.target.value;
-            setHexInput(val);
-            if (/^#[0-9a-f]{6}$/i.test(val)) {
-                const rgba = parseColor(val);
-                const newHsv = rgbToHsv(rgba.r, rgba.g, rgba.b);
+        // Spectrum area interaction (hue × brightness, saturation fixed at 1.0)
+        const spectrumRef = useRef<HTMLDivElement>(null);
+        const handleSpectrumInteraction = useCallback((clientX: number, clientY: number) => {
+            const el = spectrumRef.current;
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const h = clamp((clientX - rect.left) / rect.width, 0, 1) * 360;
+            const v = 1 - clamp((clientY - rect.top) / rect.height, 0, 1);
+            setHsv({ h, s: 1, v });
+        }, []);
+
+        const handleSpectrumMouseDown = useCallback(
+            (e: React.MouseEvent) => {
+                e.preventDefault();
+                handleSpectrumInteraction(e.clientX, e.clientY);
+                const onMove = (ev: MouseEvent) => handleSpectrumInteraction(ev.clientX, ev.clientY);
+                const onUp = () => {
+                    document.removeEventListener("mousemove", onMove);
+                    document.removeEventListener("mouseup", onUp);
+                };
+                document.addEventListener("mousemove", onMove);
+                document.addEventListener("mouseup", onUp);
+            },
+            [handleSpectrumInteraction]
+        );
+
+        // Hue slider (used in Grid tab)
+        const handleHueChange = useCallback((normalized: number) => {
+            setHsv((prev) => ({ ...prev, h: normalized * 360 }));
+        }, []);
+
+        // RGB slider changes
+        const handleRgbChange = useCallback(
+            (channel: "r" | "g" | "b", value: number) => {
+                const rgb = hsvToRgb(hsv.h, hsv.s, hsv.v);
+                rgb[channel] = Math.round(value);
+                const newHsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
                 if (newHsv.s === 0) newHsv.h = hsv.h;
                 setHsv(newHsv);
+            },
+            [hsv]
+        );
+
+        // Hex text input
+        const handleHexInputChange = useCallback(
+            (e: React.ChangeEvent<HTMLInputElement>) => {
+                const val = e.target.value;
+                setHexInput(val);
+                if (/^#[0-9a-f]{6}$/i.test(val)) {
+                    const rgba = parseColor(val);
+                    const newHsv = rgbToHsv(rgba.r, rgba.g, rgba.b);
+                    if (newHsv.s === 0) newHsv.h = hsv.h;
+                    setHsv(newHsv);
+                }
+            },
+            [hsv.h]
+        );
+
+        // Recent color click
+        const handleRecentClick = useCallback((color: string) => {
+            const rgba = parseColor(color);
+            setHsv(rgbToHsv(rgba.r, rgba.g, rgba.b));
+            setAlpha(rgba.a);
+        }, []);
+
+        // Revert to theme default (click large current-color square or revert button)
+        const handleRevert = useCallback(() => {
+            setHsv(defaultHsv);
+            setAlpha(defaultRgba.a);
+        }, [defaultHsv, defaultRgba.a]);
+
+        // Add current color to recent (+ button)
+        const handleAddRecent = useCallback(() => {
+            addRecentColor(currentColorString);
+            setRecentColors(getRecentColors());
+        }, [currentColorString]);
+
+        // Eyedropper (EyeDropper API — Chromium only)
+        const handleEyedropper = useCallback(async () => {
+            if (!("EyeDropper" in window)) return;
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const dropper = new (window as any).EyeDropper();
+                const result = await dropper.open();
+                if (result?.sRGBHex) {
+                    const rgba = parseColor(result.sRGBHex);
+                    const newHsv = rgbToHsv(rgba.r, rgba.g, rgba.b);
+                    setHsv(newHsv);
+                }
+            } catch {
+                // User cancelled or API not available
             }
-        },
-        [hsv.h]
-    );
+        }, []);
 
-    // Recent color click
-    const handleRecentClick = useCallback((color: string) => {
-        const rgba = parseColor(color);
-        setHsv(rgbToHsv(rgba.r, rgba.g, rgba.b));
-        setAlpha(rgba.a);
-    }, []);
-
-    // Revert to theme default (click large current-color square or revert button)
-    const handleRevert = useCallback(() => {
-        setHsv(defaultHsv);
-        setAlpha(defaultRgba.a);
-    }, [defaultHsv, defaultRgba.a]);
-
-    // Add current color to recent (+ button)
-    const handleAddRecent = useCallback(() => {
-        addRecentColor(currentColorString);
-        setRecentColors(getRecentColors());
-    }, [currentColorString]);
-
-    // Eyedropper (EyeDropper API — Chromium only)
-    const handleEyedropper = useCallback(async () => {
-        if (!("EyeDropper" in window)) return;
-        try {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const dropper = new (window as any).EyeDropper();
-            const result = await dropper.open();
-            if (result?.sRGBHex) {
-                const rgba = parseColor(result.sRGBHex);
-                const newHsv = rgbToHsv(rgba.r, rgba.g, rgba.b);
-                setHsv(newHsv);
+        // Popup position
+        const popupStyle = useMemo((): React.CSSProperties => {
+            const popupWidth = 290;
+            const popupHeight = 460;
+            const margin = 8;
+            let top = anchorRect.bottom + margin;
+            let left = anchorRect.left;
+            if (left + popupWidth > window.innerWidth - margin) {
+                left = window.innerWidth - popupWidth - margin;
             }
-        } catch {
-            // User cancelled or API not available
-        }
-    }, []);
+            if (top + popupHeight > window.innerHeight - margin) {
+                top = anchorRect.top - popupHeight - margin;
+            }
+            left = Math.max(margin, left);
+            top = Math.max(margin, top);
+            return { top, left };
+        }, [anchorRect]);
 
-    // Popup position
-    const popupStyle = useMemo((): React.CSSProperties => {
-        const popupWidth = 290;
-        const popupHeight = 460;
-        const margin = 8;
-        let top = anchorRect.bottom + margin;
-        let left = anchorRect.left;
-        if (left + popupWidth > window.innerWidth - margin) {
-            left = window.innerWidth - popupWidth - margin;
-        }
-        if (top + popupHeight > window.innerHeight - margin) {
-            top = anchorRect.top - popupHeight - margin;
-        }
-        left = Math.max(margin, left);
-        top = Math.max(margin, top);
-        return { top, left };
-    }, [anchorRect]);
+        // Derived style values
+        const opaqueColor = useMemo(() => `rgb(${currentRgba.r},${currentRgba.g},${currentRgba.b})`, [currentRgba]);
 
-    // Derived style values
-    const opaqueColor = useMemo(
-        () => `rgb(${currentRgba.r},${currentRgba.g},${currentRgba.b})`,
-        [currentRgba]
-    );
-
-    return createPortal(
-        <>
-            <div className="cp-backdrop" aria-hidden="true" onClick={handleCommit} />
-            <div className="cp-popup" style={popupStyle}>
-                {/* Title bar */}
-                <div className="cp-titlebar">
-                    <button
-                        className="cp-titlebar-btn"
-                        onClick={handleEyedropper}
-                        title="Pick color from screen"
-                    >
-                        <i className="fa fa-solid fa-eye-dropper" />
-                    </button>
-                    <span className="cp-titlebar-title">Colors</span>
-                    <div className="cp-titlebar-actions">
-                        {hasChanged && (
-                            <button
-                                className="cp-titlebar-btn"
-                                onClick={handleRevert}
-                                title="Revert to original"
-                            >
-                                <i className="fa fa-solid fa-rotate-left" />
+        return createPortal(
+            <>
+                <div className="cp-backdrop" aria-hidden="true" onClick={handleCommit} />
+                <div className="cp-popup" style={popupStyle}>
+                    {/* Title bar */}
+                    <div className="cp-titlebar">
+                        <button className="cp-titlebar-btn" onClick={handleEyedropper} title="Pick color from screen">
+                            <i className="fa fa-solid fa-eye-dropper" />
+                        </button>
+                        <span className="cp-titlebar-title">Colors</span>
+                        <div className="cp-titlebar-actions">
+                            {hasChanged && (
+                                <button className="cp-titlebar-btn" onClick={handleRevert} title="Revert to original">
+                                    <i className="fa fa-solid fa-rotate-left" />
+                                </button>
+                            )}
+                            <button className="cp-titlebar-btn" onClick={handleCommit} title="Close">
+                                <i className="fa fa-solid fa-xmark" />
                             </button>
-                        )}
-                        <button className="cp-titlebar-btn" onClick={handleCommit} title="Close">
-                            <i className="fa fa-solid fa-xmark" />
-                        </button>
-                    </div>
-                </div>
-
-                {/* Segmented tab bar */}
-                <div className="cp-tabs">
-                    {(["grid", "spectrum", "sliders"] as PickerTab[]).map((t) => (
-                        <button
-                            key={t}
-                            className={`cp-tab${tab === t ? " cp-tab--active" : ""}`}
-                            onClick={() => setTab(t)}
-                        >
-                            {t.charAt(0).toUpperCase() + t.slice(1)}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Tab content */}
-                <div className="cp-content">
-                    {tab === "grid" && (
-                        <div className="cp-grid">
-                            <div className="cp-grid-colors">
-                                {COLOR_GRID.map((row, ri) => (
-                                    <div key={ri} className="cp-grid-row">
-                                        {row.map((color, ci) => (
-                                            <button
-                                                key={ci}
-                                                className={`cp-grid-cell${color.toLowerCase() === currentHex.toLowerCase() ? " cp-grid-cell--selected" : ""}`}
-                                                style={{ backgroundColor: color }}
-                                                onClick={() => handleGridClick(color)}
-                                                title={color}
-                                            />
-                                        ))}
-                                    </div>
-                                ))}
-                            </div>
                         </div>
-                    )}
+                    </div>
 
-                    {tab === "spectrum" && (
-                        <div
-                            ref={spectrumRef}
-                            className="cp-spectrum-area"
-                            onMouseDown={handleSpectrumMouseDown}
-                        >
-                            <div
-                                className="cp-spectrum-cursor"
+                    {/* Segmented tab bar */}
+                    <div className="cp-tabs">
+                        {(["grid", "spectrum", "sliders"] as PickerTab[]).map((t) => (
+                            <button
+                                key={t}
+                                className={`cp-tab${tab === t ? " cp-tab--active" : ""}`}
+                                onClick={() => setTab(t)}
+                            >
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Tab content */}
+                    <div className="cp-content">
+                        {tab === "grid" && (
+                            <div className="cp-grid">
+                                <div className="cp-grid-colors">
+                                    {COLOR_GRID.map((row, ri) => (
+                                        <div key={ri} className="cp-grid-row">
+                                            {row.map((color, ci) => (
+                                                <button
+                                                    key={ci}
+                                                    className={`cp-grid-cell${color.toLowerCase() === currentHex.toLowerCase() ? " cp-grid-cell--selected" : ""}`}
+                                                    style={{ backgroundColor: color }}
+                                                    onClick={() => handleGridClick(color)}
+                                                    title={color}
+                                                />
+                                            ))}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {tab === "spectrum" && (
+                            <div ref={spectrumRef} className="cp-spectrum-area" onMouseDown={handleSpectrumMouseDown}>
+                                <div
+                                    className="cp-spectrum-cursor"
+                                    style={{
+                                        left: `${(hsv.h / 360) * 100}%`,
+                                        top: `${(1 - hsv.v) * 100}%`,
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {tab === "sliders" && (
+                            <div className="cp-sliders">
+                                <div className="cp-slider-group">
+                                    <span className="cp-slider-label">Hue</span>
+                                    <div className="cp-slider-row">
+                                        <SliderTrack
+                                            className="cp-hue-slider"
+                                            value={hsv.h / 360}
+                                            onChange={handleHueChange}
+                                        />
+                                        <input
+                                            type="number"
+                                            className="cp-slider-number"
+                                            min={0}
+                                            max={360}
+                                            value={Math.round(hsv.h)}
+                                            onChange={(e) =>
+                                                setHsv((prev) => ({
+                                                    ...prev,
+                                                    h: clamp(Number.parseInt(e.target.value) || 0, 0, 360),
+                                                }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                {SLIDER_CHANNELS.map(({ key: ch, label }) => {
+                                    const val = currentRgb[ch];
+                                    const from = { ...currentRgb, [ch]: 0 };
+                                    const to = { ...currentRgb, [ch]: 255 };
+                                    const gradient = `linear-gradient(to right, rgb(${from.r},${from.g},${from.b}), rgb(${to.r},${to.g},${to.b}))`;
+                                    return (
+                                        <div key={ch} className="cp-slider-group">
+                                            <span className="cp-slider-label">{label}</span>
+                                            <div className="cp-slider-row">
+                                                <SliderTrack
+                                                    className="cp-rgb-slider"
+                                                    value={val / 255}
+                                                    onChange={(v) => handleRgbChange(ch, v * 255)}
+                                                    style={{ background: gradient }}
+                                                />
+                                                <input
+                                                    type="number"
+                                                    className="cp-slider-number"
+                                                    min={0}
+                                                    max={255}
+                                                    value={val}
+                                                    onChange={(e) =>
+                                                        handleRgbChange(
+                                                            ch,
+                                                            clamp(Number.parseInt(e.target.value) || 0, 0, 255)
+                                                        )
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Hex input row */}
+                    <div className="cp-hex-row">
+                        <span className="cp-hex-label">Hex Color #</span>
+                        <input
+                            type="text"
+                            className="cp-hex-input"
+                            value={hexInput}
+                            onChange={handleHexInputChange}
+                            spellCheck={false}
+                        />
+                    </div>
+
+                    {/* Opacity slider */}
+                    <div className="cp-opacity-section">
+                        <span className="cp-opacity-label">Opacity</span>
+                        <div className="cp-opacity-track-wrapper">
+                            <SliderTrack
+                                className="cp-opacity-slider"
+                                value={alpha}
+                                onChange={setAlpha}
                                 style={{
-                                    left: `${(hsv.h / 360) * 100}%`,
-                                    top: `${(1 - hsv.v) * 100}%`,
+                                    background: `linear-gradient(to right, transparent, ${opaqueColor})`,
                                 }}
                             />
                         </div>
-                    )}
+                        <span className="cp-opacity-value">{Math.round(alpha * 100)}%</span>
+                    </div>
 
-                    {tab === "sliders" && (
-                        <div className="cp-sliders">
-                            <div className="cp-slider-group">
-                                <span className="cp-slider-label">Hue</span>
-                                <div className="cp-slider-row">
-                                    <SliderTrack
-                                        className="cp-hue-slider"
-                                        value={hsv.h / 360}
-                                        onChange={handleHueChange}
-                                    />
-                                    <input
-                                        type="number"
-                                        className="cp-slider-number"
-                                        min={0}
-                                        max={360}
-                                        value={Math.round(hsv.h)}
-                                        onChange={(e) =>
-                                            setHsv((prev) => ({
-                                                ...prev,
-                                                h: clamp(Number.parseInt(e.target.value) || 0, 0, 360),
-                                            }))
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            {SLIDER_CHANNELS.map(({ key: ch, label }) => {
-                                const val = currentRgb[ch];
-                                const from = { ...currentRgb, [ch]: 0 };
-                                const to = { ...currentRgb, [ch]: 255 };
-                                const gradient = `linear-gradient(to right, rgb(${from.r},${from.g},${from.b}), rgb(${to.r},${to.g},${to.b}))`;
-                                return (
-                                    <div key={ch} className="cp-slider-group">
-                                        <span className="cp-slider-label">{label}</span>
-                                        <div className="cp-slider-row">
-                                            <SliderTrack
-                                                className="cp-rgb-slider"
-                                                value={val / 255}
-                                                onChange={(v) => handleRgbChange(ch, v * 255)}
-                                                style={{ background: gradient }}
-                                            />
-                                            <input
-                                                type="number"
-                                                className="cp-slider-number"
-                                                min={0}
-                                                max={255}
-                                                value={val}
-                                                onChange={(e) =>
-                                                    handleRgbChange(ch, clamp(Number.parseInt(e.target.value) || 0, 0, 255))
-                                                }
-                                            />
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-
-                {/* Hex input row */}
-                <div className="cp-hex-row">
-                    <span className="cp-hex-label">Hex Color #</span>
-                    <input
-                        type="text"
-                        className="cp-hex-input"
-                        value={hexInput}
-                        onChange={handleHexInputChange}
-                        spellCheck={false}
-                    />
-                </div>
-
-                {/* Opacity slider */}
-                <div className="cp-opacity-section">
-                    <span className="cp-opacity-label">Opacity</span>
-                    <div className="cp-opacity-track-wrapper">
-                        <SliderTrack
-                            className="cp-opacity-slider"
-                            value={alpha}
-                            onChange={setAlpha}
-                            style={{
-                                background: `linear-gradient(to right, transparent, ${opaqueColor})`,
-                            }}
+                    {/* Recent colors: large current square + circle swatches + add button */}
+                    <div className="cp-recent">
+                        <button
+                            type="button"
+                            className="cp-recent-current"
+                            style={{ backgroundColor: currentColorString }}
+                            title="Current color — click to revert to original"
+                            onClick={handleRevert}
                         />
+                        <div className="cp-recent-swatches">
+                            {recentColors.map((color, i) => (
+                                <button
+                                    key={i}
+                                    className="cp-recent-swatch"
+                                    style={{ backgroundColor: color }}
+                                    onClick={() => handleRecentClick(color)}
+                                    title={color}
+                                />
+                            ))}
+                        </div>
+                        <button className="cp-recent-add" onClick={handleAddRecent} title="Save current color">
+                            <i className="fa fa-solid fa-plus" />
+                        </button>
                     </div>
-                    <span className="cp-opacity-value">{Math.round(alpha * 100)}%</span>
                 </div>
-
-                {/* Recent colors: large current square + circle swatches + add button */}
-                <div className="cp-recent">
-                    <button
-                        type="button"
-                        className="cp-recent-current"
-                        style={{ backgroundColor: currentColorString }}
-                        title="Current color — click to revert to original"
-                        onClick={handleRevert}
-                    />
-                    <div className="cp-recent-swatches">
-                        {recentColors.map((color, i) => (
-                            <button
-                                key={i}
-                                className="cp-recent-swatch"
-                                style={{ backgroundColor: color }}
-                                onClick={() => handleRecentClick(color)}
-                                title={color}
-                            />
-                        ))}
-                    </div>
-                    <button
-                        className="cp-recent-add"
-                        onClick={handleAddRecent}
-                        title="Save current color"
-                    >
-                        <i className="fa fa-solid fa-plus" />
-                    </button>
-                </div>
-            </div>
-        </>,
-        document.body
-    );
-});
+            </>,
+            document.body
+        );
+    }
+);
 
 ColorPickerPopup.displayName = "ColorPickerPopup";
 

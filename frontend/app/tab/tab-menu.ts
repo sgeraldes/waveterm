@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { ObjectService } from "@/app/store/services";
-import { validatePresetBeforeApply, sanitizePreset } from "@/util/presetutil";
+import { sanitizePreset, validatePresetBeforeApply } from "@/util/presetutil";
 import { fireAndForget } from "@/util/util";
 
 /**

@@ -1,3 +1,7 @@
+// Copyright 2026, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+
 import { type Placement } from "@floating-ui/react";
 import type * as jotai from "jotai";
 import type * as rxjs from "rxjs";
@@ -297,14 +301,24 @@ declare global {
     interface ViewModel {
         viewType: string;
 
+        useTermHeader?: jotai.Atom<boolean>;
+
+        hideViewName?: jotai.Atom<boolean>;
+
+        // Icon representing the view, can be a string or an IconButton declaration.
         viewIcon?: jotai.Atom<string | IconButtonDecl>;
 
         viewIconColor?: jotai.Atom<string>;
 
+        // Display name for the view, used in UI headers.
         viewName?: jotai.Atom<string>;
 
         viewText?: jotai.Atom<string | HeaderElem[]>;
 
+        termDurableStatus?: jotai.Atom<BlockJobStatusData | null>;
+        termConfigedDurable?: jotai.Atom<null | boolean>;
+
+        // Icon button displayed before the title in the header.
         preIconButton?: jotai.Atom<IconButtonDecl>;
 
         endIconButtons?: jotai.Atom<IconButtonDecl[]>;

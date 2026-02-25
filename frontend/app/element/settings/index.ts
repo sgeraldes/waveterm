@@ -50,7 +50,7 @@ export { OmpPaletteExport } from "./omp-palette-export";
 export type { OmpPaletteExportProps } from "./omp-palette-export";
 
 export { PreviewBackgroundToggle } from "./preview-background-toggle";
-export type { PreviewBackgroundToggleProps, PreviewBackground } from "./preview-background-toggle";
+export type { PreviewBackground, PreviewBackgroundToggleProps } from "./preview-background-toggle";
 
 export { OmpHighContrast } from "./omp-high-contrast";
 
@@ -58,7 +58,7 @@ export { ModeSelector } from "./mode-selector";
 export type { ModeSelectorProps } from "./mode-selector";
 
 export { SegmentedToggle } from "./segmented-toggle";
-export type { SegmentedToggleProps, SegmentedToggleOption } from "./segmented-toggle";
+export type { SegmentedToggleOption, SegmentedToggleProps } from "./segmented-toggle";
 
 export { ThemePalettePreview } from "./theme-palette-preview";
 

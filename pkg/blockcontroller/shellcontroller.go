@@ -2,7 +2,6 @@
 package blockcontroller
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -52,6 +51,7 @@ type ShellController struct {
 	ControllerType string
 	TabId          string
 	BlockId        string
+	ConnName       string
 	BlockDef       *waveobj.BlockDef
 	RunLock        *atomic.Bool
 	ProcStatus     string
@@ -62,12 +62,14 @@ type ShellController struct {
 	ShellInputCh chan *BlockInputUnion
 }
 
-func MakeShellController(tabId string, blockId string, controllerType string) Controller {
+// Constructor that returns the Controller interface
+func MakeShellController(tabId string, blockId string, controllerType string, connName string) Controller {
 	return &ShellController{
 		Lock:           &sync.Mutex{},
 		ControllerType: controllerType,
 		TabId:          tabId,
 		BlockId:        blockId,
+		ConnName:       connName,
 		ProcStatus:     Status_Init,
 		RunLock:        &atomic.Bool{},
 	}
@@ -113,9 +115,7 @@ func (sc *ShellController) getRuntimeStatus_nolock() BlockControllerRuntimeStatu
 	rtn.Version = sc.VersionTs.GetVersionTs()
 	rtn.BlockId = sc.BlockId
 	rtn.ShellProcStatus = sc.ProcStatus
-	if sc.ShellProc != nil {
-		rtn.ShellProcConnName = sc.ShellProc.ConnName
-	}
+	rtn.ShellProcConnName = sc.ConnName
 	rtn.ShellProcExitCode = sc.ProcExitCode
 	return rtn
 }
@@ -126,6 +126,10 @@ func (sc *ShellController) GetRuntimeStatus() *BlockControllerRuntimeStatus {
 		rtn = sc.getRuntimeStatus_nolock()
 	})
 	return &rtn
+}
+
+func (sc *ShellController) GetConnName() string {
+	return sc.ConnName
 }
 
 func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) (rtnErr error) {
@@ -202,28 +206,24 @@ func (sc *ShellController) resetTerminalState(logCtx context.Context, termRows i
 		return
 	}
 	blocklogger.Debugf(logCtx, "[conndebug] resetTerminalState: resetting terminal state\n")
-	var buf bytes.Buffer
-	buf.WriteString("\x1b[0m")
-	buf.WriteString("\x1b[?25h")
-	buf.WriteString("\x1b[?1000l")
-	buf.WriteString("\x1b[?1007l")
-	buf.WriteString("\x1b[?2004l")
-	buf.WriteString(shellutil.FormatOSC(16162, "R"))
-	buf.WriteString("\x1b[r")
-	rows := termRows
-	if rows <= 0 {
-		rows = shellutil.DefaultTermRows
-	}
-	buf.WriteString(fmt.Sprintf("\x1b[%dB", rows))
-	for i := 0; i < rows; i++ {
-		buf.WriteString("\r\n")
-	}
-	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, buf.Bytes())
+	resetSeq := shellutil.GetTerminalResetSeq()
+	resetSeq += "\r\n"
+	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(resetSeq))
 	if err != nil {
 		log.Printf("error appending to blockfile (terminal reset): %v\n", err)
 	}
 }
 
+func (sc *ShellController) writeMutedMessageToTerminal(msg string) {
+	if sc.BlockId == "" {
+		return
+	}
+	fullMsg := "\x1b[90m" + msg + "\x1b[0m\r\n"
+	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(fullMsg))
+	if err != nil {
+		log.Printf("error writing muted message to terminal (blockid=%s): %v", sc.BlockId, err)
+	}
+}
 
 func (sc *ShellController) DoRunShellCommand(logCtx context.Context, rc *RunShellOpts, blockMeta waveobj.MetaMapType) error {
 	blocklogger.Debugf(logCtx, "[conndebug] DoRunShellCommand\n")
@@ -614,6 +614,21 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 		waitErr := shellProc.Cmd.Wait()
 		exitCode = shellProc.Cmd.ExitCode()
 		shellProc.SetWaitErrorAndSignalDone(waitErr)
+		bc.resetTerminalState(context.Background(), 0)
+		exitSignal := shellProc.Cmd.ExitSignal()
+		var baseMsg string
+		if bc.ControllerType == BlockController_Shell {
+			baseMsg = "shell terminated"
+		} else {
+			baseMsg = "command exited"
+		}
+		msg := baseMsg
+		if exitSignal != "" {
+			msg = fmt.Sprintf("%s (signal %s)", baseMsg, exitSignal)
+		} else if exitCode != 0 {
+			msg = fmt.Sprintf("%s (exit code %d)", baseMsg, exitCode)
+		}
+		bc.writeMutedMessageToTerminal("[" + msg + "]")
 		go checkCloseOnExit(bc.BlockId, exitCode)
 	}()
 	return nil

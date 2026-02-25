@@ -5,9 +5,9 @@ import type { BlockNodeModel } from "@/app/block/blocktypes";
 import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { base64ToString } from "@/util/util";
 import { DiffViewer } from "@/app/view/codeeditor/diffviewer";
 import { globalStore, WOS } from "@/store/global";
+import { base64ToString } from "@/util/util";
 import * as jotai from "jotai";
 import { useEffect } from "react";
 
@@ -51,7 +51,7 @@ export class AiFileDiffViewModel implements ViewModel {
     }
 }
 
-const AiFileDiffView: React.FC<ViewComponentProps<AiFileDiffViewModel>> = ({ blockId, model }) => {
+function AiFileDiffView({ blockId, model }: ViewComponentProps<AiFileDiffViewModel>) {
     const blockData = jotai.useAtomValue(model.blockAtom);
     const diffData = jotai.useAtomValue(model.diffDataAtom);
     const error = jotai.useAtomValue(model.errorAtom);
@@ -138,6 +138,6 @@ const AiFileDiffView: React.FC<ViewComponentProps<AiFileDiffViewModel>> = ({ blo
             fileName={diffData.fileName}
         />
     );
-};
+}
 
 export default AiFileDiffView;

@@ -130,7 +130,10 @@ const (
 	MetaKey_TermConnDebug                    = "term:conndebug"
 	MetaKey_TermBellSound                    = "term:bellsound"
 	MetaKey_TermBellIndicator                = "term:bellindicator"
+	MetaKey_TermDurable                      = "term:durable"
 	MetaKey_TermReportFocus                  = "term:reportfocus"
+
+	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
 
 	MetaKey_WebZoom                          = "web:zoom"
 	MetaKey_WebHideNav                       = "web:hidenav"

@@ -7,13 +7,9 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/google/uuid"
-	"github.com/wavetermdev/waveterm/pkg/blockcontroller"
 	"github.com/wavetermdev/waveterm/pkg/filestore"
-	"github.com/wavetermdev/waveterm/pkg/jobcontroller"
-	"github.com/wavetermdev/waveterm/pkg/panichandler"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
 	"github.com/wavetermdev/waveterm/pkg/wps"
@@ -137,19 +133,6 @@ func DeleteBlock(ctx context.Context, blockId string, recursive bool) error {
 			}
 		}
 	}
-	if block.JobId != "" {
-		go func() {
-			defer func() {
-				panichandler.PanicHandler("DetachJobFromBlock", recover())
-			}()
-			detachCtx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancelFn()
-			err := jobcontroller.DetachJobFromBlock(detachCtx, block.JobId, false)
-			if err != nil {
-				log.Printf("error detaching job from block %s: %v", blockId, err)
-			}
-		}()
-	}
 	parentBlockCount, err := deleteBlockObj(ctx, blockId)
 	if err != nil {
 		return fmt.Errorf("error deleting block: %w", err)
@@ -170,7 +153,6 @@ func DeleteBlock(ctx context.Context, blockId string, recursive bool) error {
 		}
 		SendActiveTabUpdate(ctx, parentWorkspaceId, newActiveTabId)
 	}
-	go blockcontroller.DestroyBlockController(blockId)
 	sendBlockCloseEvent(blockId)
 	return nil
 }

@@ -355,6 +355,21 @@ go test ./pkg/...
 - **Appearance panel:** `frontend/app/view/waveconfig/appearance-content.tsx`
 - **OMP configurator:** `frontend/app/element/settings/omp-configurator/`
 
+## Definition of Done
+
+**Work is NOT complete until ALL of the following pass with ZERO failures:**
+
+```bash
+go build ./...          # Go compilation
+npx tsc --noEmit        # TypeScript compilation
+npm test                # Frontend tests — ZERO failures
+
+# Go tests — ZERO failures (CGO required for filestore/SQLite tests)
+CGO_ENABLED=1 CC="zig cc -target x86_64-windows-gnu" go test -tags "osusergo,sqlite_omit_load_extension" ./pkg/...
+```
+
+"Pre-existing failure" is not an excuse. If tests were broken before you started, fix them or explicitly flag them to the user before claiming work is done. Never silently accept failing tests.
+
 ## Common Gotchas
 
 1. **After changing Go types, always run `task generate`** - TypeScript bindings won't update automatically

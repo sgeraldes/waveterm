@@ -278,8 +278,7 @@ const Tab = memo(
                     const currentBaseDir = tabData?.meta?.["tab:basedir"];
                     const isLocked = tabData?.meta?.["tab:basedirlock"] || false;
 
-                    const menu: ContextMenuItem[] = [];
-
+                    let menu: ContextMenuItem[] = [];
                     const currentIndicator = globalStore.get(getTabIndicatorAtom(id));
                     if (currentIndicator) {
                         menu.push(

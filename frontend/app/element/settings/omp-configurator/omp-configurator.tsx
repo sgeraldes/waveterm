@@ -222,8 +222,8 @@ export const OmpConfigurator = memo(({ previewBackground, onConfigChange }: OmpC
                     <i className="fa fa-solid fa-terminal" />
                     <div className="no-config-title">No Oh-My-Posh Configuration Found</div>
                     <div className="no-config-message">
-                        To use the theme configurator, you need to set up Oh-My-Posh first. The configurator
-                        will load your theme from the $POSH_THEME environment variable.
+                        To use the theme configurator, you need to set up Oh-My-Posh first. The configurator will load
+                        your theme from the $POSH_THEME environment variable.
                     </div>
                     <div className="no-config-actions">
                         <a

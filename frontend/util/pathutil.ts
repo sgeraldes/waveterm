@@ -175,6 +175,8 @@ function isWindowsDeviceName(path: string): boolean {
 export function isBlockedPath(normalizedPath: string): boolean {
     const blockedPaths = PLATFORM === PlatformWindows ? BLOCKED_PATHS_WINDOWS : BLOCKED_PATHS_UNIX;
 
+    // Normalize separators to forward slashes for consistent comparison on Windows
+    // This ensures C:/Windows matches against C:\Windows in the blocked list
     const normalizedForComparison = PLATFORM === PlatformWindows ? normalizedPath.replace(/\\/g, "/") : normalizedPath;
     const lowerPath = normalizedForComparison.toLowerCase();
 

@@ -294,7 +294,9 @@
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        opacity 0.15s ease;
 
     &:disabled {
         opacity: 0.5;
@@ -364,7 +366,9 @@
     border-radius: 4px;
     font-size: 13px;
     cursor: pointer;
-    transition: color 0.15s ease, background-color 0.15s ease;
+    transition:
+        color 0.15s ease,
+        background-color 0.15s ease;
 
     &:hover {
         color: var(--main-text-color);
@@ -796,7 +800,10 @@
     border-radius: 6px;
     color: var(--secondary-text-color);
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
 
     &:hover:not(:disabled) {
         background: var(--hover-bg-color);
@@ -853,7 +860,9 @@
     border-radius: 4px;
     color: var(--secondary-text-color);
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease;
 
     &:hover {
         background: var(--hover-bg-color);
@@ -1011,7 +1020,9 @@
     background: var(--main-bg-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    transition: background-color 0.15s ease, border-color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease;
 
     &::after {
         content: "";

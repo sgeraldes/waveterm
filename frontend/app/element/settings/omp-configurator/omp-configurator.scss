@@ -447,7 +447,9 @@ $preview-segment-height: 22px;
     border-radius: 6px;
     padding: 12px;
     cursor: pointer;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
 
     &:hover {
         border-color: var(--form-element-primary-color);
@@ -728,7 +730,9 @@ $preview-segment-height: 22px;
         font-weight: 500;
         font-size: 13px;
         cursor: pointer;
-        transition: opacity 0.15s ease, background-color 0.15s ease;
+        transition:
+            opacity 0.15s ease,
+            background-color 0.15s ease;
 
         &:disabled {
             opacity: 0.5;
@@ -893,7 +897,9 @@ $preview-segment-height: 22px;
     border: 1px solid var(--form-element-border-color);
     border-radius: 6px;
     cursor: pointer;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        background-color 0.15s ease;
     text-align: left;
     width: 100%;
 

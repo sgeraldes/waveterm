@@ -136,9 +136,7 @@ export class TabModel {
 
         // Detect command completion via proc status (fallback for background tabs)
         // Background tabs don't process OSC 16162, so we also check shellProcStatus
-        const procStatusFinished =
-            prevStatus?.shellProcStatus === "running" &&
-            status.shellProcStatus === "done";
+        const procStatusFinished = prevStatus?.shellProcStatus === "running" && status.shellProcStatus === "done";
 
         const commandJustFinished = shellIntegrationFinished || procStatusFinished;
 
@@ -154,9 +152,7 @@ export class TabModel {
 
         // Detect error exit
         const hasError =
-            status.shellProcStatus === "done" &&
-            status.shellProcExitCode != null &&
-            status.shellProcExitCode !== 0;
+            status.shellProcStatus === "done" && status.shellProcExitCode != null && status.shellProcExitCode !== 0;
 
         // Show "finished" status for successful completions
         // "stopped" status is handled by recomputeTerminalStatus based on exit code
@@ -197,7 +193,11 @@ export class TabModel {
         for (const status of this.terminalStatusMap.values()) {
             // Priority 1: Any error exit code (shell exited with error)
             // Note: exitCode can be null (not set), 0 (success), or non-zero (error)
-            if (status.shellProcStatus === "done" && status.shellProcExitCode != null && status.shellProcExitCode !== 0) {
+            if (
+                status.shellProcStatus === "done" &&
+                status.shellProcExitCode != null &&
+                status.shellProcExitCode !== 0
+            ) {
                 hasStopped = true;
             }
 

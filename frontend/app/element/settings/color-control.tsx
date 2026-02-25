@@ -51,15 +51,12 @@ const ColorControl = memo(({ value, onChange, disabled, className, showInput = t
         colorInputRef.current?.click();
     }, []);
 
-    const handleSwatchKeyDown = useCallback(
-        (e: React.KeyboardEvent<HTMLButtonElement>) => {
-            if (e.key === " " || e.key === "Enter") {
-                e.preventDefault();
-                colorInputRef.current?.click();
-            }
-        },
-        []
-    );
+    const handleSwatchKeyDown = useCallback((e: React.KeyboardEvent<HTMLButtonElement>) => {
+        if (e.key === " " || e.key === "Enter") {
+            e.preventDefault();
+            colorInputRef.current?.click();
+        }
+    }, []);
 
     // Normalize color for display (ensure it's a valid hex)
     const displayColor = /^#[0-9A-Fa-f]{6}$/.test(value) || /^#[0-9A-Fa-f]{3}$/.test(value) ? value : "#000000";

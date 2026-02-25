@@ -23,12 +23,12 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
 	"github.com/wavetermdev/waveterm/pkg/remote"
 	"github.com/wavetermdev/waveterm/pkg/userinput"
+	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
 	"github.com/wavetermdev/waveterm/pkg/wconfig"
-	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/wps"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshclient"
@@ -122,6 +122,13 @@ func IsLocalShellProfile(connName string) bool {
 	return false
 }
 
+func IsWslConnName(connName string) bool {
+	return strings.HasPrefix(connName, "wsl://")
+}
+
+// IsLocalShellProfileId checks if a name refers to a local (non-WSL) shell profile
+// defined in the shell:profiles settings. This handles legacy blocks that stored
+// shell profile IDs in the connection field.
 func IsLocalShellProfileId(name string) bool {
 	if name == "" {
 		return false

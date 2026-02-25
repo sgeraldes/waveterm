@@ -23,6 +23,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/remote/fileshare/wshfs"
 	"github.com/wavetermdev/waveterm/pkg/secretstore"
 	"github.com/wavetermdev/waveterm/pkg/service"
+	"github.com/wavetermdev/waveterm/pkg/service/sessionhistoryservice"
 	"github.com/wavetermdev/waveterm/pkg/util/envutil"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
 	"github.com/wavetermdev/waveterm/pkg/util/sigutil"
@@ -419,6 +420,8 @@ func main() {
 	go backupCleanupLoop()
 	blocklogger.InitBlockLogger()
 	jobcontroller.InitJobController()
+	blockcontroller.InitBlockController()
+	sessionhistoryservice.GetSessionHistoryService().StartCleanupScheduler(context.Background())
 	wcore.InitTabIndicatorStore()
 	go func() {
 		defer func() {

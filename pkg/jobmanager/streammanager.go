@@ -53,6 +53,10 @@ type StreamManager struct {
 	sentNotAcked      int64
 	terminalEventSent bool
 
+	// track max acked to handle out-of-order ACKs (reset on disconnect)
+	maxAckedSeq  int64
+	maxAckedRwnd int64
+
 	// terminal state - once true, stream is complete
 	terminalEventAcked bool
 	closed             bool
@@ -174,6 +178,8 @@ func (sm *StreamManager) ClientDisconnected() {
 	sm.connected = false
 	sm.dataSender = nil
 	sm.sentNotAcked = 0
+	sm.maxAckedSeq = 0
+	sm.maxAckedRwnd = 0
 	if !sm.terminalEventAcked {
 		sm.terminalEventSent = false
 	}
@@ -198,6 +204,19 @@ func (sm *StreamManager) RecvAck(ackPk wshrpc.CommandStreamAckData) {
 	}
 
 	seq := ackPk.Seq
+	rwnd := ackPk.RWnd
+
+	// Ignore stale ACKs using tuple comparison (seq, rwnd)
+	if seq < sm.maxAckedSeq || (seq == sm.maxAckedSeq && rwnd <= sm.maxAckedRwnd) {
+		// log.Printf("streammanager ignoring stale ACK: seq=%d rwnd=%d (max: seq=%d rwnd=%d)",
+		// 	seq, rwnd, sm.maxAckedSeq, sm.maxAckedRwnd)
+		return
+	}
+
+	// Update max acked tuple
+	sm.maxAckedSeq = seq
+	sm.maxAckedRwnd = rwnd
+
 	headPos := sm.buf.HeadPos()
 	if seq < headPos {
 		return
@@ -270,7 +289,6 @@ func (sm *StreamManager) readLoop() {
 		}
 
 		n, err := sm.reader.Read(readBuf)
-		log.Printf("readLoop: read %d bytes from PTY, err=%v", n, err)
 
 		if n > 0 {
 			sm.handleReadData(readBuf[:n])
@@ -288,13 +306,20 @@ func (sm *StreamManager) readLoop() {
 }
 
 func (sm *StreamManager) handleReadData(data []byte) {
-	log.Printf("handleReadData: writing %d bytes to buffer", len(data))
-	sm.buf.Write(data)
-	sm.lock.Lock()
-	defer sm.lock.Unlock()
-	log.Printf("handleReadData: buffer size=%d, connected=%t, signaling=%t", sm.buf.Size(), sm.connected, sm.connected)
-	if sm.connected {
-		sm.drainCond.Signal()
+	offset := 0
+	for offset < len(data) {
+		n, waitCh := sm.buf.WriteAvailable(data[offset:])
+		offset += n
+
+		if n > 0 {
+			sm.lock.Lock()
+			sm.drainCond.Signal()
+			sm.lock.Unlock()
+		}
+
+		if waitCh != nil {
+			<-waitCh
+		}
 	}
 }
 
@@ -336,25 +361,20 @@ func (sm *StreamManager) prepareNextPacket() (done bool, pkt *wshrpc.CommandStre
 	defer sm.lock.Unlock()
 
 	available := sm.buf.Size()
-	log.Printf("prepareNextPacket: connected=%t, available=%d, closed=%t, terminalEventAcked=%t, terminalEvent=%v",
-		sm.connected, available, sm.closed, sm.terminalEventAcked, sm.terminalEvent != nil)
 
 	if sm.closed || sm.terminalEventAcked {
 		return true, nil, nil
 	}
 
 	if !sm.connected {
-		log.Printf("prepareNextPacket: waiting for connection")
 		sm.drainCond.Wait()
 		return false, nil, nil
 	}
 
 	if available == 0 {
 		if sm.terminalEvent != nil && !sm.terminalEventSent {
-			log.Printf("prepareNextPacket: preparing terminal packet")
 			return false, sm.prepareTerminalPacket(), sm.dataSender
 		}
-		log.Printf("prepareNextPacket: no data available, waiting")
 		sm.drainCond.Wait()
 		return false, nil, nil
 	}
@@ -381,7 +401,6 @@ func (sm *StreamManager) prepareNextPacket() (done bool, pkt *wshrpc.CommandStre
 	data := make([]byte, peekSize)
 	n := sm.buf.PeekDataAt(int(sm.sentNotAcked), data)
 	if n == 0 {
-		log.Printf("prepareNextPacket: PeekDataAt returned 0 bytes, waiting for ACK")
 		sm.drainCond.Wait()
 		return false, nil, nil
 	}
@@ -390,7 +409,6 @@ func (sm *StreamManager) prepareNextPacket() (done bool, pkt *wshrpc.CommandStre
 	seq := sm.buf.HeadPos() + sm.sentNotAcked
 	sm.sentNotAcked += int64(n)
 
-	log.Printf("prepareNextPacket: sending packet seq=%d, len=%d bytes", seq, n)
 	return false, &wshrpc.CommandStreamData{
 		Id:     sm.streamId,
 		Seq:    seq,
