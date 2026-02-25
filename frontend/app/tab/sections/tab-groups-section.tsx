@@ -35,6 +35,9 @@ const TabDataReader = memo(
         useEffect(() => {
             onTabData(tabId, tabData ?? null);
         }, [tabId, tabData, onTabData]);
+        useEffect(() => {
+            return () => onTabData(tabId, null);
+        }, [tabId, onTabData]);
         return null;
     }
 );
@@ -137,7 +140,16 @@ export const TabGroupsSection = memo(({ tabIds, searchQuery, onDismissPanel }: T
                 <div key={group.name} className="group-item">
                     <div
                         className="group-header"
+                        role="button"
+                        tabIndex={0}
+                        aria-expanded={expandedGroup === group.name}
                         onClick={() => setExpandedGroup(expandedGroup === group.name ? null : group.name)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setExpandedGroup(expandedGroup === group.name ? null : group.name);
+                            }
+                        }}
                     >
                         <span className="group-color-dot" style={{ backgroundColor: group.color }} />
                         <span className="group-name">{group.name}</span>
@@ -156,9 +168,14 @@ export const TabGroupsSection = memo(({ tabIds, searchQuery, onDismissPanel }: T
                     {expandedGroup === group.name && (
                         <div className="group-members">
                             {group.tabIds.map((tabId, idx) => (
-                                <div key={tabId} className="group-member" onClick={() => handleTabClick(tabId)}>
+                                <button
+                                    key={tabId}
+                                    type="button"
+                                    className="group-member"
+                                    onClick={() => handleTabClick(tabId)}
+                                >
                                     {group.tabNames[idx]}
-                                </div>
+                                </button>
                             ))}
                         </div>
                     )}
