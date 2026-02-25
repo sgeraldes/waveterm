@@ -58,7 +58,7 @@ const WorkspaceTabItem = memo(
         if (!isVisible) return null;
 
         return (
-            <div className={clsx("tab-management-item", { active: isActive })} onClick={handleClick}>
+            <div className={clsx("tab-management-item", { active: isActive })} role="button" tabIndex={0} onClick={handleClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}>
                 {tabIcon && <i className={`fa fa-${tabIcon} tab-item-icon`} />}
                 {tabColor && <div className="tab-color-dot" style={{ backgroundColor: tabColor }} />}
                 <span className="tab-item-name">{tabName}</span>
@@ -158,9 +158,18 @@ export const WorkspacesWithTabs = memo(
                         <div key={ws.oid} className={clsx("workspace-item", { active: isCurrent })}>
                             <div
                                 className="workspace-item-row"
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => {
                                     if (!isCurrent) getApi().switchWorkspace(ws.oid);
                                     setExpandedId(isExpanded ? null : ws.oid);
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        if (!isCurrent) getApi().switchWorkspace(ws.oid);
+                                        setExpandedId(isExpanded ? null : ws.oid);
+                                    }
                                 }}
                             >
                                 <div className="workspace-item-left">

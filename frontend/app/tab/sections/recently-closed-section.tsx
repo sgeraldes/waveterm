@@ -45,7 +45,7 @@ const RecentlyClosedSection = memo(({ searchQuery, onDismissPanel }: RecentlyClo
                 </div>
             )}
             {filteredEntries.map((entry) => (
-                <div key={entry.id} className="tab-management-item" onClick={() => handleReopen(entry)}>
+                <div key={entry.id} className="tab-management-item" role="button" tabIndex={0} onClick={() => handleReopen(entry)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleReopen(entry); } }}>
                     <div className="tab-item-left">
                         {entry.icon && <i className={`fa fa-${entry.icon} tab-item-icon`} />}
                         {entry.color && <div className="tab-color-dot" style={{ backgroundColor: entry.color }} />}

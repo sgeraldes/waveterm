@@ -106,7 +106,13 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
                 }}
                 onContextMenu={(e) => handleItemContextMenu(e, item)}
             >
-                <span className="todo-checkbox" onClick={() => model.toggleCheckbox(item.lineIndex)}>
+                <span
+                    className="todo-checkbox"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => model.toggleCheckbox(item.lineIndex)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); model.toggleCheckbox(item.lineIndex); } }}
+                >
                     <i className={makeIconClass(item.checked ? "square-check" : "square", false)} />
                 </span>
                 {isEditing ? (
@@ -119,7 +125,13 @@ function TodoViewMode({ model }: { model: TodoViewModel }) {
                         onKeyDown={handleEditKeyDown}
                     />
                 ) : (
-                    <span className="todo-text" onClick={() => startEdit(item)}>
+                    <span
+                        className="todo-text"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => startEdit(item)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); startEdit(item); } }}
+                    >
                         {renderInlineMarkdown(item.text)}
                     </span>
                 )}

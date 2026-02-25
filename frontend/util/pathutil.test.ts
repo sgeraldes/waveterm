@@ -63,7 +63,7 @@ describe("windowsToWslPath", () => {
     });
 
     test("handles lowercase drive letter", () => {
-        expect(windowsToWslPath("c:\\temp\\image.png")).toBe("/mnt/c/temp/image.png");
+        expect(windowsToWslPath("c:\\data\\image.png")).toBe("/mnt/c/data/image.png");
     });
 
     test("handles paths with spaces", () => {

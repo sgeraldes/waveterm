@@ -140,16 +140,22 @@ export function SearchResultRow({ node, rootPath, selectedPath, onSelect, onOpen
     const isSelected = selectedPath === node.path;
     const relativePath = node.path.startsWith(rootPath + "/") ? node.path.slice(rootPath.length + 1) : node.path;
 
-    const handleClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const activate = () => {
         onSelect(node.path);
         if (!node.isDir) onOpen(node);
+    };
+
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        activate();
     };
 
     return (
         <div
             className={clsx("treeview-search-result", { "treeview-search-result-selected": isSelected })}
+            role="button"
             onClick={handleClick}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); activate(); } }}
             tabIndex={0}
             title={node.path}
         >

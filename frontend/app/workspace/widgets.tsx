@@ -209,17 +209,17 @@ const Widgets = memo(() => {
         <>
             <div className="border-t border-border mx-1 my-1 opacity-40" />
             <Tooltip content="Help" placement="left">
-                <div className={bottomButtonClass} onClick={openHelp}>
+                <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openHelp} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHelp(); } }}>
                     <i className={makeIconClass("circle-question", true)}></i>
                 </div>
             </Tooltip>
             <Tooltip content="Tips" placement="left">
-                <div className={bottomButtonClass} onClick={openTips}>
+                <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openTips} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTips(); } }}>
                     <i className={makeIconClass("lightbulb", true)}></i>
                 </div>
             </Tooltip>
             <Tooltip content="Settings" placement="left">
-                <div className={bottomButtonClass} onClick={openSettings}>
+                <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openSettings} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSettings(); } }}>
                     <i className={makeIconClass("gear", true)}></i>
                 </div>
             </Tooltip>

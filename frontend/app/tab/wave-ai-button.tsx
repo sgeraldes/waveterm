@@ -11,14 +11,16 @@ export const WaveAIButton = memo(() => {
     };
 
     return (
-        <div
-            className={`flex h-[24px] px-1.5 justify-end items-center rounded-md mr-1 mb-0.5 box-border cursor-pointer hover:bg-white/5 transition-colors text-[12px] ${aiPanelOpen ? "text-accent" : "text-secondary"}`}
+        <button
+            type="button"
+            className={`flex h-[24px] px-1.5 justify-end items-center rounded-md mr-1 mb-0.5 box-border cursor-pointer hover:bg-white/5 transition-colors text-[12px] border-0 bg-transparent ${aiPanelOpen ? "text-accent" : "text-secondary"}`}
             style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
             onClick={onClick}
+            aria-label="Toggle AI panel"
         >
             <i className="fa fa-sparkles" />
             <span className="font-bold ml-1 -top-px font-mono">AI</span>
-        </div>
+        </button>
     );
 });
 WaveAIButton.displayName = "WaveAIButton";

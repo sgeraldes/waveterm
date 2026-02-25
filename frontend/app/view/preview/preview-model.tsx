@@ -600,28 +600,32 @@ export class PreviewModel implements ViewModel {
         }
     }
 
-    async goHistoryBack() {
-        const blockMeta = globalStore.get(this.blockAtom)?.meta;
-        const curPath = globalStore.get(this.metaFilePath);
-        const updateMeta = goHistoryBack("file", curPath, blockMeta, true);
-        if (updateMeta == null) {
-            return;
-        }
-        updateMeta.edit = false;
-        const blockOref = WOS.makeORef("block", this.blockId);
-        await services.ObjectService.UpdateObjectMeta(blockOref, updateMeta);
+    goHistoryBack() {
+        fireAndForget(async () => {
+            const blockMeta = globalStore.get(this.blockAtom)?.meta;
+            const curPath = globalStore.get(this.metaFilePath);
+            const updateMeta = goHistoryBack("file", curPath, blockMeta, true);
+            if (updateMeta == null) {
+                return;
+            }
+            updateMeta.edit = false;
+            const blockOref = WOS.makeORef("block", this.blockId);
+            await services.ObjectService.UpdateObjectMeta(blockOref, updateMeta);
+        });
     }
 
-    async goHistoryForward() {
-        const blockMeta = globalStore.get(this.blockAtom)?.meta;
-        const curPath = globalStore.get(this.metaFilePath);
-        const updateMeta = goHistoryForward("file", curPath, blockMeta);
-        if (updateMeta == null) {
-            return;
-        }
-        updateMeta.edit = false;
-        const blockOref = WOS.makeORef("block", this.blockId);
-        await services.ObjectService.UpdateObjectMeta(blockOref, updateMeta);
+    goHistoryForward() {
+        fireAndForget(async () => {
+            const blockMeta = globalStore.get(this.blockAtom)?.meta;
+            const curPath = globalStore.get(this.metaFilePath);
+            const updateMeta = goHistoryForward("file", curPath, blockMeta);
+            if (updateMeta == null) {
+                return;
+            }
+            updateMeta.edit = false;
+            const blockOref = WOS.makeORef("block", this.blockId);
+            await services.ObjectService.UpdateObjectMeta(blockOref, updateMeta);
+        });
     }
 
     async setEditMode(edit: boolean) {

@@ -12,7 +12,7 @@ export const CollapsibleSection = memo(
         const [expanded, setExpanded] = useState(defaultExpanded);
         return (
             <div className="collapsible-section">
-                <div className="section-header" onClick={() => setExpanded(!expanded)}>
+                <div className="section-header" role="button" tabIndex={0} onClick={() => setExpanded(!expanded)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}>
                     <i className={`fa fa-chevron-${expanded ? "down" : "right"} section-chevron`} />
                     <span className="section-title">{title}</span>
                     {count != null && <span className="section-count">({count})</span>}

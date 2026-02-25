@@ -42,7 +42,7 @@ const FavoriteTabItem = memo(
         }
 
         return (
-            <div className="favorite-item" onClick={handleClick}>
+            <div className="favorite-item" role="button" tabIndex={0} onClick={handleClick} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleClick(); } }}>
                 {tabIcon && <i className={`fa fa-${tabIcon} favorite-icon`} />}
                 <span className="favorite-name">{tabName}</span>
                 <button className="favorite-remove-btn" title="Remove from favorites" onClick={handleRemove}>

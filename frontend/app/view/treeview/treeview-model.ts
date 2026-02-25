@@ -3,7 +3,7 @@ import { globalStore, WOS } from "@/app/store/global";
 import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { isBlank } from "@/util/util";
+import { fireAndForget, isBlank } from "@/util/util";
 import { formatRemoteUri } from "@/util/waveutil";
 import { atom, Atom, PrimitiveAtom } from "jotai";
 import { TreeViewComponent } from "./treeview";
@@ -189,7 +189,7 @@ export class TreeViewModel implements ViewModel {
         if (node.isDir) {
             menu.push({
                 label: node.isExpanded ? "Collapse" : "Expand",
-                click: () => this.toggleExpand(node),
+                click: () => fireAndForget(() => this.toggleExpand(node)),
             });
         } else {
             menu.push({
@@ -201,11 +201,11 @@ export class TreeViewModel implements ViewModel {
         menu.push({ type: "separator" });
         menu.push({
             label: "Copy Path",
-            click: () => navigator.clipboard.writeText(node.path),
+            click: () => void navigator.clipboard.writeText(node.path),
         });
         menu.push({
             label: "Copy Filename",
-            click: () => navigator.clipboard.writeText(node.name),
+            click: () => void navigator.clipboard.writeText(node.name),
         });
         menu.push({ type: "separator" });
         menu.push({

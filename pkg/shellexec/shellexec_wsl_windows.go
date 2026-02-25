@@ -28,6 +28,11 @@ var wslDistroPattern = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
 
 var wslInstallLocks sync.Map
 
+// wslExePath returns the absolute path to wsl.exe to avoid PATH-based lookups.
+func wslExePath() string {
+	return filepath.Join(os.Getenv("SystemRoot"), "System32", "wsl.exe")
+}
+
 func getWslInstallLock(distro string) *sync.Mutex {
 	val, _ := wslInstallLocks.LoadOrStore(distro, &sync.Mutex{})
 	return val.(*sync.Mutex)
@@ -36,7 +41,7 @@ func getWslInstallLock(distro string) *sync.Mutex {
 func DetectWslShellAndHome(wslDistro string) (shellPath string, homeDir string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, "wsl.exe", "-d", wslDistro, "--", "sh", "-c",
+	out, err := exec.CommandContext(ctx, wslExePath(), "-d", wslDistro, "--", "sh", "-c",
 		"getent passwd $(whoami) | cut -d: -f6,7").Output()
 	if err != nil {
 		log.Printf("DetectWslShellAndHome: error detecting shell for WSL distro %q: %v\n", wslDistro, err)
@@ -159,7 +164,7 @@ func StartWslLocalShellProc(logCtx context.Context, termSize waveobj.TermSize, c
 		blocklogger.Debugf(logCtx, "[conndebug] starting WSL command: wsl.exe -d %s -- env [...] %s -c ...\n", wslDistro, shellPath)
 	}
 
-	ecmd := exec.Command("wsl.exe", cmdArgs...)
+	ecmd := exec.Command(wslExePath(), cmdArgs...)
 	ecmd.Env = os.Environ()
 
 	if termSize.Rows == 0 || termSize.Cols == 0 {
