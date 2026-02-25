@@ -807,6 +807,7 @@ type DetectedShell struct {
 	Source    string `json:"source"`
 	Icon      string `json:"icon,omitempty"`
 	IsDefault bool   `json:"isdefault,omitempty"`
+	WslDistro string `json:"wsldistro,omitempty"`
 }
 
 type DetectShellsResponse struct {

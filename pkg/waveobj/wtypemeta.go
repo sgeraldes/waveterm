@@ -126,6 +126,7 @@ type MetaTSType struct {
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
 	TermDurable             *bool    `json:"term:durable,omitempty"`
 	TermReportFocus         *bool    `json:"term:reportfocus,omitempty"`
+	TermTitle               string   `json:"term:title,omitempty"`
 
 	TermHistoryBlockId string `json:"termhistory:blockid,omitempty"`
 

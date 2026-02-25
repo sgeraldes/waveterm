@@ -229,6 +229,10 @@ func (sc *ShellController) DoRunShellCommand(logCtx context.Context, rc *RunShel
 	blocklogger.Debugf(logCtx, "[conndebug] DoRunShellCommand\n")
 	shellProc, err := sc.setupAndStartShellProcess(logCtx, rc, blockMeta)
 	if err != nil {
+		sc.UpdateControllerAndSendUpdate(func() bool {
+			sc.ProcStatus = Status_Done
+			return true
+		})
 		errMsg := fmt.Sprintf("\r\n\x1b[31mError starting shell: %v\x1b[0m\r\n\r\n", err)
 		HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(errMsg))
 		debugLog(logCtx, "error running shell: %v\n", err)

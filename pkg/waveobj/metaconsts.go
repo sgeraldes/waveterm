@@ -132,6 +132,7 @@ const (
 	MetaKey_TermBellIndicator                = "term:bellindicator"
 	MetaKey_TermDurable                      = "term:durable"
 	MetaKey_TermReportFocus                  = "term:reportfocus"
+	MetaKey_TermTitle                        = "term:title"
 
 	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
 

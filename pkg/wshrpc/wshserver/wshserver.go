@@ -693,6 +693,7 @@ func (ws *WshServer) DetectAvailableShellsCommand(ctx context.Context, data wshr
 			Source:    shell.Source,
 			Icon:      shell.Icon,
 			IsDefault: shell.IsDefault,
+			WslDistro: shell.WslDistro,
 		}
 	}
 

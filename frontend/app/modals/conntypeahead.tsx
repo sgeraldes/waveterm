@@ -364,8 +364,8 @@ const ChangeConnectionBlockModal = React.memo(
             RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 })
                 .then((resp) => {
                     const wslDistros = (resp.shells ?? [])
-                        .filter((s) => s.id.startsWith("wsl:"))
-                        .map((s) => s.id.substring(4));
+                        .filter((s) => s.source === "wsl" && s.wsldistro)
+                        .map((s) => s.wsldistro);
                     setWslList(wslDistros);
                 })
                 .catch(() => {
