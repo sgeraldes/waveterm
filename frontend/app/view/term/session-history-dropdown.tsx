@@ -118,15 +118,14 @@ export function SessionHistoryFlyover({ blockId, tabId }: SessionHistoryFlyoverP
 
     return (
         <>
-            <div
+            <button
                 ref={refs.setReference}
                 {...getReferenceProps()}
-                className="iconbutton disabled text-[13px]"
+                className="wave-iconbutton"
                 title="Session History"
-                style={{ cursor: "pointer" }}
             >
                 <i className="fa-sharp fa-regular fa-clock-rotate-left" />
-            </div>
+            </button>
             {isOpen && (
                 <FloatingPortal>
                     <div

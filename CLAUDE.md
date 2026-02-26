@@ -369,6 +369,45 @@ CGO_ENABLED=1 CC="zig cc -target x86_64-windows-gnu" go test -tags "osusergo,sql
 
 "Pre-existing failure" is not an excuse. If tests were broken before you started, fix them or explicitly flag them to the user before claiming work is done. Never silently accept failing tests.
 
+## Merge Safety Protocol (MANDATORY)
+
+**Every merge MUST follow this protocol. No exceptions.**
+
+### Before Merging
+
+```bash
+# Understand the full scope of differences
+git diff --stat branch1..branch2
+git diff --name-status branch1..branch2 --diff-filter=A   # files only in branch2
+git diff --name-status branch1..branch2 --diff-filter=D   # files only in branch1
+```
+
+### During Conflict Resolution
+
+- **NEVER accept one side wholesale.** Always read BOTH sides and combine changes.
+- For registry files (`block.tsx`, `widgets.json`, `waveobj.go init()`), entries from BOTH branches MUST be present in the result.
+- When in doubt, ask the user before resolving.
+
+### After Merge (Verification Checklist)
+
+```bash
+# 1. Check for unintended file deletions (MUST be zero unless intentional)
+git diff --name-status <pre-merge-commit>..HEAD --diff-filter=D
+
+# 2. Verify all view registrations are present in block.tsx BlockRegistry
+grep "BlockRegistry.set" frontend/app/block/block.tsx
+
+# 3. Verify all widget definitions are present
+cat pkg/wconfig/defaultconfig/widgets.json
+
+# 4. Build and test
+go build ./...
+npx tsc --noEmit
+npm test
+```
+
+**If ANY files were unexpectedly deleted, the merge is BROKEN. Stop and fix immediately.**
+
 ## Common Gotchas
 
 1. **After changing Go types, always run `task generate`** - TypeScript bindings won't update automatically

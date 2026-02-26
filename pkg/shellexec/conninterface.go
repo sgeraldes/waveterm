@@ -29,7 +29,7 @@ type ConnInterface interface {
 	StdinPipe() (io.WriteCloser, error)
 	StdoutPipe() (io.ReadCloser, error)
 	StderrPipe() (io.ReadCloser, error)
-	SetSize(w int, h int) error
+	SetSize(rows int, cols int) error
 	pty.Pty
 }
 
@@ -127,8 +127,8 @@ func (cw CmdWrap) StderrPipe() (io.ReadCloser, error) {
 	return cw.Cmd.StderrPipe()
 }
 
-func (cw CmdWrap) SetSize(w int, h int) error {
-	err := pty.Setsize(cw.Pty, &pty.Winsize{Rows: uint16(w), Cols: uint16(h)})
+func (cw CmdWrap) SetSize(rows int, cols int) error {
+	err := pty.Setsize(cw.Pty, &pty.Winsize{Rows: uint16(rows), Cols: uint16(cols)})
 	if err != nil {
 		return err
 	}
@@ -215,8 +215,8 @@ func (sw SessionWrap) StderrPipe() (io.ReadCloser, error) {
 	return io.NopCloser(stderrReader), nil
 }
 
-func (sw SessionWrap) SetSize(h int, w int) error {
-	return sw.Session.WindowChange(h, w)
+func (sw SessionWrap) SetSize(rows int, cols int) error {
+	return sw.Session.WindowChange(rows, cols)
 }
 
 type WslCmdWrap struct {
@@ -257,6 +257,6 @@ func (wcw WslCmdWrap) KillGraceful(timeout time.Duration) {
  * SetSize does nothing for WslCmdWrap as there
  * is no pty to manage.
 **/
-func (wcw WslCmdWrap) SetSize(w int, h int) error {
+func (wcw WslCmdWrap) SetSize(rows int, cols int) error {
 	return nil
 }
