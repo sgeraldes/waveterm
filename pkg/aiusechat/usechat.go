@@ -33,7 +33,6 @@ import (
 
 const DefaultAPI = uctypes.APIType_OpenAIResponses
 const DefaultMaxTokens = 4 * 1024
-const BuilderMaxTokens = 24 * 1024
 
 var (
 	globalRateLimitInfo = &uctypes.RateLimitInfo{Unknown: true}
@@ -42,10 +41,7 @@ var (
 	activeChats = ds.MakeSyncMap[bool]() // key is chatid
 )
 
-func getSystemPrompt(apiType string, model string, isBuilder bool, hasToolsCapability bool, widgetAccess bool) []string {
-	if isBuilder {
-		return []string{}
-	}
+func getSystemPrompt(apiType string, model string, hasToolsCapability bool, widgetAccess bool) []string {
 	useNoToolsPrompt := !hasToolsCapability || !widgetAccess
 	basePrompt := SystemPromptText_OpenAI
 	if useNoToolsPrompt {
@@ -67,11 +63,8 @@ func isLocalEndpoint(endpoint string) bool {
 	return strings.Contains(endpointLower, "localhost") || strings.Contains(endpointLower, "127.0.0.1")
 }
 
-func getWaveAISettings(premium bool, builderMode bool, rtInfo waveobj.ObjRTInfo, aiModeName string) (*uctypes.AIOptsType, error) {
+func getWaveAISettings(premium bool, rtInfo waveobj.ObjRTInfo, aiModeName string) (*uctypes.AIOptsType, error) {
 	maxTokens := DefaultMaxTokens
-	if builderMode {
-		maxTokens = BuilderMaxTokens
-	}
 	if rtInfo.WaveAIMaxOutputTokens > 0 {
 		maxTokens = rtInfo.WaveAIMaxOutputTokens
 	}
@@ -416,14 +409,6 @@ func RunAIChat(ctx context.Context, sseHandler *sse.SSEHandlerCh, backend UseCha
 				chatOpts.TabId = tabId
 			}
 		}
-		if chatOpts.BuilderAppGenerator != nil {
-			appGoFile, appStaticFiles, platformInfo, appErr := chatOpts.BuilderAppGenerator()
-			if appErr == nil {
-				chatOpts.AppGoFile = appGoFile
-				chatOpts.AppStaticFiles = appStaticFiles
-				chatOpts.PlatformInfo = platformInfo
-			}
-		}
 		stopReason, rtnMessages, err := runAIChatStep(ctx, sseHandler, backend, chatOpts, cont)
 		metrics.RequestCount++
 		if chatOpts.Config.IsWaveProxy() {
@@ -586,8 +571,6 @@ func WaveAIPostMessageWrap(ctx context.Context, sseHandler *sse.SSEHandlerCh, me
 // PostMessageRequest represents the request body for posting a message
 type PostMessageRequest struct {
 	TabId        string            `json:"tabid,omitempty"`
-	BuilderId    string            `json:"builderid,omitempty"`
-	BuilderAppId string            `json:"builderappid,omitempty"`
 	ChatID       string            `json:"chatid"`
 	Msg          uctypes.AIMessage `json:"msg"`
 	WidgetAccess bool              `json:"widgetaccess,omitempty"`
@@ -618,13 +601,10 @@ func WaveAIPostMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get RTInfo from TabId or BuilderId
+	// Get RTInfo from TabId
 	var rtInfo *waveobj.ObjRTInfo
 	if req.TabId != "" {
 		oref := waveobj.MakeORef(waveobj.OType_Tab, req.TabId)
-		rtInfo = wstore.GetRTInfo(oref)
-	} else if req.BuilderId != "" {
-		oref := waveobj.MakeORef(waveobj.OType_Builder, req.BuilderId)
 		rtInfo = wstore.GetRTInfo(oref)
 	}
 	if rtInfo == nil {
@@ -633,12 +613,11 @@ func WaveAIPostMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get WaveAI settings
 	premium := shouldUsePremium()
-	builderMode := req.BuilderId != ""
 	if req.AIMode == "" {
 		http.Error(w, "aimode is required in request body", http.StatusBadRequest)
 		return
 	}
-	aiOpts, err := getWaveAISettings(premium, builderMode, *rtInfo, req.AIMode)
+	aiOpts, err := getWaveAISettings(premium, *rtInfo, req.AIMode)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("WaveAI configuration error: %v", err), http.StatusInternalServerError)
 		return
@@ -651,10 +630,8 @@ func WaveAIPostMessageHandler(w http.ResponseWriter, r *http.Request) {
 		Config:               *aiOpts,
 		WidgetAccess:         req.WidgetAccess,
 		AllowNativeWebSearch: true,
-		BuilderId:            req.BuilderId,
-		BuilderAppId:         req.BuilderAppId,
 	}
-	chatOpts.SystemPrompt = getSystemPrompt(chatOpts.Config.APIType, chatOpts.Config.Model, chatOpts.BuilderId != "", chatOpts.Config.HasCapability(uctypes.AICapabilityTools), chatOpts.WidgetAccess)
+	chatOpts.SystemPrompt = getSystemPrompt(chatOpts.Config.APIType, chatOpts.Config.Model, chatOpts.Config.HasCapability(uctypes.AICapabilityTools), chatOpts.WidgetAccess)
 
 	if req.TabId != "" {
 		chatOpts.TabStateGenerator = func() (string, []uctypes.ToolDefinition, string, error) {

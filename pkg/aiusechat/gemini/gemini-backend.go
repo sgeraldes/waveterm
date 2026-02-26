@@ -136,12 +136,6 @@ func buildGeminiHTTPRequest(ctx context.Context, contents []GeminiContent, chatO
 	if chatOpts.PlatformInfo != "" {
 		appendPartToLastUserMessage(reqBody.Contents, "<PlatformInfo>\n"+chatOpts.PlatformInfo+"\n</PlatformInfo>")
 	}
-	if chatOpts.AppStaticFiles != "" {
-		appendPartToLastUserMessage(reqBody.Contents, "<CurrentAppStaticFiles>\n"+chatOpts.AppStaticFiles+"\n</CurrentAppStaticFiles>")
-	}
-	if chatOpts.AppGoFile != "" {
-		appendPartToLastUserMessage(reqBody.Contents, "<CurrentAppGoFile>\n"+chatOpts.AppGoFile+"\n</CurrentAppGoFile>")
-	}
 
 	if wavebase.IsDevMode() {
 		var toolNames []string

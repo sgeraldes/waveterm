@@ -224,12 +224,6 @@ func buildOpenAIHTTPRequest(ctx context.Context, inputs []any, chatOpts uctypes.
 	if chatOpts.PlatformInfo != "" {
 		appendToLastUserMessage(inputs, "<PlatformInfo>\n"+chatOpts.PlatformInfo+"\n</PlatformInfo>")
 	}
-	if chatOpts.AppStaticFiles != "" {
-		appendToLastUserMessage(inputs, "<CurrentAppStaticFiles>\n"+chatOpts.AppStaticFiles+"\n</CurrentAppStaticFiles>")
-	}
-	if chatOpts.AppGoFile != "" {
-		appendToLastUserMessage(inputs, "<CurrentAppGoFile>\n"+chatOpts.AppGoFile+"\n</CurrentAppGoFile>")
-	}
 
 	// Build request body
 	// Use configured verbosity, or fall back to default constant
