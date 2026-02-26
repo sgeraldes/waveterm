@@ -7,8 +7,8 @@ import { generateImageFilename, getMarkdownImageRef } from "./image-paste";
 describe("generateImageFilename", () => {
     it("should generate filename with date prefix", () => {
         const filename = generateImageFilename();
-        // Should match YYYY-MM-DD-{8chars}.png
-        expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-[a-z0-9]{8}\.png$/);
+        // Should match YYYY-MM-DD-{12 hex chars}.png (6 random bytes = 12 hex digits)
+        expect(filename).toMatch(/^\d{4}-\d{2}-\d{2}-[a-f0-9]{12}\.png$/);
     });
 
     it("should generate unique filenames", () => {
