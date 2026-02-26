@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package waveobj
 
@@ -15,13 +13,12 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
 )
 
-// Validation constants
 const (
 	MaxPathLength      = 4096
 	MaxStringLength    = 256
 	MaxURLLength       = 2048
-	MaxCommandLength   = 65536   // 64KB
-	MaxScriptLength    = 1048576 // 1MB
+	MaxCommandLength   = 65536
+	MaxScriptLength    = 1048576
 	MaxArrayItems      = 256
 	MaxMapEntries      = 1024
 	MaxArrayItemLength = 4096
@@ -29,7 +26,6 @@ const (
 	MaxMapValueLength  = 4096
 )
 
-// ValidationError provides detailed error information
 type ValidationError struct {
 	Key     string
 	Value   interface{}
@@ -40,16 +36,13 @@ func (e *ValidationError) Error() string {
 	return fmt.Sprintf("invalid metadata %s: %s", e.Key, e.Message)
 }
 
-// ValidationFunc is the signature for field validators
 type ValidationFunc func(key string, value interface{}) error
 
-// ValidateMetadata validates metadata for a specific object type
 func ValidateMetadata(oref ORef, meta MetaMapType) error {
 	validators := getValidatorsForOType(oref.OType)
 
 	for key, value := range meta {
 		if value == nil {
-			// Null means delete - always allowed
 			continue
 		}
 
@@ -58,7 +51,6 @@ func ValidateMetadata(oref ORef, meta MetaMapType) error {
 				return err
 			}
 		}
-		// Unknown keys pass through without validation (extensibility)
 	}
 
 	return nil
@@ -79,9 +71,7 @@ func getValidatorsForOType(otype string) map[string]ValidationFunc {
 	}
 }
 
-// ValidatePath checks path fields for security and validity
 func ValidatePath(key string, value interface{}, mustBeDir bool) error {
-	// Allow clearing (nil handled by caller)
 	if value == nil {
 		return nil
 	}
@@ -95,20 +85,14 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 		}
 	}
 
-	// Allow empty to clear
 	if path == "" {
 		return nil
 	}
 
-	// Virtual paths (e.g. "virtual:appearance") are UI-only route
-	// identifiers with no backing file — skip filesystem validation
 	if strings.Contains(path, ":") && !filepath.IsAbs(path) {
-		// On Windows, absolute paths like "C:\foo" contain a colon but
-		// are absolute. Non-absolute paths with colons are virtual routes.
 		return nil
 	}
 
-	// Length check (DoS protection)
 	if len(path) > MaxPathLength {
 		return &ValidationError{
 			Key:     key,
@@ -117,7 +101,6 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 		}
 	}
 
-	// Null byte check (security)
 	if strings.Contains(path, "\x00") {
 		return &ValidationError{
 			Key:     key,
@@ -126,7 +109,6 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 		}
 	}
 
-	// Path traversal check using absolute path comparison
 	if err := checkPathTraversal(path); err != nil {
 		return &ValidationError{
 			Key:     key,
@@ -135,12 +117,10 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 		}
 	}
 
-	// Expand home directory for existence checks
 	expandedPath := path
 	if strings.HasPrefix(path, "~") {
 		expanded, err := wavebase.ExpandHomeDir(path)
 		if err != nil {
-			// ExpandHomeDir already checks for traversal
 			return &ValidationError{
 				Key:     key,
 				Value:   path,
@@ -150,32 +130,24 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 		expandedPath = expanded
 	}
 
-	// On Windows, skip os.Stat for Unix-style absolute paths (e.g., /home/user)
-	// since these are likely remote/WSL paths that don't exist on the host
 	if runtime.GOOS == "windows" && strings.HasPrefix(expandedPath, "/") {
 		return nil
 	}
 
-	// Check existence and type (soft validation - warn but allow)
 	info, err := os.Stat(expandedPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Log warning but allow non-existent paths
-			// This enables setting paths before directories are created
 			log.Printf("[validation] warning: %s path does not exist: %s", key, expandedPath)
 			return nil
 		}
 		if os.IsPermission(err) {
-			// Permission error - also warn but allow
 			log.Printf("[validation] warning: %s path not accessible: %s", key, expandedPath)
 			return nil
 		}
-		// Other errors - allow with warning
 		log.Printf("[validation] warning: %s path check failed: %s: %v", key, expandedPath, err)
 		return nil
 	}
 
-	// Directory check (hard validation if file exists)
 	if mustBeDir && !info.IsDir() {
 		return &ValidationError{
 			Key:     key,
@@ -187,15 +159,11 @@ func ValidatePath(key string, value interface{}, mustBeDir bool) error {
 	return nil
 }
 
-// checkPathTraversal performs absolute path comparison to detect traversal
 func checkPathTraversal(path string) error {
-	// Clean the path first
 	cleanPath := filepath.Clean(path)
 
-	// Convert to absolute path for comparison
 	absPath := cleanPath
 	if !filepath.IsAbs(cleanPath) {
-		// For relative paths starting with ~, expand first
 		if strings.HasPrefix(cleanPath, "~") {
 			var err error
 			absPath, err = wavebase.ExpandHomeDir(cleanPath)
@@ -203,10 +171,8 @@ func checkPathTraversal(path string) error {
 				return fmt.Errorf("path expansion failed: %w", err)
 			}
 		} else {
-			// Get absolute path relative to cwd
 			cwd, err := os.Getwd()
 			if err != nil {
-				// If we can't get cwd, fall back to string check
 				if strings.Contains(cleanPath, "..") {
 					return fmt.Errorf("path traversal sequence detected")
 				}
@@ -216,21 +182,14 @@ func checkPathTraversal(path string) error {
 		}
 	}
 
-	// For Windows UNC paths (\\server\share\path)
 	if runtime.GOOS == "windows" && strings.HasPrefix(path, "\\\\") {
-		// UNC paths should not traverse above the share
-		// When splitting \\server\share\path by \, we get ["", "", "server", "share", "path"]
-		// The first two elements are empty due to the leading \\
 		parts := strings.Split(filepath.Clean(path), string(filepath.Separator))
-		// Need at least 4 parts: ["", "", "server", "share"] for a valid UNC share
 		if len(parts) >= 4 {
-			// parts[2] is server, parts[3] is share
 			server := parts[2]
 			share := parts[3]
 			if server == "" || share == "" {
 				return fmt.Errorf("invalid UNC path format")
 			}
-			// Build the share root path: \\server\share
 			sharePath := "\\\\" + server + string(filepath.Separator) + share
 			cleanedPath := filepath.Clean(path)
 			if !strings.HasPrefix(cleanedPath, sharePath) {
@@ -239,8 +198,6 @@ func checkPathTraversal(path string) error {
 		}
 	}
 
-	// Final check: compare cleaned path segments
-	// If ".." appears after cleaning, it's traversing
 	absPathClean := filepath.Clean(absPath)
 	segments := strings.Split(absPathClean, string(filepath.Separator))
 	for _, seg := range segments {
@@ -252,7 +209,6 @@ func checkPathTraversal(path string) error {
 	return nil
 }
 
-// ValidateBool ensures value is a boolean
 func ValidateBool(key string, value interface{}) error {
 	if value == nil {
 		return nil
@@ -268,10 +224,9 @@ func ValidateBool(key string, value interface{}) error {
 	return nil
 }
 
-// ValidateNullableBool ensures value is nil or boolean
 func ValidateNullableBool(key string, value interface{}) error {
 	if value == nil {
-		return nil // nil is valid for pointer types
+		return nil
 	}
 
 	if _, ok := value.(bool); !ok {
@@ -284,7 +239,6 @@ func ValidateNullableBool(key string, value interface{}) error {
 	return nil
 }
 
-// ValidateString ensures value is a string within length limits
 func ValidateString(key string, value interface{}, maxLen int) error {
 	if value == nil {
 		return nil
@@ -318,13 +272,11 @@ func ValidateString(key string, value interface{}, maxLen int) error {
 	return nil
 }
 
-// ValidateInt ensures value is an integer within range
 func ValidateInt(key string, value interface{}, minVal, maxVal int) error {
 	if value == nil {
 		return nil
 	}
 
-	// JSON numbers come as float64
 	f, ok := value.(float64)
 	if !ok {
 		return &ValidationError{
@@ -346,13 +298,11 @@ func ValidateInt(key string, value interface{}, minVal, maxVal int) error {
 	return nil
 }
 
-// ValidateNullableInt ensures value is nil or integer within range
 func ValidateNullableInt(key string, value interface{}, minVal, maxVal int) error {
 	if value == nil {
-		return nil // nil is valid for pointer types
+		return nil
 	}
 
-	// JSON numbers come as float64
 	f, ok := value.(float64)
 	if !ok {
 		return &ValidationError{
@@ -374,7 +324,6 @@ func ValidateNullableInt(key string, value interface{}, minVal, maxVal int) erro
 	return nil
 }
 
-// ValidateFloat ensures value is a float within range
 func ValidateFloat(key string, value interface{}, minVal, maxVal float64) error {
 	if value == nil {
 		return nil
@@ -400,10 +349,9 @@ func ValidateFloat(key string, value interface{}, minVal, maxVal float64) error 
 	return nil
 }
 
-// ValidateNullableFloat ensures value is nil or float within range
 func ValidateNullableFloat(key string, value interface{}, minVal, maxVal float64) error {
 	if value == nil {
-		return nil // nil is valid for pointer types
+		return nil
 	}
 
 	f, ok := value.(float64)
@@ -426,7 +374,6 @@ func ValidateNullableFloat(key string, value interface{}, minVal, maxVal float64
 	return nil
 }
 
-// ValidateURL ensures value is a valid URL
 func ValidateURL(key string, value interface{}, allowedSchemes []string) error {
 	if value == nil {
 		return nil
@@ -482,7 +429,6 @@ func ValidateURL(key string, value interface{}, allowedSchemes []string) error {
 	return nil
 }
 
-// ValidateStringArray validates array fields like cmd:args
 func ValidateStringArray(key string, value interface{}, maxLen, maxItems int) error {
 	if value == nil {
 		return nil
@@ -535,7 +481,6 @@ func ValidateStringArray(key string, value interface{}, maxLen, maxItems int) er
 	return nil
 }
 
-// ValidateStringMap validates map fields like cmd:env
 func ValidateStringMap(key string, value interface{}, maxKeyLen, maxValueLen int) error {
 	if value == nil {
 		return nil
@@ -559,7 +504,6 @@ func ValidateStringMap(key string, value interface{}, maxKeyLen, maxValueLen int
 	}
 
 	for k, v := range m {
-		// Validate key
 		if len(k) > maxKeyLen {
 			return &ValidationError{
 				Key:     key,
@@ -576,7 +520,6 @@ func ValidateStringMap(key string, value interface{}, maxKeyLen, maxValueLen int
 			}
 		}
 
-		// Validate value - allow nil for deletion
 		if v == nil {
 			continue
 		}
@@ -610,17 +553,14 @@ func ValidateStringMap(key string, value interface{}, maxKeyLen, maxValueLen int
 	return nil
 }
 
-// ValidateCommand validates command execution strings
 func ValidateCommand(key string, value interface{}) error {
 	return ValidateString(key, value, MaxCommandLength)
 }
 
-// ValidateScript validates script content
 func ValidateScript(key string, value interface{}) error {
 	return ValidateString(key, value, MaxScriptLength)
 }
 
-// truncateForError truncates a string for display in error messages
 func truncateForError(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -628,7 +568,6 @@ func truncateForError(s string, maxLen int) string {
 	return s[:maxLen] + "..."
 }
 
-// Common validators for all object types
 var commonValidators = map[string]ValidationFunc{
 	MetaKey_DisplayName: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxStringLength)
@@ -641,14 +580,23 @@ var commonValidators = map[string]ValidationFunc{
 	},
 }
 
-// Tab-specific validators
 var tabValidators = map[string]ValidationFunc{
 	MetaKey_TabBaseDir: func(k string, v interface{}) error {
-		return ValidatePath(k, v, true) // must be directory
+		return ValidatePath(k, v, true)
 	},
 	MetaKey_TabBaseDirLock: ValidateBool,
 	MetaKey_TabTermStatus: func(k string, v interface{}) error {
-		return ValidateString(k, v, 32) // running, stopped, finished
+		return ValidateString(k, v, 32)
+	},
+	MetaKey_TabGroup: func(k string, v interface{}) error {
+		return ValidateString(k, v, 128)
+	},
+	MetaKey_TabGroupColor: func(k string, v interface{}) error {
+		return ValidateString(k, v, 64)
+	},
+	MetaKey_TabFavorite: ValidateBool,
+	MetaKey_TabIcon: func(k string, v interface{}) error {
+		return ValidateString(k, v, 64)
 	},
 	MetaKey_Bg: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxURLLength)
@@ -658,7 +606,6 @@ var tabValidators = map[string]ValidationFunc{
 	},
 }
 
-// Workspace-specific validators
 var workspaceValidators = map[string]ValidationFunc{
 	MetaKey_Bg: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxURLLength)
@@ -668,7 +615,6 @@ var workspaceValidators = map[string]ValidationFunc{
 	},
 }
 
-// Window-specific validators
 var windowValidators = map[string]ValidationFunc{
 	MetaKey_Bg: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxURLLength)
@@ -678,9 +624,7 @@ var windowValidators = map[string]ValidationFunc{
 	},
 }
 
-// Block-specific validators
 var blockValidators = map[string]ValidationFunc{
-	// HIGH RISK: Command execution fields
 	MetaKey_Cmd:               ValidateCommand,
 	MetaKey_CmdInitScript:     ValidateScript,
 	MetaKey_CmdInitScriptSh:   ValidateScript,
@@ -695,18 +639,16 @@ var blockValidators = map[string]ValidationFunc{
 		return ValidateStringMap(k, v, MaxMapKeyLength, MaxMapValueLength)
 	},
 
-	// Path fields
 	MetaKey_CmdCwd: func(k string, v interface{}) error {
-		return ValidatePath(k, v, true) // must be directory
+		return ValidatePath(k, v, true)
 	},
 	MetaKey_File: func(k string, v interface{}) error {
-		return ValidatePath(k, v, false) // can be file or directory
+		return ValidatePath(k, v, false)
 	},
 	MetaKey_TermLocalShellPath: func(k string, v interface{}) error {
-		return ValidatePath(k, v, false) // executable file
+		return ValidatePath(k, v, false)
 	},
 
-	// URL fields
 	MetaKey_Url: func(k string, v interface{}) error {
 		return ValidateURL(k, v, []string{"http", "https", "file"})
 	},
@@ -717,7 +659,6 @@ var blockValidators = map[string]ValidationFunc{
 		return ValidateURL(k, v, []string{"http", "https"})
 	},
 
-	// String fields
 	MetaKey_View: func(k string, v interface{}) error {
 		return ValidateString(k, v, 64)
 	},
@@ -749,7 +690,7 @@ var blockValidators = map[string]ValidationFunc{
 		return ValidateString(k, v, 64)
 	},
 	MetaKey_AiApiToken: func(k string, v interface{}) error {
-		return ValidateString(k, v, MaxURLLength) // API tokens can be long
+		return ValidateString(k, v, MaxURLLength)
 	},
 	MetaKey_AiName: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxStringLength)
@@ -791,7 +732,6 @@ var blockValidators = map[string]ValidationFunc{
 		return ValidateString(k, v, 64)
 	},
 
-	// Numeric fields
 	MetaKey_TermFontSize: func(k string, v interface{}) error {
 		return ValidateInt(k, v, 6, 72)
 	},
@@ -832,12 +772,10 @@ var blockValidators = map[string]ValidationFunc{
 		return ValidateFloat(k, v, -1000000, 1000000)
 	},
 
-	// Nullable pointer fields
 	MetaKey_CmdCloseOnExitDelay: func(k string, v interface{}) error {
 		return ValidateNullableInt(k, v, 0, 60000)
 	},
 
-	// Boolean fields
 	MetaKey_Edit:                    ValidateBool,
 	MetaKey_Frame:                   ValidateBool,
 	MetaKey_CmdInteractive:          ValidateBool,
@@ -861,7 +799,6 @@ var blockValidators = map[string]ValidationFunc{
 	MetaKey_WaveAiPanelOpen:         ValidateBool,
 }
 
-// PresetKeyScope defines which keys are allowed for each preset type
 var PresetKeyScope = map[string]map[string]bool{
 	"tabvar@": {
 		MetaKey_TabBaseDir:     true,
@@ -938,10 +875,7 @@ var PresetKeyScope = map[string]map[string]bool{
 	},
 }
 
-// ValidatePresetScope checks if preset keys are within allowed scope
-// This is called during config load, not during UpdateObjectMeta
 func ValidatePresetScope(presetName string, meta MetaMapType) error {
-	// Determine preset type from name prefix
 	var allowedKeys map[string]bool
 	for prefix, keys := range PresetKeyScope {
 		if strings.HasPrefix(presetName, prefix) {
@@ -951,7 +885,6 @@ func ValidatePresetScope(presetName string, meta MetaMapType) error {
 	}
 
 	if allowedKeys == nil {
-		// Unknown preset type - log warning but allow
 		log.Printf("[validation] warning: unknown preset type for %s", presetName)
 		return nil
 	}
@@ -969,7 +902,6 @@ func ValidatePresetScope(presetName string, meta MetaMapType) error {
 	return nil
 }
 
-// init merges common validators into specific validators
 func init() {
 	for k, v := range commonValidators {
 		if _, exists := tabValidators[k]; !exists {

@@ -1,0 +1,205 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.todo-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.todo-status-bar {
+    position: absolute;
+    top: 4px;
+    right: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    background: rgba(30, 30, 30, 0.85);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.todo-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.todo-saving {
+    color: var(--warning-color, #f0a500);
+    flex-shrink: 0;
+}
+
+.todo-saved {
+    color: var(--success-color, #4caf50);
+    flex-shrink: 0;
+}
+
+.todo-content {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+// View mode styles
+.todo-view {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.todo-items {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 4px;
+}
+
+.todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    user-select: none;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.05);
+    }
+}
+
+.todo-checkbox {
+    flex-shrink: 0;
+    font-size: 14px;
+    padding-top: 1px;
+}
+
+.todo-item-unchecked .todo-checkbox {
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+}
+
+.todo-item-checked {
+    opacity: 0.5;
+
+    .todo-text {
+        text-decoration: line-through;
+    }
+
+    .todo-checkbox {
+        color: var(--success-color, #4caf50);
+    }
+}
+
+.todo-text {
+    flex: 1;
+    font-size: 13px;
+    color: var(--primary-text-color, white);
+    word-break: break-word;
+    cursor: text;
+
+    strong { font-weight: 600; }
+    em { font-style: italic; }
+    code {
+        font-family: monospace;
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0 3px;
+        border-radius: 3px;
+    }
+    a {
+        color: var(--accent-color, #3b82f6);
+        text-decoration: underline;
+    }
+}
+
+.todo-inline-edit {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--accent-color, #3b82f6);
+    border-radius: 3px;
+    color: var(--primary-text-color, white);
+    font-size: 13px;
+    padding: 0 4px;
+    outline: none;
+    font-family: inherit;
+}
+
+.todo-item-drag-over {
+    border-top: 2px solid var(--accent-color, #3b82f6);
+}
+
+.todo-section-divider {
+    height: 1px;
+    background: var(--border-color, rgba(255, 255, 255, 0.1));
+    margin: 6px 8px;
+}
+
+.todo-empty {
+    padding: 12px 8px;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+    font-size: 13px;
+    font-style: italic;
+    text-align: center;
+}
+
+.todo-add-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    flex-shrink: 0;
+
+    i {
+        color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+        font-size: 12px;
+    }
+
+    input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        color: var(--primary-text-color, white);
+        font-size: 13px;
+        outline: none;
+
+        &::placeholder {
+            color: var(--secondary-text-color, rgba(255, 255, 255, 0.3));
+        }
+    }
+}
+
+// Loading and error states
+.todo-loading,
+.todo-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    font-size: 14px;
+}
+
+.todo-error button {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    background: transparent;
+    color: var(--primary-text-color, white);
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}

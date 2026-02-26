@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package connparse
 
@@ -73,7 +71,6 @@ func ParseURIAndReplaceCurrentHost(ctx context.Context, uri string) (*Connection
 			return nil, fmt.Errorf("error getting connection name from context: %v", err)
 		}
 
-		// RPC context connection is empty for local connections
 		if source == "" {
 			source = wshrpc.LocalConnName
 		}
@@ -90,7 +87,6 @@ func GetConnNameFromContext(ctx context.Context) (string, error) {
 	return handler.GetRpcContext().Conn, nil
 }
 
-// ParseURI parses a connection URI and returns the connection type, host/path, and parameters.
 func ParseURI(uri string) (*Connection, error) {
 	var scheme string
 	var rest string
@@ -119,7 +115,6 @@ func ParseURI(uri string) (*Connection, error) {
 		if len(split) > 1 && split[1] != "" {
 			remotePath = split[1]
 		} else if strings.HasSuffix(rest, "/") {
-			// preserve trailing slash
 			remotePath = "/"
 		} else {
 			remotePath = ""
@@ -133,7 +128,6 @@ func ParseURI(uri string) (*Connection, error) {
 			parseGenericPath()
 		}
 	}
-
 	addPrecedingSlash := true
 
 	if scheme == "" {

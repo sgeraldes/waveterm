@@ -783,6 +783,7 @@ declare global {
         source: string;
         icon?: string;
         isdefault?: boolean;
+        wsldistro?: string;
     };
 
     // wshrpc.FetchSuggestionsData
@@ -1036,8 +1037,13 @@ declare global {
         "bg:text"?: string;
         "tab:basedir"?: string;
         "tab:basedirlock"?: boolean;
+        "tab:wsldistro"?: string;
         "tab:color"?: string;
         "tab:termstatus"?: string;
+        "tab:group"?: string;
+        "tab:groupcolor"?: string;
+        "tab:favorite"?: boolean;
+        "tab:icon"?: string;
         "waveai:panelopen"?: boolean;
         "waveai:panelwidth"?: number;
         "waveai:model"?: string;
@@ -1060,6 +1066,7 @@ declare global {
         "term:bellindicator"?: boolean;
         "term:durable"?: boolean;
         "term:reportfocus"?: boolean;
+        "term:title"?: string;
         "termhistory:blockid"?: string;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
@@ -1845,6 +1852,21 @@ declare global {
     // wshrpc.WshServerCommandMeta
     type WshServerCommandMeta = {
         commandtype: string;
+    };
+
+    // wshrpc.WslPathStatRequest
+    type WslPathStatRequest = {
+        distro: string;
+        path: string;
+    };
+
+    // wshrpc.WslPathStatResponse
+    type WslPathStatResponse = {
+        exists: boolean;
+        isdir?: boolean;
+        size?: number;
+        modtime?: number;
+        error?: string;
     };
 
 }

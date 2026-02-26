@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package blockcontroller
 
@@ -9,7 +7,6 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
-	"strings"
 	"sync"
 	"time"
 
@@ -24,7 +21,6 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
 	"github.com/wavetermdev/waveterm/pkg/wps"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshclient"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
 
@@ -34,9 +30,10 @@ const (
 )
 
 const (
-	Status_Running = "running"
-	Status_Done    = "done"
-	Status_Init    = "init"
+	Status_Running  = "running"
+	Status_Done     = "done"
+	Status_Init     = "init"
+	Status_Starting = "starting"
 )
 
 const (
@@ -62,7 +59,6 @@ type BlockControllerRuntimeStatus struct {
 	ShellProcExitCode int    `json:"shellprocexitcode"`
 }
 
-// Controller interface that all block controllers must implement
 type Controller interface {
 	Start(ctx context.Context, blockMeta waveobj.MetaMapType, rtOpts *waveobj.RuntimeOpts, force bool) error
 	Stop(graceful bool, newStatus string, destroy bool)
@@ -71,13 +67,11 @@ type Controller interface {
 	SendInput(input *BlockInputUnion) error
 }
 
-// Registry for all controllers
 var (
 	controllerRegistry = make(map[string]Controller)
 	registryLock       sync.RWMutex
 )
 
-// Registry operations
 func getController(blockId string) Controller {
 	registryLock.RLock()
 	defer registryLock.RUnlock()
@@ -110,7 +104,6 @@ func deleteController(blockId string) {
 func getAllControllers() map[string]Controller {
 	registryLock.RLock()
 	defer registryLock.RUnlock()
-	// Return a copy to avoid lock issues
 	result := make(map[string]Controller)
 	for k, v := range controllerRegistry {
 		result[k] = v
@@ -151,7 +144,6 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 	controllerName := blockData.Meta.GetString(waveobj.MetaKey_Controller, "")
 	connName := blockData.Meta.GetString(waveobj.MetaKey_Connection, "")
 
-	// Get existing controller
 	existing := getController(blockId)
 
 	// Check for connection change FIRST - always destroy on conn change
@@ -176,7 +168,6 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 	// Determine if we should use DurableShellController vs ShellController
 	shouldUseDurableShellController := controllerName == BlockController_Shell && jobcontroller.IsBlockIdTermDurable(blockId)
 
-	// Check if we need to morph controller type
 	if existing != nil {
 		needsReplace := false
 
@@ -201,14 +192,12 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 		}
 	}
 
-	// Force restart if requested
 	if force && existing != nil {
 		DestroyBlockController(blockId)
 		time.Sleep(100 * time.Millisecond)
 		existing = nil
 	}
 
-	// Destroy done controllers before restarting
 	if existing != nil {
 		status := existing.GetRuntimeStatus()
 		if status.ShellProcStatus == Status_Done {
@@ -219,12 +208,10 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 		}
 	}
 
-	// Create or restart controller
 	var controller Controller
 	if existing != nil {
 		controller = existing
 	} else {
-		// Create new controller based on type
 		switch controllerName {
 		case BlockController_Shell, BlockController_Cmd:
 			if shouldUseDurableShellController {
@@ -239,25 +226,17 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 		}
 	}
 
-	// Check if we need to start/restart
 	status := controller.GetRuntimeStatus()
 	if status.ShellProcStatus == Status_Init {
-		// For shell/cmd, ensure connection is established before starting shell
 		if controllerName == BlockController_Shell || controllerName == BlockController_Cmd {
 			if !conncontroller.IsLocalConnName(connName) {
-				if strings.HasPrefix(connName, "wsl://") {
-					distroName := strings.TrimPrefix(connName, "wsl://")
-					err = wslconn.EnsureConnection(ctx, distroName)
-				} else {
-					err = conncontroller.EnsureConnection(ctx, connName)
-				}
+				err = conncontroller.EnsureConnection(ctx, connName)
 				if err != nil {
 					return fmt.Errorf("cannot start shellproc: %w", err)
 				}
 			}
 		}
 
-		// Start controller
 		err = controller.Start(ctx, blockData.Meta, rtOpts, force)
 		if err != nil {
 			return fmt.Errorf("error starting controller: %w", err)
@@ -293,7 +272,6 @@ func SendInput(blockId string, inputUnion *BlockInputUnion) error {
 	return controller.SendInput(inputUnion)
 }
 
-// only call this on shutdown
 func StopAllBlockControllersForShutdown() {
 	controllers := getAllControllers()
 	for blockId, controller := range controllers {
@@ -393,15 +371,6 @@ func CheckConnStatus(blockId string) error {
 	}
 	connName := bdata.Meta.GetString(waveobj.MetaKey_Connection, "")
 	if conncontroller.IsLocalConnName(connName) {
-		return nil
-	}
-	if strings.HasPrefix(connName, "wsl://") {
-		distroName := strings.TrimPrefix(connName, "wsl://")
-		conn := wslconn.GetWslConn(distroName)
-		connStatus := conn.DeriveConnStatus()
-		if connStatus.Status != conncontroller.Status_Connected {
-			return fmt.Errorf("not connected: %s", connStatus.Status)
-		}
 		return nil
 	}
 	opts, err := remote.ParseOpts(connName)

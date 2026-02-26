@@ -357,21 +357,24 @@ const ChangeConnectionBlockModal = React.memo(
                 setConnList([]);
                 return;
             }
-            const prtn = RpcApi.ConnListCommand(TabRpcClient, { timeout: 2000 });
-            prtn.then((newConnList) => {
-                setConnList(newConnList ?? []);
-            }).catch((e) => console.log("unable to load conn list from backend. using blank list: ", e));
-            const p2rtn = RpcApi.WslListCommand(TabRpcClient, { timeout: 2000 });
-            p2rtn
-                .then((newWslList) => {
-                    console.log(newWslList);
-                    setWslList(newWslList ?? []);
-                })
-                .catch(() => {
-                    // removing this log and failing silently since it will happen
-                    // if a system isn't using the wsl. and would happen every time the
-                    // typeahead was opened. good candidate for verbose log level.
-                });
+            const loadData = async () => {
+                try {
+                    const newConnList = await RpcApi.ConnListCommand(TabRpcClient, { timeout: 2000 });
+                    setConnList(newConnList ?? []);
+                } catch (e) {
+                    console.log("unable to load conn list from backend. using blank list: ", e);
+                }
+                try {
+                    const resp = await RpcApi.DetectAvailableShellsCommand(TabRpcClient, {}, { timeout: 2000 });
+                    const wslDistros = (resp.shells ?? [])
+                        .filter((s) => s.source === "wsl" && s.wsldistro)
+                        .map((s) => s.wsldistro);
+                    setWslList(wslDistros);
+                } catch {
+                    // WSL not available on this system
+                }
+            };
+            loadData();
         }, [changeConnModalOpen]);
 
         const changeConnection = React.useCallback(

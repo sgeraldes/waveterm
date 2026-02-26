@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export const useLongClick = (ref, onClick, onLongClick, disabled = false, ms = 300) => {
@@ -8,7 +5,7 @@ export const useLongClick = (ref, onClick, onLongClick, disabled = false, ms = 3
     const [longClickTriggered, setLongClickTriggered] = useState(false);
 
     const startPress = useCallback(
-        (e: React.MouseEvent<any>) => {
+        (e: React.MouseEvent<HTMLElement>) => {
             if (onLongClick == null) {
                 return;
             }
@@ -26,7 +23,7 @@ export const useLongClick = (ref, onClick, onLongClick, disabled = false, ms = 3
     }, []);
 
     const handleClick = useCallback(
-        (e: React.MouseEvent<any>) => {
+        (e: React.MouseEvent<HTMLElement>) => {
             if (longClickTriggered) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -53,7 +50,7 @@ export const useLongClick = (ref, onClick, onLongClick, disabled = false, ms = 3
             element.removeEventListener("mouseleave", stopPress);
             element.removeEventListener("click", handleClick);
         };
-    }, [ref.current, startPress, stopPress, handleClick]);
+    }, [ref, startPress, stopPress, handleClick, disabled]);
 
     return ref;
 };

@@ -8,7 +8,7 @@ import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { checkKeyPressed, isCharacterKeyEvent } from "@/util/keyutil";
 import { PLATFORM, PlatformMacOS } from "@/util/platformutil";
 import { addOpenMenuItems } from "@/util/previewutil";
-import { fireAndForget } from "@/util/util";
+import { fireAndForget, jotaiLoadableValue } from "@/util/util";
 import { formatRemoteUri } from "@/util/waveutil";
 import { offset, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
 import {
@@ -327,7 +327,7 @@ function TableBody({
     const searchActive = useAtomValue(model.directorySearchActive);
     const dummyLineRef = useRef<HTMLDivElement>(null);
     const warningBoxRef = useRef<HTMLDivElement>(null);
-    const conn = useAtomValue(model.connection);
+    const conn = useAtomValue(model.connectionImmediate);
     const setErrorMsg = useSetAtom(model.errorMsgAtom);
 
     useEffect(() => {
@@ -562,9 +562,10 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
     const showHiddenFiles = useAtomValue(model.showHiddenFiles);
     const [selectedPath, setSelectedPath] = useState("");
     const [refreshVersion, setRefreshVersion] = useAtom(model.refreshVersion);
-    const conn = useAtomValue(model.connection);
+    const conn = useAtomValue(model.connectionImmediate);
     const blockData = useAtomValue(model.blockAtom);
-    const finfo = useAtomValue(model.statFile);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
+    const finfo = jotaiLoadableValue(loadableFileInfo, null);
     const dirPath = finfo?.path;
     const setErrorMsg = useSetAtom(model.errorMsgAtom);
 

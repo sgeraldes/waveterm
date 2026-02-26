@@ -1,0 +1,6 @@
+- [ ] posibility to add more terminals as tabs in the same wave space...
+- [ ] posibility to add more documents in the same document preview space
+- [ ] posibility to edit tasks, I can only click to done/undone
+- [ ] tasks evolution into kanban board (trello like)
+- [ ] poder hacer click en archivos/links que no son URL y abrir documentos, por ejemplo, en wsh (widgets).
+- [ ] Double click and exe to run it, not open in viewer. same with other files. And I need right mouse click menu, hopefully explorer like

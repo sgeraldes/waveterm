@@ -3,6 +3,7 @@
 
 import { Markdown } from "@/element/markdown";
 import { getOverrideConfigAtom, globalStore } from "@/store/global";
+import { jotaiLoadableValue } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { useEffect, useMemo } from "react";
 import type { SpecializedViewProps } from "./preview";
@@ -16,16 +17,17 @@ function MarkdownPreview({ model }: SpecializedViewProps) {
             model.refreshCallback = null;
         };
     }, []);
-    const connName = useAtomValue(model.connection);
-    const fileInfo = useAtomValue(model.statFile);
+    const connName = useAtomValue(model.connectionImmediate);
+    const loadableFileInfo = useAtomValue(model.loadableFileInfo);
+    const fileInfo = jotaiLoadableValue(loadableFileInfo, null);
     const fontSizeOverride = useAtomValue(getOverrideConfigAtom(model.blockId, "markdown:fontsize"));
     const fixedFontSizeOverride = useAtomValue(getOverrideConfigAtom(model.blockId, "markdown:fixedfontsize"));
     const resolveOpts: MarkdownResolveOpts = useMemo<MarkdownResolveOpts>(() => {
         return {
             connName: connName,
-            baseDir: fileInfo.dir,
+            baseDir: fileInfo?.dir,
         };
-    }, [connName, fileInfo.dir]);
+    }, [connName, fileInfo?.dir]);
     return (
         <div className="flex flex-row h-full overflow-auto items-start justify-start">
             <Markdown

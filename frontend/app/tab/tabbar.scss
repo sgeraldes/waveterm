@@ -29,6 +29,7 @@
         flex-direction: row;
         height: 27px;
         -webkit-app-region: no-drag;
+        scroll-behavior: smooth;
     }
 
     .pinned-tab-spacer {
@@ -47,9 +48,40 @@
         margin-left: auto;
     }
 
+    .tab-management-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        flex-shrink: 0;
+        margin-right: 2px;
+        background: rgba(255, 255, 255, 0.06);
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.12);
+        }
+    }
+
     .add-tab {
         padding: 0 10px;
         height: 27px;
+    }
+
+    .scroll-left-btn,
+    .scroll-right-btn {
+        padding: 0 8px;
+        height: 27px;
+        transition: opacity 0.2s ease;
+
+        &:disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
     }
 
     // Customize scrollbar styles
@@ -62,5 +94,16 @@
         --os-track-border-radius: 2px;
         --os-handle-interactive-area-offset: 0px;
         --os-handle-border-radius: 2px;
+    }
+}
+
+// Light theme overrides
+[data-theme="light"] {
+    .tab-bar-wrapper .tab-management-btn {
+        background: rgba(0, 0, 0, 0.06);
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
     }
 }

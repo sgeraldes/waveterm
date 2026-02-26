@@ -1,6 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
-
 import type { BlockNodeModel } from "@/app/block/blocktypes";
 import type { TabModel } from "@/app/store/tab-model";
 import { getConnStatusAtom, globalStore, WOS } from "@/store/global";
@@ -116,6 +113,7 @@ class SysinfoViewModel implements ViewModel {
     connStatus: jotai.Atom<ConnStatus>;
     plotMetaAtom: jotai.PrimitiveAtom<Map<string, TimeSeriesMeta>>;
     endIconButtons: jotai.Atom<IconButtonDecl[]>;
+    errorAtom: jotai.PrimitiveAtom<string | null>;
     plotTypeSelectedAtom: jotai.Atom<string>;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
@@ -164,12 +162,13 @@ class SysinfoViewModel implements ViewModel {
                 }
                 set(this.dataAtom, newDataWithGaps);
             } catch (e) {
-                console.log("Error adding data to sysinfo", e);
+                console.error("Error adding data to sysinfo", e);
+                set(this.errorAtom, String(e));
             }
         });
         this.addContinuousDataAtom = jotai.atom(null, (get, set, newPoint) => {
             const targetLen = get(this.numPoints) + 1;
-            let data = get(this.dataAtom);
+            const data = get(this.dataAtom);
             try {
                 const latestItemTs = newPoint?.ts ?? 0;
                 const cutoffTs = latestItemTs - 1000 * targetLen;
@@ -177,12 +176,13 @@ class SysinfoViewModel implements ViewModel {
                 const newData = data.filter((dataItem) => dataItem.ts >= cutoffTs);
                 set(this.dataAtom, newData);
             } catch (e) {
-                console.log("Error adding data to sysinfo", e);
+                console.error("Error adding data to sysinfo", e);
+                set(this.errorAtom, String(e));
             }
         });
         this.plotMetaAtom = jotai.atom(new Map(Object.entries(DefaultPlotMeta)));
-        // Sysinfo can show stats from local, WSL, or remote - allow connection selection
-        // but filter out shell profiles (cmd, pwsh, git-bash) since they share the same host
+        this.errorAtom = jotai.atom(null) as jotai.PrimitiveAtom<string | null>;
+        this.endIconButtons = jotai.atom(null) as jotai.Atom<IconButtonDecl[]>;
         this.manageConnection = jotai.atom(true);
         this.filterOutNowsh = jotai.atom(true);
         this.loadingAtom = jotai.atom(true);
@@ -216,7 +216,7 @@ class SysinfoViewModel implements ViewModel {
             return plotType;
         });
         this.viewIcon = jotai.atom((get) => {
-            return "chart-line"; // should not be hardcoded
+            return "chart-line";
         });
         this.viewName = jotai.atom((get) => {
             return get(this.plotTypeSelectedAtom);
@@ -266,11 +266,10 @@ class SysinfoViewModel implements ViewModel {
             }
             const newData = this.getDefaultData();
             const initialDataItems: DataItem[] = initialData.map(convertWaveEventToDataItem);
-            // splice the initial data into the default data (replacing the newest points)
-            //newData.splice(newData.length - initialDataItems.length, initialDataItems.length, ...initialDataItems);
             globalStore.set(this.addInitialDataAtom, initialDataItems);
         } catch (e) {
-            console.log("Error loading initial data for sysinfo", e);
+            console.error("Error loading initial data for sysinfo", e);
+            globalStore.set(this.errorAtom, String(e));
         } finally {
             globalStore.set(this.loadingAtom, false);
         }
@@ -317,7 +316,6 @@ class SysinfoViewModel implements ViewModel {
     }
 
     getDefaultData(): DataItem[] {
-        // set it back one to avoid backwards line being possible
         const numPoints = globalStore.get(this.numPoints);
         const currentTime = Date.now() - 1000;
         const points: DataItem[] = [];
@@ -351,6 +349,7 @@ function SysinfoView({ model, blockId }: SysinfoViewProps) {
     const connStatus = jotai.useAtomValue(model.connStatus);
     const addContinuousData = jotai.useSetAtom(model.addContinuousDataAtom);
     const loading = jotai.useAtomValue(model.loadingAtom);
+    const error = jotai.useAtomValue(model.errorAtom);
 
     React.useEffect(() => {
         if (connStatus?.status != "connected") {
@@ -387,6 +386,23 @@ function SysinfoView({ model, blockId }: SysinfoViewProps) {
     }, [connName, addContinuousData]);
     if (connStatus?.status != "connected") {
         return null;
+    }
+    if (error) {
+        return (
+            <div className="treeview-error-state">
+                <i className={util.makeIconClass("triangle-exclamation", false)} />
+                <span>{error}</span>
+                <button
+                    className="treeview-retry"
+                    onClick={() => {
+                        globalStore.set(model.errorAtom, null);
+                        model.loadInitialData();
+                    }}
+                >
+                    Retry
+                </button>
+            </div>
+        );
     }
     if (loading) {
         return null;
@@ -443,7 +459,6 @@ function SingleLinePlot({
         })
     );
 
-    // only add the gradient for single items
     marks.push(
         Plot.areaY(plotData, {
             fill: `url(#gradient-${blockId}-${yval})`,

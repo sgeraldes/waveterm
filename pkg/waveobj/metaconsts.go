@@ -101,8 +101,13 @@ const (
 
 	MetaKey_TabBaseDir                       = "tab:basedir"
 	MetaKey_TabBaseDirLock                   = "tab:basedirlock"
+	MetaKey_TabWslDistro                     = "tab:wsldistro"
 	MetaKey_TabColor                         = "tab:color"
 	MetaKey_TabTermStatus                    = "tab:termstatus"
+	MetaKey_TabGroup                         = "tab:group"
+	MetaKey_TabGroupColor                    = "tab:groupcolor"
+	MetaKey_TabFavorite                      = "tab:favorite"
+	MetaKey_TabIcon                          = "tab:icon"
 
 	MetaKey_WaveAiPanelOpen                  = "waveai:panelopen"
 	MetaKey_WaveAiPanelWidth                 = "waveai:panelwidth"
@@ -127,6 +132,7 @@ const (
 	MetaKey_TermBellIndicator                = "term:bellindicator"
 	MetaKey_TermDurable                      = "term:durable"
 	MetaKey_TermReportFocus                  = "term:reportfocus"
+	MetaKey_TermTitle                        = "term:title"
 
 	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
 

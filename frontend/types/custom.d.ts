@@ -1,18 +1,19 @@
 // Copyright 2026, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+
 import { type Placement } from "@floating-ui/react";
 import type * as jotai from "jotai";
 import type * as rxjs from "rxjs";
 
 declare global {
     type GlobalAtomsType = {
-        uiContext: jotai.Atom<UIContext>; // driven from windowId, tabId
-        workspace: jotai.Atom<Workspace>; // driven from WOS
-        fullConfigAtom: jotai.PrimitiveAtom<FullConfigType>; // driven from WOS, settings -- updated via WebSocket
-        waveaiModeConfigAtom: jotai.PrimitiveAtom<Record<string, AIModeConfigType>>; // resolved AI mode configs -- updated via WebSocket
-        settingsAtom: jotai.Atom<SettingsType>; // derrived from fullConfig
-        hasCustomAIPresetsAtom: jotai.Atom<boolean>; // derived from fullConfig
+        uiContext: jotai.Atom<UIContext>;
+        workspace: jotai.Atom<Workspace>;
+        fullConfigAtom: jotai.PrimitiveAtom<FullConfigType>;
+        waveaiModeConfigAtom: jotai.PrimitiveAtom<Record<string, AIModeConfigType>>;
+        settingsAtom: jotai.Atom<SettingsType>;
+        hasCustomAIPresetsAtom: jotai.Atom<boolean>;
         staticTabId: jotai.Atom<string>;
         activeTab: jotai.Atom<Tab>;
         isFullScreen: jotai.PrimitiveAtom<boolean>;
@@ -71,65 +72,65 @@ declare global {
     };
 
     type ElectronApi = {
-        getAuthKey(): string; // get-auth-key
-        getIsDev(): boolean; // get-is-dev
-        getCursorPoint: () => Electron.Point; // get-cursor-point
-        getPlatform: () => NodeJS.Platform; // get-platform
-        getEnv: (varName: string) => string; // get-env
-        getUserName: () => string; // get-user-name
-        getHostName: () => string; // get-host-name
-        getDataDir: () => string; // get-data-dir
-        getConfigDir: () => string; // get-config-dir
-        getHomeDir: () => string; // get-home-dir
-        getWebviewPreload: () => string; // get-webview-preload
-        getAboutModalDetails: () => AboutModalDetails; // get-about-modal-details
-        getZoomFactor: () => number; // get-zoom-factor
-        showWorkspaceAppMenu: (workspaceId: string) => void; // workspace-appmenu-show
-        showContextMenu: (workspaceId: string, menu: ElectronContextMenuItem[]) => void; // contextmenu-show
-        onContextMenuClick: (callback: (id: string) => void) => void; // contextmenu-click
+        getAuthKey(): string;
+        getIsDev(): boolean;
+        getCursorPoint: () => Electron.Point;
+        getPlatform: () => NodeJS.Platform;
+        getEnv: (varName: string) => string;
+        getUserName: () => string;
+        getHostName: () => string;
+        getDataDir: () => string;
+        getConfigDir: () => string;
+        getHomeDir: () => string;
+        getWebviewPreload: () => string;
+        getAboutModalDetails: () => AboutModalDetails;
+        getZoomFactor: () => number;
+        showWorkspaceAppMenu: (workspaceId: string) => void;
+        showContextMenu: (workspaceId: string, menu: ElectronContextMenuItem[]) => void;
+        onContextMenuClick: (callback: (id: string) => void) => void;
         onNavigate: (callback: (url: string) => void) => void;
         onIframeNavigate: (callback: (url: string) => void) => void;
-        downloadFile: (path: string) => void; // download
-        openExternal: (url: string) => void; // open-external
-        onFullScreenChange: (callback: (isFullScreen: boolean) => void) => void; // fullscreen-change
-        onZoomFactorChange: (callback: (zoomFactor: number) => void) => void; // zoom-factor-change
-        onUpdaterStatusChange: (callback: (status: UpdaterStatus) => void) => void; // app-update-status
-        getUpdaterStatus: () => UpdaterStatus; // get-app-update-status
-        getUpdaterChannel: () => string; // get-updater-channel
-        installAppUpdate: () => void; // install-app-update
-        onMenuItemAbout: (callback: () => void) => void; // menu-item-about
-        updateWindowControlsOverlay: (rect: Dimensions) => void; // update-window-controls-overlay
-        onReinjectKey: (callback: (waveEvent: WaveKeyboardEvent) => void) => void; // reinject-key
-        setWebviewFocus: (focusedId: number) => void; // webview-focus, focusedId is the getWebContentsId of the webview
-        registerGlobalWebviewKeys: (keys: string[]) => void; // register-global-webview-keys
-        onControlShiftStateUpdate: (callback: (state: boolean) => void) => void; // control-shift-state-update
-        createWorkspace: () => void; // create-workspace
-        switchWorkspace: (workspaceId: string) => void; // switch-workspace
-        deleteWorkspace: (workspaceId: string) => void; // delete-workspace
-        setActiveTab: (tabId: string) => void; // set-active-tab
-        createTab: () => void; // create-tab
-        closeTab: (workspaceId: string, tabId: string) => void; // close-tab
-        setWindowInitStatus: (status: "ready" | "wave-ready") => void; // set-window-init-status
-        onWaveInit: (callback: (initOpts: WaveInitOpts) => void) => void; // wave-init
-        onWaveActivate: (callback: () => void) => void; // wave-activate
-        sendLog: (log: string) => void; // fe-log
-        onQuicklook: (filePath: string) => void; // quicklook
-        openNativePath(filePath: string): void; // open-native-path
-        captureScreenshot(rect: Electron.Rectangle): Promise<string>; // capture-screenshot
-        setKeyboardChordMode: () => void; // set-keyboard-chord-mode
-        clearWebviewStorage: (webContentsId: number) => Promise<void>; // clear-webview-storage
-        setWaveAIOpen: (isOpen: boolean) => void; // set-waveai-open
-        incrementTermCommands: () => void; // increment-term-commands
-        nativePaste: () => void; // native-paste
-        doRefresh: () => void; // do-refresh
-        showOpenDialog: (options: OpenDialogOptions) => Promise<string[]>; // show-open-dialog
-        setNativeThemeSource: (theme: "light" | "dark" | "system") => void; // set-native-theme-source
+        downloadFile: (path: string) => void;
+        openExternal: (url: string) => void;
+        onFullScreenChange: (callback: (isFullScreen: boolean) => void) => void;
+        onZoomFactorChange: (callback: (zoomFactor: number) => void) => void;
+        onUpdaterStatusChange: (callback: (status: UpdaterStatus) => void) => void;
+        getUpdaterStatus: () => UpdaterStatus;
+        getUpdaterChannel: () => string;
+        installAppUpdate: () => void;
+        onMenuItemAbout: (callback: () => void) => void;
+        updateWindowControlsOverlay: (rect: Dimensions) => void;
+        onReinjectKey: (callback: (waveEvent: WaveKeyboardEvent) => void) => void;
+        setWebviewFocus: (focusedId: number) => void;
+        registerGlobalWebviewKeys: (keys: string[]) => void;
+        onControlShiftStateUpdate: (callback: (state: boolean) => void) => void;
+        createWorkspace: () => void;
+        switchWorkspace: (workspaceId: string) => void;
+        deleteWorkspace: (workspaceId: string) => void;
+        setActiveTab: (tabId: string) => void;
+        createTab: () => void;
+        closeTab: (workspaceId: string, tabId: string) => void;
+        setWindowInitStatus: (status: "ready" | "wave-ready") => void;
+        onWaveInit: (callback: (initOpts: WaveInitOpts) => void) => void;
+        onWaveActivate: (callback: () => void) => void;
+        sendLog: (log: string) => void;
+        onQuicklook: (filePath: string) => void;
+        openNativePath(filePath: string): Promise<string>;
+        captureScreenshot(rect: Electron.Rectangle): Promise<string>;
+        setKeyboardChordMode: () => void;
+        clearWebviewStorage: (webContentsId: number) => Promise<void>;
+        setWaveAIOpen: (isOpen: boolean) => void;
+        incrementTermCommands: () => void;
+        nativePaste: () => void;
+        doRefresh: () => void;
+        showOpenDialog: (options: OpenDialogOptions) => Promise<string[]>;
+        setNativeThemeSource: (theme: "light" | "dark" | "system") => void;
     };
 
     type ElectronContextMenuItem = {
-        id: string; // unique id, used for communication
+        id: string;
         label: string;
-        role?: string; // electron role (optional)
+        role?: string;
         type?: "separator" | "normal" | "submenu" | "checkbox" | "radio" | "header";
         submenu?: ElectronContextMenuItem[];
         checked?: boolean;
@@ -141,8 +142,8 @@ declare global {
     type ContextMenuItem = {
         label?: string;
         type?: "separator" | "normal" | "submenu" | "checkbox" | "radio" | "header";
-        role?: string; // electron role (optional)
-        click?: () => void; // not required if role is set
+        role?: string;
+        click?: () => void;
         submenu?: ContextMenuItem[];
         checked?: boolean;
         visible?: boolean;
@@ -298,7 +299,6 @@ declare global {
     type ViewModelClass = new (blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) => ViewModel;
 
     interface ViewModel {
-        // The type of view, used for identifying and rendering the appropriate component.
         viewType: string;
 
         useTermHeader?: jotai.Atom<boolean>;
@@ -308,10 +308,11 @@ declare global {
         // Icon representing the view, can be a string or an IconButton declaration.
         viewIcon?: jotai.Atom<string | IconButtonDecl>;
 
+        viewIconColor?: jotai.Atom<string>;
+
         // Display name for the view, used in UI headers.
         viewName?: jotai.Atom<string>;
 
-        // Optional header text or elements for the view.
         viewText?: jotai.Atom<string | HeaderElem[]>;
 
         termDurableStatus?: jotai.Atom<BlockJobStatusData | null>;
@@ -320,48 +321,42 @@ declare global {
         // Icon button displayed before the title in the header.
         preIconButton?: jotai.Atom<IconButtonDecl>;
 
-        // Icon buttons displayed at the end of the block header.
         endIconButtons?: jotai.Atom<IconButtonDecl[]>;
 
-        // Background styling metadata for the block.
         blockBg?: jotai.Atom<MetaType>;
 
         noHeader?: jotai.Atom<boolean>;
 
-        // Whether the block manages its own connection (e.g., for remote access).
         manageConnection?: jotai.Atom<boolean>;
 
-        // If true, filters out 'nowsh' connections (when managing connections)
         filterOutNowsh?: jotai.Atom<boolean>;
 
-        // If true, removes padding inside the block content area.
         noPadding?: jotai.Atom<boolean>;
 
-        // Atoms used for managing search functionality within the block.
         searchAtoms?: SearchAtoms;
 
-        // The main view component associated with this ViewModel.
         viewComponent: ViewComponent<ViewModel>;
 
-        // Function to determine if this is a basic terminal block.
         isBasicTerm?: (getFn: jotai.Getter) => boolean;
 
-        // Returns menu items for the settings dropdown.
         getSettingsMenuItems?: () => ContextMenuItem[];
 
-        // Attempts to give focus to the block, returning true if successful.
         giveFocus?: () => boolean;
 
-        // Handles keydown events within the block.
         keyDownHandler?: (e: WaveKeyboardEvent) => boolean;
 
-        // Cleans up resources when the block is disposed.
+        hasPendingChanges?: () => boolean;
+
+        saveChanges?: () => Promise<void>;
+
         dispose?: () => void;
+
+        goHistoryBack?: () => void;
+        goHistoryForward?: () => void;
     }
 
     type UpdaterStatus = "up-to-date" | "checking" | "downloading" | "ready" | "error" | "installing";
 
-    // jotai doesn't export this type :/
     type Loadable<T> = { state: "loading" } | { state: "hasData"; data: T } | { state: "hasError"; error: unknown };
 
     interface Dimensions {
@@ -500,9 +495,9 @@ declare global {
           }
         | {
               type: "file";
-              mimetype: string; // required
+              mimetype: string;
               filename?: string;
-              data?: string; // base64 encoded data
+              data?: string;
               url?: string;
               size?: number;
               previewurl?: string;

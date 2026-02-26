@@ -912,21 +912,9 @@ func WshActivityCommand(w *wshutil.WshRpc, data map[string]int, opts *wshrpc.Rpc
 	return err
 }
 
-// command "wsldefaultdistro", wshserver.WslDefaultDistroCommand
-func WslDefaultDistroCommand(w *wshutil.WshRpc, opts *wshrpc.RpcOpts) (string, error) {
-	resp, err := sendRpcRequestCallHelper[string](w, "wsldefaultdistro", nil, opts)
-	return resp, err
-}
-
-// command "wsllist", wshserver.WslListCommand
-func WslListCommand(w *wshutil.WshRpc, opts *wshrpc.RpcOpts) ([]string, error) {
-	resp, err := sendRpcRequestCallHelper[[]string](w, "wsllist", nil, opts)
-	return resp, err
-}
-
-// command "wslstatus", wshserver.WslStatusCommand
-func WslStatusCommand(w *wshutil.WshRpc, opts *wshrpc.RpcOpts) ([]wshrpc.ConnStatus, error) {
-	resp, err := sendRpcRequestCallHelper[[]wshrpc.ConnStatus](w, "wslstatus", nil, opts)
+// command "wslpathstat", wshserver.WslPathStatCommand
+func WslPathStatCommand(w *wshutil.WshRpc, data wshrpc.WslPathStatRequest, opts *wshrpc.RpcOpts) (*wshrpc.WslPathStatResponse, error) {
+	resp, err := sendRpcRequestCallHelper[*wshrpc.WslPathStatResponse](w, "wslpathstat", data, opts)
 	return resp, err
 }
 

@@ -208,6 +208,37 @@ body.nohover .tab.active .close {
     visibility: visible;
 }
 
+// Light theme overrides for WCAG AA compliance
+[data-theme="light"] {
+    .tab {
+        background: rgb(0 0 0 / 0.04);
+
+        &.status-running .name {
+            color: #1d4ed8 !important;
+        }
+
+        &.status-finished .name {
+            color: #15803d !important;
+        }
+
+        &.status-stopped .name {
+            color: #b91c1c !important;
+        }
+
+        &.active {
+            background: rgb(0 0 0 / 0.08);
+            box-shadow:
+                0 2px 4px rgb(0 0 0 / 0.12),
+                inset 1px 0 0 rgb(0 0 0 / 0.06),
+                inset -1px 0 0 rgb(0 0 0 / 0.06);
+        }
+    }
+}
+
+[data-theme="light"] body:not(.nohover) .tab.active:hover {
+    background: rgb(0 0 0 / 0.08);
+}
+
 @keyframes expandWidthAndFadeIn {
     from {
         width: var(--initial-tab-width);

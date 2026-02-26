@@ -1,0 +1,117 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.notes-container {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+}
+
+.notes-status-bar {
+    position: absolute;
+    top: 4px;
+    right: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    background: rgba(30, 30, 30, 0.85);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.notes-path {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notes-status-loading {
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+    flex-shrink: 0;
+    font-style: italic;
+}
+
+.notes-status-error {
+    color: var(--error-color, #f44747);
+    flex-shrink: 0;
+}
+
+.notes-saving {
+    color: var(--warning-color, #f0a500);
+    flex-shrink: 0;
+}
+
+.notes-saved {
+    color: var(--success-color, #4caf50);
+    flex-shrink: 0;
+    animation: notes-fade-out 2s ease-out forwards;
+}
+
+.notes-remote-hint {
+    color: var(--info-color, rgba(255, 255, 255, 0.4));
+    font-style: italic;
+    flex-shrink: 0;
+}
+
+.notes-content-area {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.notes-editor {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.notes-preview-panel {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+    border-left: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+
+    .markdown-body {
+        height: 100%;
+    }
+}
+
+.notes-loading,
+.notes-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 100%;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    font-size: 14px;
+}
+
+.notes-error button {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    background: transparent;
+    color: var(--primary-text-color, white);
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+@keyframes notes-fade-out {
+    0% { opacity: 1; }
+    70% { opacity: 1; }
+    100% { opacity: 0; }
+}

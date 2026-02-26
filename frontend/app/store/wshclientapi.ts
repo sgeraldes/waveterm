@@ -762,19 +762,9 @@ class RpcApiType {
         return client.wshRpcCall("wshactivity", data, opts);
     }
 
-    // command "wsldefaultdistro" [call]
-    WslDefaultDistroCommand(client: WshClient, opts?: RpcOpts): Promise<string> {
-        return client.wshRpcCall("wsldefaultdistro", null, opts);
-    }
-
-    // command "wsllist" [call]
-    WslListCommand(client: WshClient, opts?: RpcOpts): Promise<string[]> {
-        return client.wshRpcCall("wsllist", null, opts);
-    }
-
-    // command "wslstatus" [call]
-    WslStatusCommand(client: WshClient, opts?: RpcOpts): Promise<ConnStatus[]> {
-        return client.wshRpcCall("wslstatus", null, opts);
+    // command "wslpathstat" [call]
+    WslPathStatCommand(client: WshClient, data: WslPathStatRequest, opts?: RpcOpts): Promise<WslPathStatResponse> {
+        return client.wshRpcCall("wslpathstat", data, opts);
     }
 
 }

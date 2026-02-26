@@ -101,6 +101,36 @@
             margin-left: 1.2em;
         }
 
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0.571em 0;
+            overflow-x: auto;
+            display: block;
+            font-size: 0.929em;
+        }
+
+        thead {
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        th {
+            font-weight: 600;
+            color: var(--main-text-color);
+            text-align: left;
+            padding: 0.5em 0.857em;
+        }
+
+        td {
+            padding: 0.429em 0.857em;
+            color: var(--secondary-text-color);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
         blockquote {
             margin: 0.286em 0.714em;
             border-radius: 4px;

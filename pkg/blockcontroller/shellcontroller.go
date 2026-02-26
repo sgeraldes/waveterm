@@ -1,5 +1,3 @@
-// Copyright 2025, Command Line Inc.
-// SPDX-License-Identifier: Apache-2.0
 
 package blockcontroller
 
@@ -34,14 +32,13 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshclient"
 	"github.com/wavetermdev/waveterm/pkg/wshutil"
-	"github.com/wavetermdev/waveterm/pkg/wslconn"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
 
 const (
 	ConnType_Local = "local"
-	ConnType_Wsl   = "wsl"
 	ConnType_Ssh   = "ssh"
+	ConnType_Wsl   = "wsl"
 )
 
 const (
@@ -51,7 +48,6 @@ const (
 type ShellController struct {
 	Lock *sync.Mutex
 
-	// shared fields
 	ControllerType string
 	TabId          string
 	BlockId        string
@@ -62,7 +58,6 @@ type ShellController struct {
 	ProcExitCode   int
 	VersionTs      utilds.VersionTs
 
-	// for shell/cmd
 	ShellProc    *shellexec.ShellProc
 	ShellInputCh chan *BlockInputUnion
 }
@@ -80,16 +75,13 @@ func MakeShellController(tabId string, blockId string, controllerType string, co
 	}
 }
 
-// Implement Controller interface methods
 
 func (sc *ShellController) Start(ctx context.Context, blockMeta waveobj.MetaMapType, rtOpts *waveobj.RuntimeOpts, force bool) error {
-	// Get the block data
 	blockData, err := wstore.DBMustGet[*waveobj.Block](ctx, sc.BlockId)
 	if err != nil {
 		return fmt.Errorf("error getting block: %w", err)
 	}
 
-	// Use the existing run method which handles all the start logic
 	go sc.run(ctx, blockData, blockData.Meta, rtOpts, force)
 	return nil
 }
@@ -109,12 +101,11 @@ func (sc *ShellController) Stop(graceful bool, newStatus string, destroy bool) {
 	sc.ShellProc.Close()
 	if graceful {
 		doneCh := sc.ShellProc.DoneCh
-		sc.Lock.Unlock() // Unlock before waiting
+		sc.Lock.Unlock()
 		<-doneCh
-		sc.Lock.Lock() // Re-lock after waiting
+		sc.Lock.Lock()
 	}
 
-	// Update status
 	sc.ProcStatus = newStatus
 	sc.sendUpdate_nolock()
 }
@@ -141,7 +132,7 @@ func (sc *ShellController) GetConnName() string {
 	return sc.ConnName
 }
 
-func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) error {
+func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) (rtnErr error) {
 	var shellInputCh chan *BlockInputUnion
 	sc.WithLock(func() {
 		shellInputCh = sc.ShellInputCh
@@ -149,6 +140,11 @@ func (sc *ShellController) SendInput(inputUnion *BlockInputUnion) error {
 	if shellInputCh == nil {
 		return fmt.Errorf("no shell input chan")
 	}
+	defer func() {
+		if r := recover(); r != nil {
+			rtnErr = fmt.Errorf("shell input chan closed")
+		}
+	}()
 	shellInputCh <- inputUnion
 	return nil
 }
@@ -163,7 +159,6 @@ type RunShellOpts struct {
 	TermSize waveobj.TermSize `json:"termsize,omitempty"`
 }
 
-// only call when holding the lock
 func (sc *ShellController) sendUpdate_nolock() {
 	rtStatus := sc.getRuntimeStatus_nolock()
 	log.Printf("sending blockcontroller update %#v\n", rtStatus)
@@ -196,7 +191,7 @@ func (sc *ShellController) UpdateControllerAndSendUpdate(updateFn func() bool) {
 	}
 }
 
-func (sc *ShellController) resetTerminalState(logCtx context.Context) {
+func (sc *ShellController) resetTerminalState(logCtx context.Context, termRows int) {
 	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancelFn()
 	wfile, statErr := filestore.WFS.Stat(ctx, sc.BlockId, wavebase.BlockFile_Term)
@@ -230,18 +225,22 @@ func (sc *ShellController) writeMutedMessageToTerminal(msg string) {
 	}
 }
 
-// [All the other existing private methods remain exactly the same - I'm not including them all here for brevity, but they would all be copied over with sc. replacing bc. throughout]
-
 func (sc *ShellController) DoRunShellCommand(logCtx context.Context, rc *RunShellOpts, blockMeta waveobj.MetaMapType) error {
 	blocklogger.Debugf(logCtx, "[conndebug] DoRunShellCommand\n")
 	shellProc, err := sc.setupAndStartShellProcess(logCtx, rc, blockMeta)
 	if err != nil {
+		sc.UpdateControllerAndSendUpdate(func() bool {
+			sc.ProcStatus = Status_Done
+			return true
+		})
+		errMsg := fmt.Sprintf("\r\n\x1b[31mError starting shell: %v\x1b[0m\r\n\r\n", err)
+		HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(errMsg))
+		debugLog(logCtx, "error running shell: %v\n", err)
 		return err
 	}
 	return sc.manageRunningShellProcess(shellProc, rc, blockMeta)
 }
 
-// [Continue with all other methods, replacing bc with sc throughout...]
 
 func (sc *ShellController) LockRunLock() bool {
 	rtn := sc.RunLock.CompareAndSwap(false, true)
@@ -317,39 +316,41 @@ func (sc *ShellController) run(logCtx context.Context, bdata *waveobj.Block, blo
 	}
 }
 
-// [Include all the remaining private methods with bc replaced by sc]
 
 type ConnUnion struct {
 	ConnName   string
 	ConnType   string
 	SshConn    *conncontroller.SSHConn
-	WslConn    *wslconn.WslConn
 	WshEnabled bool
 	ShellPath  string
 	ShellOpts  []string
 	ShellType  string
 	HomeDir    string
+	WslDistro  string
 }
 
 func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName string, blockMeta waveobj.MetaMapType) (ConnUnion, error) {
 	rtn := ConnUnion{ConnName: remoteName}
 	wshEnabled := !blockMeta.GetBool(waveobj.MetaKey_CmdNoWsh, false)
-	if strings.HasPrefix(remoteName, "wsl://") {
-		wslName := strings.TrimPrefix(remoteName, "wsl://")
-		ctx, cancelFn := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancelFn()
-		err := wslconn.EnsureConnection(ctx, wslName)
-		if err != nil {
-			return ConnUnion{}, fmt.Errorf("wsl connection %s not connected: %w", remoteName, err)
-		}
-		wslConn := wslconn.GetWslConn(wslName)
-		if wslConn == nil {
-			return ConnUnion{}, fmt.Errorf("wsl connection not found: %s", remoteName)
+	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
+	if wslDistro, isWsl := getWslDistroFromProfile(shellProfileId); isWsl {
+		if wslDistro == "" {
+			return ConnUnion{}, fmt.Errorf("WSL profile %q has IsWsl=true but no WslDistro configured", shellProfileId)
 		}
 		rtn.ConnType = ConnType_Wsl
-		rtn.WslConn = wslConn
-		rtn.WshEnabled = wshEnabled && wslConn.WshEnabled.Load()
-	} else if conncontroller.IsLocalConnName(remoteName) {
+		rtn.WslDistro = wslDistro
+		rtn.WshEnabled = wshEnabled
+		detectedShell, homeDir := shellexec.DetectWslShellAndHome(wslDistro)
+		if detectedShell != "" {
+			rtn.ShellPath = detectedShell
+			rtn.ShellType = shellutil.GetShellTypeFromShellPath(detectedShell)
+		}
+		if homeDir != "" {
+			rtn.HomeDir = homeDir
+		}
+		return rtn, nil
+	}
+	if conncontroller.IsLocalConnName(remoteName) {
 		rtn.ConnType = ConnType_Local
 		rtn.WshEnabled = wshEnabled
 	} else {
@@ -379,7 +380,14 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 }
 
 func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc *RunShellOpts, blockMeta waveobj.MetaMapType) (*shellexec.ShellProc, error) {
-	// create a circular blockfile for the output
+	bcInitStatus := bc.GetRuntimeStatus()
+	if bcInitStatus.ShellProcStatus == Status_Running {
+		return nil, nil
+	}
+	bc.UpdateControllerAndSendUpdate(func() bool {
+		bc.ProcStatus = Status_Starting
+		return true
+	})
 	ctx, cancelFn := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancelFn()
 	fsErr := filestore.WFS.MakeFile(ctx, bc.BlockId, wavebase.BlockFile_Term, nil, wshrpc.FileOpts{MaxSize: DefaultTermMaxFileSize, Circular: true})
@@ -387,30 +395,16 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 		return nil, fmt.Errorf("error creating blockfile: %w", fsErr)
 	}
 	if fsErr == fs.ErrExist {
-		// reset the terminal state
-		bc.resetTerminalState(logCtx)
-	}
-	bcInitStatus := bc.GetRuntimeStatus()
-	if bcInitStatus.ShellProcStatus == Status_Running {
-		return nil, nil
+		bc.resetTerminalState(logCtx, rc.TermSize.Rows)
 	}
 	// TODO better sync here (don't let two starts happen at the same times)
 	remoteName := blockMeta.GetString(waveobj.MetaKey_Connection, "")
 
-	// Resolve shell:profile to determine actual connection type
 	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
 	if shellProfileId != "" {
-		config := wconfig.GetWatcher().GetFullConfig()
-		if profile, ok := config.Settings.ShellProfiles[shellProfileId]; ok {
-			if profile.IsWsl && profile.WslDistro != "" {
-				remoteName = "wsl://" + profile.WslDistro
-			} else if !profile.IsWsl {
-				remoteName = ""
-			}
-		}
+		remoteName = ""
 	}
 
-	// Self-heal: migrate stale connection field (old shell profile names) to shell:profile
 	origConnection := blockMeta.GetString(waveobj.MetaKey_Connection, "")
 	if origConnection != "" && conncontroller.IsLocalShellProfileId(origConnection) {
 		metaUpdate := map[string]any{
@@ -435,6 +429,13 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 		cmdOpts.Interactive = true
 		cmdOpts.Login = true
 		cmdOpts.Cwd = blockMeta.GetString(waveobj.MetaKey_CmdCwd, "")
+		if connUnion.ConnType == ConnType_Wsl && connUnion.HomeDir != "" {
+			if cmdOpts.Cwd == "~" {
+				cmdOpts.Cwd = connUnion.HomeDir
+			} else if strings.HasPrefix(cmdOpts.Cwd, "~/") {
+				cmdOpts.Cwd = connUnion.HomeDir + cmdOpts.Cwd[1:]
+			}
+		}
 		if cmdOpts.Cwd != "" {
 			cwdPath, err := wavebase.ExpandHomeDir(cmdOpts.Cwd)
 			if err != nil {
@@ -456,40 +457,7 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 	swapToken := makeSwapToken(ctx, logCtx, bc.BlockId, blockMeta, remoteName, connUnion.ShellType)
 	cmdOpts.SwapToken = swapToken
 	blocklogger.Debugf(logCtx, "[conndebug] created swaptoken: %s\n", swapToken.Token)
-	if connUnion.ConnType == ConnType_Wsl {
-		wslConn := connUnion.WslConn
-		if !connUnion.WshEnabled {
-			shellProc, err = shellexec.StartWslShellProcNoWsh(ctx, rc.TermSize, cmdStr, cmdOpts, wslConn)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			sockName := wslConn.GetDomainSocketName()
-			rpcContext := wshrpc.RpcContext{
-				ProcRoute: true,
-				SockName:  sockName,
-				BlockId:   bc.BlockId,
-				Conn:      wslConn.GetName(),
-			}
-			jwtStr, err := wshutil.MakeClientJWTToken(rpcContext)
-			if err != nil {
-				return nil, fmt.Errorf("error making jwt token: %w", err)
-			}
-			swapToken.RpcContext = &rpcContext
-			swapToken.Env[wshutil.WaveJwtTokenVarName] = jwtStr
-			shellProc, err = shellexec.StartWslShellProc(ctx, rc.TermSize, cmdStr, cmdOpts, wslConn)
-			if err != nil {
-				wslConn.SetWshError(err)
-				wslConn.WshEnabled.Store(false)
-				blocklogger.Infof(logCtx, "[conndebug] error starting wsl shell proc with wsh: %v\n", err)
-				blocklogger.Infof(logCtx, "[conndebug] attempting install without wsh\n")
-				shellProc, err = shellexec.StartWslShellProcNoWsh(ctx, rc.TermSize, cmdStr, cmdOpts, wslConn)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	} else if connUnion.ConnType == ConnType_Ssh {
+	if connUnion.ConnType == ConnType_Ssh {
 		conn := connUnion.SshConn
 		if !connUnion.WshEnabled {
 			shellProc, err = shellexec.StartRemoteShellProcNoWsh(ctx, rc.TermSize, cmdStr, cmdOpts, conn)
@@ -543,6 +511,32 @@ func (bc *ShellController) setupAndStartShellProcess(logCtx context.Context, rc 
 		if err != nil {
 			return nil, err
 		}
+	} else if connUnion.ConnType == ConnType_Wsl {
+		if connUnion.WshEnabled {
+			sockName := wavebase.GetDomainSocketName()
+			rpcContext := wshrpc.RpcContext{
+				ProcRoute: true,
+				SockName:  sockName,
+				BlockId:   bc.BlockId,
+			}
+			jwtStr, err := wshutil.MakeClientJWTToken(rpcContext)
+			if err != nil {
+				return nil, fmt.Errorf("error making jwt token: %w", err)
+			}
+			swapToken.RpcContext = &rpcContext
+			swapToken.Env[wshutil.WaveJwtTokenVarName] = jwtStr
+		}
+		cmdOpts.ShellPath = connUnion.ShellPath
+		cmdOpts.HomeDir = connUnion.HomeDir
+		cmdOpts.ShellOpts = getLocalShellOpts(blockMeta)
+		if connUnion.WshEnabled {
+			shellProc, err = shellexec.StartWslLocalShellProcWithWsh(logCtx, rc.TermSize, cmdStr, cmdOpts, connUnion.WslDistro)
+		} else {
+			shellProc, err = shellexec.StartWslLocalShellProc(logCtx, rc.TermSize, cmdStr, cmdOpts, connUnion.WslDistro)
+		}
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		return nil, fmt.Errorf("unknown connection type for conn %q: %s", remoteName, connUnion.ConnType)
 	}
@@ -559,7 +553,6 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 	bc.ShellInputCh = shellInputCh
 
 	go func() {
-		// handles regular output from the pty (goes to the blockfile and xterm)
 		defer func() {
 			panichandler.PanicHandler("blockcontroller:shellproc-pty-read-loop", recover())
 		}()
@@ -567,7 +560,6 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 			log.Printf("[shellproc] pty-read loop done\n")
 			shellProc.Close()
 			bc.WithLock(func() {
-				// so no other events are sent
 				bc.ShellInputCh = nil
 			})
 			shellProc.Cmd.Wait()
@@ -577,9 +569,8 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 				termMsg := fmt.Sprintf("\r\nprocess finished with exit code = %d\r\n\r\n", exitCode)
 				HandleAppendBlockFile(bc.BlockId, wavebase.BlockFile_Term, []byte(termMsg))
 			}
-			// to stop the inputCh loop
 			time.Sleep(100 * time.Millisecond)
-			close(shellInputCh) // don't use bc.ShellInputCh (it's nil)
+			close(shellInputCh)
 		}()
 		buf := make([]byte, 4096)
 		for {
@@ -600,8 +591,6 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 		}
 	}()
 	go func() {
-		// handles input from the shellInputCh, sent to pty
-		// use shellInputCh instead of bc.ShellInputCh (because we want to be attached to *this* ch.  bc.ShellInputCh can be updated)
 		defer func() {
 			panichandler.PanicHandler("blockcontroller:shellproc-input-loop", recover())
 		}()
@@ -618,7 +607,6 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 		defer func() {
 			panichandler.PanicHandler("blockcontroller:shellproc-wait-loop", recover())
 		}()
-		// wait for the shell to finish
 		var exitCode int
 		defer func() {
 			bc.UpdateControllerAndSendUpdate(func() bool {
@@ -633,7 +621,7 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 		waitErr := shellProc.Cmd.Wait()
 		exitCode = shellProc.Cmd.ExitCode()
 		shellProc.SetWaitErrorAndSignalDone(waitErr)
-		bc.resetTerminalState(context.Background())
+		bc.resetTerminalState(context.Background(), 0)
 		exitSignal := shellProc.Cmd.ExitSignal()
 		var baseMsg string
 		if bc.ControllerType == BlockController_Shell {
@@ -657,11 +645,10 @@ func (union *ConnUnion) getRemoteInfoAndShellType(blockMeta waveobj.MetaMapType)
 	if !union.WshEnabled {
 		return nil
 	}
-	if union.ConnType == ConnType_Ssh || union.ConnType == ConnType_Wsl {
+	if union.ConnType == ConnType_Ssh {
 		connRoute := wshutil.MakeConnectionRouteId(union.ConnName)
 		remoteInfo, err := wshclient.RemoteGetInfoCommand(wshclient.GetBareRpcClient(), &wshrpc.RpcOpts{Route: connRoute, Timeout: 2000})
 		if err != nil {
-			// weird error, could flip the wshEnabled flag and allow it to go forward, but the connection should have already been vetted
 			return fmt.Errorf("unable to obtain remote info from connserver: %w", err)
 		}
 		// TODO allow overriding remote shell path
@@ -704,7 +691,6 @@ func checkCloseOnExit(blockId string, exitCode int) {
 	}
 }
 
-// getShellPathFromProfile looks up the shell path from a shell:profiles entry by ID.
 func getShellPathFromProfile(profileId string) string {
 	if profileId == "" {
 		return ""
@@ -720,7 +706,24 @@ func getShellPathFromProfile(profileId string) string {
 	return profile.ShellPath
 }
 
-// getShellOptsFromProfile looks up shell opts from a shell:profiles entry by ID.
+func getWslDistroFromProfile(profileId string) (string, bool) {
+	if profileId == "" {
+		return "", false
+	}
+	config := wconfig.GetWatcher().GetFullConfig()
+	if config.Settings.ShellProfiles == nil {
+		return "", false
+	}
+	profile, ok := config.Settings.ShellProfiles[profileId]
+	if !ok {
+		return "", false
+	}
+	if !profile.IsWsl {
+		return "", false
+	}
+	return profile.WslDistro, true
+}
+
 func getShellOptsFromProfile(profileId string) []string {
 	if profileId == "" {
 		return nil
@@ -740,7 +743,6 @@ func getShellOptsFromProfile(profileId string) []string {
 }
 
 func getLocalShellPath(blockMeta waveobj.MetaMapType) (string, error) {
-	// Check shell:profile metadata first (new shell selector)
 	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
 	if shellProfileId != "" {
 		if path := getShellPathFromProfile(shellProfileId); path != "" {
@@ -755,21 +757,18 @@ func getLocalShellPath(blockMeta waveobj.MetaMapType) (string, error) {
 
 	connName := blockMeta.GetString(waveobj.MetaKey_Connection, "")
 
-	// Backwards compat: connection name might be a shell profile ID from old implementation
 	if connName != "" && !strings.HasPrefix(connName, "local:") && connName != "local" {
 		if path := getShellPathFromProfile(connName); path != "" {
 			return path, nil
 		}
 	}
 
-	// Check if this is a local shell profile defined in connections.json
 	if conncontroller.IsLocalShellProfile(connName) {
 		fullConfig := wconfig.GetWatcher().GetFullConfig()
 		connSettings, ok := fullConfig.Connections[connName]
 		if ok && connSettings.ConnShellPath != "" {
 			return connSettings.ConnShellPath, nil
 		}
-		// If no shell path is specified in the connection, fall through to defaults
 	}
 
 	if strings.HasPrefix(connName, "local:") {
@@ -796,7 +795,6 @@ func getLocalShellPath(blockMeta waveobj.MetaMapType) (string, error) {
 }
 
 func getLocalShellOpts(blockMeta waveobj.MetaMapType) []string {
-	// Check shell:profile metadata first
 	shellProfileId := blockMeta.GetString(waveobj.MetaKey_ShellProfile, "")
 	if shellProfileId != "" {
 		if opts := getShellOptsFromProfile(shellProfileId); opts != nil {
@@ -815,7 +813,6 @@ func getLocalShellOpts(blockMeta waveobj.MetaMapType) []string {
 	return nil
 }
 
-// for "cmd" type blocks
 func createCmdStrAndOpts(blockId string, blockMeta waveobj.MetaMapType, connName string) (string, *shellexec.CommandOptsType, error) {
 	var cmdStr string
 	var cmdOpts shellexec.CommandOptsType
@@ -837,7 +834,6 @@ func createCmdStrAndOpts(blockId string, blockMeta waveobj.MetaMapType, connName
 			return "", nil, fmt.Errorf("cmd should not have spaces if cmd:shell is false (use cmd:args)")
 		}
 		cmdArgs := blockMeta.GetStringList(waveobj.MetaKey_CmdArgs)
-		// shell escape the args
 		for _, arg := range cmdArgs {
 			cmdStr = cmdStr + " " + utilfn.ShellQuote(arg, false, -1)
 		}
@@ -947,7 +943,6 @@ func getCustomInitScript(logCtx context.Context, meta waveobj.MetaMapType, connN
 	return string(fileData)
 }
 
-// returns (value, metakey)
 func getCustomInitScriptValue(meta waveobj.MetaMapType, connName string, shellType string) (string, string) {
 	keys := getCustomInitScriptKeyCascade(shellType)
 	connMeta := meta.GetConnectionOverride(connName)
