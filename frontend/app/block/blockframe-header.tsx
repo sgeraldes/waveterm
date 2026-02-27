@@ -4,6 +4,7 @@ import {
     getViewIconElem,
     OptMagnifyButton,
     renderHeaderElements,
+    ShellButton,
 } from "@/app/block/blockutil";
 import { ConnectionButton } from "@/app/block/connectionbutton";
 import { DurableSessionFlyover } from "@/app/block/durable-session-flyover";
@@ -167,7 +168,9 @@ const BlockFrame_Header = ({
     viewModel,
     preview,
     connBtnRef,
+    shellBtnRef,
     changeConnModalAtom,
+    changeShellModalAtom,
     error,
 }: BlockFrameProps & { changeConnModalAtom: jotai.PrimitiveAtom<boolean>; error?: Error }) => {
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", nodeModel.blockId));
@@ -182,6 +185,7 @@ const BlockFrame_Header = ({
     const manageConnection = util.useAtomValueSafe(viewModel?.manageConnection);
     const dragHandleRef = preview ? null : nodeModel.dragHandleRef;
     const isTerminalBlock = blockData?.meta?.view === "term";
+    const isLocalTerminal = isTerminalBlock && util.isLocalConnName(blockData?.meta?.connection);
     viewName = blockData?.meta?.["frame:title"] ?? viewName;
     viewIconUnion = blockData?.meta?.["frame:icon"] ?? viewIconUnion;
 
@@ -211,13 +215,21 @@ const BlockFrame_Header = ({
                     </div>
                 </>
             )}
-            {manageConnection && (
+            {manageConnection && !isLocalTerminal && (
                 <ConnectionButton
                     ref={connBtnRef}
                     key="connbutton"
                     connection={blockData?.meta?.connection}
                     changeConnModalAtom={changeConnModalAtom}
                     isTerminalBlock={isTerminalBlock}
+                />
+            )}
+            {manageConnection && isLocalTerminal && changeShellModalAtom && (
+                <ShellButton
+                    ref={shellBtnRef}
+                    key="shellbutton"
+                    shellProfile={blockData?.meta?.["shell:profile"] || ""}
+                    changeShellModalAtom={changeShellModalAtom}
                 />
             )}
             {useTermHeader && termConfigedDurable != null && (

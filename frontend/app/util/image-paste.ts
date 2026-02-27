@@ -45,7 +45,7 @@ async function imageItemToBase64(item: DataTransferItem): Promise<string> {
  * @param clipboardData - The clipboard data from a paste event
  * @param tabBasedir - The tab base directory (or empty/"~" for home dir fallback)
  * @param connection - The connection string (empty/"local" for local)
- * @returns markdown image reference string, or null if no image in clipboard
+ * @returns markdown image reference string (e.g. ![](.wave/images/2025-01-15-abc123.png)), or null if no image in clipboard
  */
 export async function handleImagePaste(
     clipboardData: DataTransfer,

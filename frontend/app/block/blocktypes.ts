@@ -2,12 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { NodeModel } from "@/layout/index";
-import { Atom } from "jotai";
+import * as jotai from "jotai";
 
 export interface BlockNodeModel {
     blockId: string;
-    isFocused: Atom<boolean>;
-    isMagnified: Atom<boolean>;
+    isFocused: jotai.Atom<boolean>;
+    isMagnified: jotai.Atom<boolean>;
     onClose: () => void;
     focusNode: () => void;
     toggleMagnify: () => void;
@@ -47,4 +47,6 @@ export interface BlockFrameProps {
     numBlocksInTab?: number;
     children?: React.ReactNode;
     connBtnRef?: React.RefObject<HTMLDivElement>;
+    shellBtnRef?: React.RefObject<HTMLDivElement>;
+    changeShellModalAtom?: jotai.PrimitiveAtom<boolean>;
 }

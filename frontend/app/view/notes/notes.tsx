@@ -6,6 +6,7 @@ import { useAtomValue } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
 import { useEffect, useMemo } from "react";
+import { BlockEditor } from "./block-editor";
 import type { NotesViewModel } from "./notes-model";
 import { isDefaultNotesPath } from "./notes-util";
 import "./notes.scss";
@@ -78,6 +79,15 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
             domNode.addEventListener("paste", handleDomPaste as EventListener);
         }
 
+        // ResizeObserver to manually trigger layout when container resizes
+        const rszObs = new ResizeObserver(() => {
+            editor.layout();
+        });
+        const container = domNode?.parentElement;
+        if (container) {
+            rszObs.observe(container);
+        }
+
         const focusAtom = model.nodeModel.isFocused;
         const isFocused = globalStore.get(focusAtom);
         if (isFocused) {
@@ -85,6 +95,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
         }
 
         return () => {
+            rszObs.disconnect();
             if (domNode) {
                 domNode.removeEventListener("paste", handleDomPaste as EventListener);
             }
@@ -113,6 +124,17 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
 
     const isDefaultPath = isDefaultNotesPath(notesPath);
     const hasStatusContent = isLoading || (error && hasEverLoaded) || saveStatus != null || !isDefaultPath || !isLocal;
+
+    const blockEditorPane = (
+        <div className="notes-block-editor">
+            <BlockEditor
+                content={fileContent}
+                onChange={(text) => model.scheduleAutoSave(text)}
+                resolveOpts={resolveOpts}
+                onImagePaste={(clipboardData) => model.handlePasteImage(clipboardData)}
+            />
+        </div>
+    );
 
     const editorPane = (
         <div className="notes-editor">
@@ -164,8 +186,15 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
                 </div>
             )}
             <div className="notes-content-area">
-                {previewMode !== "preview" && editorPane}
-                {previewMode !== "editor" && previewPane}
+                {previewMode === "block" && blockEditorPane}
+                {previewMode === "editor" && editorPane}
+                {previewMode === "split" && (
+                    <>
+                        {editorPane}
+                        {previewPane}
+                    </>
+                )}
+                {previewMode === "preview" && previewPane}
             </div>
         </div>
     );

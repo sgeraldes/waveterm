@@ -64,7 +64,7 @@ export class FitAddon implements ITerminalAddon, IFitApi {
             return undefined;
         }
 
-        if (dims.css.cell.width === 0 || dims.css.cell.height === 0) {
+        if (!dims.css.cell.width || !dims.css.cell.height) {
             return undefined;
         }
 

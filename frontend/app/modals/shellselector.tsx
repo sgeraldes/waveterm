@@ -259,19 +259,10 @@ const ShellSelectorModal = React.memo(
                     return;
                 }
 
-                const shellProfile = shellProfiles?.[shellId];
-                const isWsl = shellProfile?.["shell:iswsl"] || shellId.startsWith("wsl:");
-
                 const meta: Record<string, any> = {
                     "shell:profile": shellId || null,
+                    "connection": null, // WSL is a local shell profile, not a remote connection
                 };
-
-                if (isWsl) {
-                    const distro = shellProfile?.["shell:wsldistro"] || shellId.substring(4);
-                    meta["connection"] = `wsl://${distro}`;
-                } else {
-                    meta["connection"] = null; // Clear stale connection for local shells
-                }
 
                 await RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", blockId),

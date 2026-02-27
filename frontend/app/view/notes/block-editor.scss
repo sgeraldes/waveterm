@@ -1,0 +1,67 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.block-editor-container {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.block-editor-rendered {
+    cursor: text;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: background-color 0.15s ease;
+    margin-bottom: 4px;
+
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    // Make rendered markdown blocks look natural
+    .markdown-body {
+        p {
+            margin: 0;
+        }
+    }
+}
+
+.block-editor-editing {
+    margin-bottom: 4px;
+}
+
+.block-editor-editable {
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.2));
+    border-radius: 4px;
+    color: var(--primary-text-color, white);
+    font-family: var(--main-font);
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    min-height: 1.6em;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+
+    &:focus {
+        border-color: var(--accent-color, #58c142);
+        background: rgba(255, 255, 255, 0.08);
+    }
+
+    &:empty:before {
+        content: attr(data-placeholder);
+        color: var(--secondary-text-color, rgba(255, 255, 255, 0.4));
+        font-style: italic;
+    }
+}
+
+.block-editor-empty {
+    padding: 20px;
+    text-align: center;
+    color: var(--secondary-text-color, rgba(255, 255, 255, 0.5));
+    cursor: text;
+    font-style: italic;
+}

@@ -200,7 +200,6 @@ function getLocalSuggestions(
         return null;
     }
     const localSuggestions: SuggestionConnectionScope = {
-        headerText: "Local",
         items: sortedSuggestionItems,
     };
     return localSuggestions;
@@ -221,7 +220,6 @@ function getRemoteSuggestions(
         return null;
     }
     const remoteSuggestions: SuggestionConnectionScope = {
-        headerText: "Remote",
         items: sortedSuggestionItems,
     };
     return remoteSuggestions;

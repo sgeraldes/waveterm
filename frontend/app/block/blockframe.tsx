@@ -157,7 +157,13 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
     }
     const previewElem = <div className="block-frame-preview">{viewIconElem}</div>;
     const headerElem = (
-        <BlockFrame_Header {...props} connBtnRef={connBtnRef} changeConnModalAtom={changeConnModalAtom} />
+        <BlockFrame_Header
+            {...props}
+            connBtnRef={connBtnRef}
+            shellBtnRef={shellBtnRef}
+            changeConnModalAtom={changeConnModalAtom}
+            changeShellModalAtom={changeShellModalAtom}
+        />
     );
     const headerElemNoView = React.cloneElement(headerElem, { viewModel: null });
     return (

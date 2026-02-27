@@ -10,7 +10,7 @@ import type * as MonacoTypes from "monaco-editor";
 import { NotesComponent } from "./notes";
 import { getNotesFilePath } from "./notes-util";
 
-export type NotesPreviewMode = "editor" | "split" | "preview";
+export type NotesPreviewMode = "block" | "editor" | "split" | "preview";
 
 export { getNotesFilePath };
 
@@ -54,16 +54,18 @@ export class NotesViewModel implements ViewModel {
         this.error = atom(null) as PrimitiveAtom<string | null>;
         this.saveStatus = atom(null) as PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
         this.hasEverLoaded = atom(false) as PrimitiveAtom<boolean>;
-        this.previewMode = atom("editor") as PrimitiveAtom<NotesPreviewMode>;
+        this.previewMode = atom("block") as PrimitiveAtom<NotesPreviewMode>;
         this.liveContent = atom((get) => get(this.pendingContent) ?? get(this.fileContent));
         this.endIconButtons = atom((get): IconButtonDecl[] => {
             const mode = get(this.previewMode);
-            const nextMode: NotesPreviewMode = mode === "editor" ? "split" : mode === "split" ? "preview" : "editor";
-            const iconMap = { editor: "eye", split: "columns-3", preview: "pencil" };
+            const nextMode: NotesPreviewMode =
+                mode === "block" ? "editor" : mode === "editor" ? "split" : mode === "split" ? "preview" : "block";
+            const iconMap = { block: "pencil", editor: "eye", split: "columns-3", preview: "align-left" };
             const titleMap = {
+                block: "Raw editor",
                 editor: "Show Preview (split)",
                 split: "Preview only",
-                preview: "Back to editor",
+                preview: "Block editor",
             };
             return [
                 {

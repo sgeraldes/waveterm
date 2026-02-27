@@ -180,7 +180,7 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
                 lineHeight:
                     (termSettings?.["term:lineheight"] as number) ??
                     (blockData?.meta?.["term:lineheight"] as number) ??
-                    undefined,
+                    1.0,
             },
             {
                 keydownHandler: model.handleTerminalKeydown.bind(model),

@@ -69,6 +69,12 @@
     min-height: 0;
 }
 
+.notes-block-editor {
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
 .notes-editor {
     flex: 1;
     overflow: hidden;
