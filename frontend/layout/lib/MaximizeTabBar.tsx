@@ -41,14 +41,16 @@ export const MaximizeTabBar = React.memo(({ layoutModel }: MaximizeTabBarProps) 
 
     return (
         <div className="maximize-tab-bar">
-            {leafOrder.map((entry) => (
-                <MaximizeTabChip
-                    key={entry.blockid}
-                    blockId={entry.blockid}
-                    isActive={entry.blockid === activeBlockId}
-                    onClick={() => layoutModel.maximizeSetActiveBlock(entry.blockid)}
-                />
-            ))}
+            <div className="maximize-tab-chips">
+                {leafOrder.map((entry) => (
+                    <MaximizeTabChip
+                        key={entry.blockid}
+                        blockId={entry.blockid}
+                        isActive={entry.blockid === activeBlockId}
+                        onClick={() => layoutModel.maximizeSetActiveBlock(entry.blockid)}
+                    />
+                ))}
+            </div>
             <div
                 className="maximize-tab-close"
                 onClick={() => layoutModel.maximizeModeExit()}

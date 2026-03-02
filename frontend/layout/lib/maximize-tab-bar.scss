@@ -11,14 +11,21 @@
     align-items: stretch;
     background: var(--panel-bg-color);
     border-bottom: 1px solid var(--border-color);
-    overflow-x: auto;
-    overflow-y: hidden;
+    overflow: hidden;
     z-index: 10;
-    flex-shrink: 0;
 
-    // Hide scrollbar but keep functionality
-    &::-webkit-scrollbar {
-        height: 0;
+    .maximize-tab-chips {
+        display: flex;
+        align-items: stretch;
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        // Hide scrollbar but keep functionality
+        &::-webkit-scrollbar {
+            height: 0;
+        }
     }
 
     .maximize-tab {
@@ -67,7 +74,7 @@
         justify-content: center;
         width: 32px;
         min-width: 32px;
-        margin-left: auto;
+        flex-shrink: 0;
         cursor: pointer;
         color: var(--secondary-text-color);
         border-left: 1px solid var(--border-color);

@@ -701,7 +701,7 @@ function registerGlobalKeys() {
         return true;
     });
     const allKeys = Array.from(globalKeyMap.keys());
-    allKeys.push("Cmd:l", "Cmd:r", "Cmd:ArrowRight", "Cmd:ArrowLeft", "Cmd:o", "Ctrl:Tab", "Ctrl:Shift:Tab");
+    allKeys.push("Cmd:l", "Cmd:r", "Cmd:ArrowRight", "Cmd:ArrowLeft", "Cmd:o");
     getApi().registerGlobalWebviewKeys(allKeys);
 
     const splitBlockKeys = new Map<string, KeyHandler>();

@@ -7,6 +7,8 @@ vi.mock("@/app/block/blockutil", () => ({
     blockViewToName: vi.fn(),
     getViewIconElem: vi.fn(),
     OptMagnifyButton: () => null,
+    OptMaximizeButton: () => null,
+    ShellButton: () => null,
     renderHeaderElements: vi.fn(() => []),
 }));
 vi.mock("@/app/block/connectionbutton", () => ({ ConnectionButton: () => null }));
