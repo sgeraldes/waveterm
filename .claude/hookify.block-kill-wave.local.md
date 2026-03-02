@@ -2,7 +2,7 @@
 name: block-kill-wave
 enabled: true
 event: bash
-pattern: (taskkill\s+|kill\s+|pkill\s+|killall\s+).*(Wave|wavesrv|waveterm)
+pattern: \b(taskkill|kill|pkill|killall)\s+(\/\w+|\-\w+)*\s*(Wave\.exe|wavesrv\.x64\.exe|waveterm-app\.exe|Wave|wavesrv|waveterm)\b
 action: block
 ---
 
