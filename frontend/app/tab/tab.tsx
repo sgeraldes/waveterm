@@ -39,7 +39,6 @@ const TAB_COLORS = [
 interface TabProps {
     id: string;
     active: boolean;
-    isFirst: boolean;
     isBeforeActive: boolean;
     isDragging: boolean;
     tabWidth: number;
@@ -202,7 +201,7 @@ const Tab = memo(
                             defaultPath: currentDir || "~",
                             properties: ["openDirectory"],
                         });
-                        if (newDir && newDir.length > 0) {
+                        if (newDir && newDir.length > 0 && newDir[0] !== "~") {
                             setIsUpdatingMetadata(true);
                             await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
                                 "tab:basedir": newDir[0],
@@ -213,6 +212,12 @@ const Tab = memo(
                         const msg = e instanceof Error ? e.message : String(e);
                         setError(`Failed to set base directory: ${msg}`);
                         console.error("set base directory error:", e);
+                        setTabIndicator(id, {
+                            icon: "triangle-exclamation",
+                            color: "#ef4444",
+                            clearonfocus: true,
+                            priority: 2,
+                        });
                     } finally {
                         setIsUpdatingMetadata(false);
                     }
@@ -237,11 +242,21 @@ const Tab = memo(
                             "tab:basedir": null,
                             "tab:basedirlock": null,
                         });
+                        // Reset TabModel validation atoms so stale state doesn't persist
+                        const tabModel = getTabModelByTabId(id);
+                        globalStore.set(tabModel.basedirValidationAtom, null);
+                        globalStore.set(tabModel.lastValidationTimeAtom, 0);
                         setError("");
                     } catch (e) {
                         const msg = e instanceof Error ? e.message : String(e);
                         setError(`Failed to clear base directory: ${msg}`);
                         console.error("clear base directory error:", e);
+                        setTabIndicator(id, {
+                            icon: "triangle-exclamation",
+                            color: "#ef4444",
+                            clearonfocus: true,
+                            priority: 2,
+                        });
                     } finally {
                         setIsUpdatingMetadata(false);
                     }
@@ -275,6 +290,12 @@ const Tab = memo(
                         const msg = e instanceof Error ? e.message : String(e);
                         setError(`Failed to toggle lock: ${msg}`);
                         console.error("toggle lock error:", e);
+                        setTabIndicator(id, {
+                            icon: "triangle-exclamation",
+                            color: "#ef4444",
+                            clearonfocus: true,
+                            priority: 2,
+                        });
                     } finally {
                         setIsUpdatingMetadata(false);
                     }

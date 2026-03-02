@@ -10,6 +10,9 @@ import { TabContent } from "@/app/tab/tabcontent";
 import { Widgets } from "@/app/workspace/widgets";
 import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
 import { ObjectService } from "@/app/store/services";
+import { ContextMenuModel } from "@/app/store/contextmenu";
+import { getTabModelByTabId } from "@/app/store/tab-model";
+import { LoadingSpinner } from "@/app/element/spinner";
 import { atoms, createBlock, getApi } from "@/store/global";
 import * as WOS from "@/store/wos";
 import { fireAndForget } from "@/util/util";
@@ -80,6 +83,8 @@ const TabBreadcrumb = memo(() => {
     const ws = useAtomValue(atoms.workspace);
     const tabAtom = useMemo(() => WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", tabId)), [tabId]);
     const tabData = useAtomValue(tabAtom);
+    const tabModel = useMemo(() => getTabModelByTabId(tabId), [tabId]);
+    const validationState = useAtomValue(tabModel.basedirValidationAtom);
 
     if (!tabId) return null;
 
@@ -92,9 +97,48 @@ const TabBreadcrumb = memo(() => {
         return acc;
     }, []);
 
-    const handleMenuClick = () => {
-        if (!ws) return;
-        getApi().showWorkspaceAppMenu(ws.oid);
+    const handleMenuClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+        const menu: ContextMenuItem[] = [
+            {
+                label: "Set Base Directory...",
+                click: () => {
+                    fireAndForget(async () => {
+                        const newDir = await getApi().showOpenDialog({
+                            title: "Set Tab Base Directory",
+                            defaultPath: baseDir || "~",
+                            properties: ["openDirectory"],
+                        });
+                        if (newDir && newDir.length > 0 && newDir[0] !== "~") {
+                            await ObjectService.UpdateObjectMeta(WOS.makeORef("tab", tabId), {
+                                "tab:basedir": newDir[0],
+                            });
+                        }
+                    });
+                },
+            },
+            {
+                label: "Clear Base Directory",
+                enabled: !!baseDir,
+                click: () => {
+                    fireAndForget(async () => {
+                        await ObjectService.UpdateObjectMeta(WOS.makeORef("tab", tabId), {
+                            "tab:basedir": null,
+                            "tab:basedirlock": null,
+                        });
+                    });
+                },
+            },
+        ];
+        if (baseDir) {
+            menu.push({ type: "separator" });
+            menu.push({
+                label: "Open in File Manager",
+                click: () => {
+                    getApi().openExternal(`file://${baseDir}`);
+                },
+            });
+        }
+        ContextMenuModel.showContextMenu(menu, e);
     };
 
     const handleSegmentClick = (segIdx: number) => {
@@ -123,6 +167,15 @@ const TabBreadcrumb = memo(() => {
                         </span>
                     </React.Fragment>
                 ))}
+                {baseDir && validationState === "pending" && (
+                    <LoadingSpinner size="small" className="basedir-validation-spinner" />
+                )}
+                {baseDir && validationState === "invalid" && (
+                    <i
+                        className="fa fa-triangle-exclamation basedir-validation-error"
+                        title="Base directory is no longer accessible"
+                    />
+                )}
             </div>
             <div className="breadcrumb-actions">
                 {baseDir && (

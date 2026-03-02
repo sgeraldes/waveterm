@@ -40,8 +40,8 @@ async function validateActiveTabBasedir(tabId: string): Promise<void> {
 
     const basedir = tabData.meta?.["tab:basedir"];
 
-    // Skip validation if no basedir set
-    if (!basedir || basedir.trim() === "") {
+    // Skip validation if no basedir set (including "~" which is the sentinel for "not set")
+    if (!basedir || basedir.trim() === "" || basedir === "~") {
         return;
     }
 

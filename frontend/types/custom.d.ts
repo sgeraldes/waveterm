@@ -88,8 +88,6 @@ declare global {
         showWorkspaceAppMenu: (workspaceId: string) => void;
         showContextMenu: (workspaceId: string, menu: ElectronContextMenuItem[]) => void;
         onContextMenuClick: (callback: (id: string) => void) => void;
-        onNavigate: (callback: (url: string) => void) => void;
-        onIframeNavigate: (callback: (url: string) => void) => void;
         downloadFile: (path: string) => void;
         openExternal: (url: string) => void;
         onFullScreenChange: (callback: (isFullScreen: boolean) => void) => void;

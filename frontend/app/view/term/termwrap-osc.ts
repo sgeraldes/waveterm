@@ -136,6 +136,11 @@ export function handleOsc7Command(data: string, blockId: string, tabId: string, 
             dlog("Invalid OSC 7 command received (non-file protocol)", data);
             return true;
         }
+        // Only accept local file URLs (empty hostname or "localhost")
+        if (url.hostname !== "" && url.hostname !== "localhost") {
+            dlog("Invalid OSC 7 command received (non-local hostname)", data);
+            return true;
+        }
         pathPart = decodeURIComponent(url.pathname);
         if (/^[\\/]{2}[^\\/]/.test(pathPart)) {
             console.warn("[Security] UNC path blocked in OSC 7:", pathPart);

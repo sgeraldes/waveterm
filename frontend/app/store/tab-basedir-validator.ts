@@ -1,7 +1,6 @@
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { isWslUncPath } from "@/util/pathutil";
-import { fireAndForget } from "@/util/util";
 import { globalStore } from "./jotaiStore";
 import { ObjectService } from "./services";
 import * as WOS from "./wos";
@@ -257,90 +256,3 @@ export async function handleStaleBasedir(tabId: string, path: string, reason: St
     }
 }
 
-export async function handleMultipleStaleBasedirs(
-    staleTabs: Array<{ tabId: string; path: string; reason: StalePathReason }>
-): Promise<void> {
-    if (staleTabs.length === 0) return;
-
-    // Preserve tab:basedirlock — the user set it intentionally
-    const clearPromises = staleTabs.map(({ tabId }) => {
-        const tabORef = WOS.makeORef("tab", tabId);
-        return ObjectService.UpdateObjectMeta(tabORef, {
-            "tab:basedir": null,
-        });
-    });
-
-    try {
-        await Promise.all(clearPromises);
-
-        const { pushNotification } = await import("./global");
-        pushNotification({
-            id: "stale-basedir-batch",
-            icon: "triangle-exclamation",
-            type: "warning",
-            title: `Cleared base directory for ${staleTabs.length} tabs`,
-            message: "Multiple tabs had stale paths. See logs for details.",
-            timestamp: new Date().toISOString(),
-            expiration: Date.now() + 15000,
-            persistent: false,
-        });
-
-        staleTabs.forEach(({ tabId, path, reason }) => {
-            console.log(`[TabBasedir] Cleared stale basedir for tab ${tabId}: ${path} (${reason})`);
-        });
-    } catch (error) {
-        console.error("[TabBasedir] Failed to clear multiple stale basedirs:", error);
-    }
-}
-
-interface BatchingState {
-    staleTabs: Array<{ tabId: string; path: string; reason: StalePathReason }>;
-    timer: NodeJS.Timeout | null;
-}
-
-const batchingState: BatchingState = {
-    staleTabs: [],
-    timer: null,
-};
-
-const BATCHING_WINDOW_MS = 5000;
-const BATCH_THRESHOLD = 4;
-
-export async function validateAndHandleStale(tabId: string): Promise<void> {
-    const tabAtom = WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", tabId));
-    const tabData = globalStore.get(tabAtom);
-
-    if (!tabData) {
-        return;
-    }
-
-    const basedir = tabData.meta?.["tab:basedir"];
-
-    if (!basedir || basedir.trim() === "") {
-        return;
-    }
-
-    const result = await validateTabBasedir(tabId, basedir);
-
-    if (!result.valid && result.reason) {
-        batchingState.staleTabs.push({ tabId, path: basedir, reason: result.reason });
-
-        if (batchingState.timer) {
-            clearTimeout(batchingState.timer);
-        }
-
-        batchingState.timer = setTimeout(() => {
-            const staleTabs = [...batchingState.staleTabs];
-            batchingState.staleTabs = [];
-            batchingState.timer = null;
-
-            if (staleTabs.length >= BATCH_THRESHOLD) {
-                fireAndForget(() => handleMultipleStaleBasedirs(staleTabs));
-            } else {
-                staleTabs.forEach(({ tabId, path, reason }) => {
-                    fireAndForget(() => handleStaleBasedir(tabId, path, reason));
-                });
-            }
-        }, BATCHING_WINDOW_MS);
-    }
-}

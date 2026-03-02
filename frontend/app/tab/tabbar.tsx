@@ -399,7 +399,6 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
                                 key={tabId}
                                 ref={tabRefs.current[index]}
                                 id={tabId}
-                                isFirst={index === 0}
                                 onSelect={() => handleSelectTab(tabId)}
                                 active={activeTabId === tabId}
                                 onDragStart={(event) => handleDragStart(event, tabId, tabRefs.current[index])}
