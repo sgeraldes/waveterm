@@ -552,6 +552,20 @@ function registerGlobalKeys() {
         }
         return true;
     });
+    globalKeyMap.set("Ctrl:Tab", () => {
+        const layoutModel = getLayoutModelForStaticTab();
+        if (!layoutModel || !globalStore.get(layoutModel.isMaximizeModeAtom)) return false;
+        layoutModel.maximizeModeCycleBlock(1);
+        setTimeout(() => globalRefocus(), 10);
+        return true;
+    });
+    globalKeyMap.set("Ctrl:Shift:Tab", () => {
+        const layoutModel = getLayoutModelForStaticTab();
+        if (!layoutModel || !globalStore.get(layoutModel.isMaximizeModeAtom)) return false;
+        layoutModel.maximizeModeCycleBlock(-1);
+        setTimeout(() => globalRefocus(), 10);
+        return true;
+    });
     globalKeyMap.set("Ctrl:Shift:ArrowUp", () => {
         switchBlockInDirection(NavigateDirection.Up);
         return true;
@@ -674,6 +688,11 @@ function registerGlobalKeys() {
         if (deactivateSearch()) {
             return true;
         }
+        const layoutModel = getLayoutModelForStaticTab();
+        if (layoutModel && globalStore.get(layoutModel.isMaximizeModeAtom)) {
+            layoutModel.maximizeModeExit();
+            return true;
+        }
         return false;
     });
     globalKeyMap.set("Cmd:Shift:a", () => {
@@ -682,7 +701,7 @@ function registerGlobalKeys() {
         return true;
     });
     const allKeys = Array.from(globalKeyMap.keys());
-    allKeys.push("Cmd:l", "Cmd:r", "Cmd:ArrowRight", "Cmd:ArrowLeft", "Cmd:o");
+    allKeys.push("Cmd:l", "Cmd:r", "Cmd:ArrowRight", "Cmd:ArrowLeft", "Cmd:o", "Ctrl:Tab", "Ctrl:Shift:Tab");
     getApi().registerGlobalWebviewKeys(allKeys);
 
     const splitBlockKeys = new Map<string, KeyHandler>();

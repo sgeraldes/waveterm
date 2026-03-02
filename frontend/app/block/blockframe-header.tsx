@@ -3,6 +3,7 @@ import {
     blockViewToName,
     getViewIconElem,
     OptMagnifyButton,
+    OptMaximizeButton,
     renderHeaderElements,
     ShellButton,
 } from "@/app/block/blockutil";
@@ -32,11 +33,18 @@ function handleHeaderContextMenu(
     e.preventDefault();
     e.stopPropagation();
     const magnified = globalStore.get(nodeModel.isMagnified);
+    const isMaximizeMode = globalStore.get(nodeModel.isMaximizeMode);
     const menu: ContextMenuItem[] = [
         {
             label: magnified ? "Un-Magnify Block" : "Magnify Block",
             click: () => {
                 nodeModel.toggleMagnify();
+            },
+        },
+        {
+            label: isMaximizeMode ? "Exit Maximize Mode" : "Maximize All Blocks",
+            click: () => {
+                nodeModel.toggleMaximize();
             },
         },
         { type: "separator" },
@@ -113,6 +121,9 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
     const ephemeral = jotai.useAtomValue(nodeModel.isEphemeral);
     const numLeafs = jotai.useAtomValue(nodeModel.numLeafs);
     const magnifyDisabled = numLeafs <= 1;
+    const isMaximizeMode = jotai.useAtomValue(nodeModel.isMaximizeMode);
+    const isMaximizedActive = jotai.useAtomValue(nodeModel.isMaximizedActive);
+    const maximizeDisabled = numLeafs <= 1;
 
     const endIconsElem: React.ReactElement[] = [];
 
@@ -147,6 +158,15 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
                 magnified={magnified}
                 toggleMagnify={nodeModel.toggleMagnify}
                 disabled={magnifyDisabled}
+            />
+        );
+        endIconsElem.push(
+            <OptMaximizeButton
+                key="maximize"
+                isMaximizeMode={isMaximizeMode}
+                isMaximizedActive={isMaximizedActive}
+                onToggle={nodeModel.toggleMaximize}
+                disabled={maximizeDisabled}
             />
         );
     }

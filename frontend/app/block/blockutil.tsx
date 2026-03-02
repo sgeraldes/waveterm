@@ -363,6 +363,30 @@ export const OptMagnifyButton = React.memo(
     }
 );
 
+export const OptMaximizeButton = React.memo(
+    ({
+        isMaximizeMode,
+        isMaximizedActive,
+        onToggle,
+        disabled,
+    }: {
+        isMaximizeMode: boolean;
+        isMaximizedActive: boolean;
+        onToggle: () => void;
+        disabled: boolean;
+    }) => {
+        const active = isMaximizeMode && isMaximizedActive;
+        const maximizeDecl: IconButtonDecl = {
+            elemtype: "iconbutton",
+            icon: active ? "compress" : "expand",
+            title: active ? "Exit Maximize Mode" : "Enter Maximize Mode",
+            click: onToggle,
+            disabled,
+        };
+        return <IconButton key="maximize" decl={maximizeDecl} className="block-frame-maximize" />;
+    }
+);
+
 export const HeaderTextElem = React.memo(({ elem, preview }: { elem: HeaderElem; preview: boolean }) => {
     if (elem.elemtype == "iconbutton") {
         return <IconButton decl={elem} className={clsx("block-frame-header-iconbutton", elem.className)} />;
