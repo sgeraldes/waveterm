@@ -216,6 +216,14 @@ export class LayoutModel {
      */
     lastEphemeralNodeId: string;
     magnifiedNodeSizeAtom: Atom<number>;
+    /**
+     * Whether maximize mode is active. In-memory only, not persisted.
+     */
+    isMaximizeModeAtom: PrimitiveAtom<boolean>;
+    /**
+     * The blockId of the currently active tab in maximize mode. In-memory only, not persisted.
+     */
+    maximizeActiveBlockIdAtom: PrimitiveAtom<string | null>;
 
     /**
      * The size of the resize handles, in CSS pixels.
@@ -324,6 +332,8 @@ export class LayoutModel {
         });
 
         this.ephemeralNode = atom();
+        this.isMaximizeModeAtom = atom(false);
+        this.maximizeActiveBlockIdAtom = atom<string | null>(null) as PrimitiveAtom<string | null>;
         this.magnifiedNodeSizeAtom = getSettingsKeyAtom("window:magnifiedblocksize");
 
         this.magnifiedNodeIdAtom = atom((get) => {
@@ -764,6 +774,7 @@ export class LayoutModel {
             this.treeState.leafOrder = getLeafOrder(newLeafs, newAdditionalProps);
             this.validateFocusedNode(this.treeState.leafOrder);
             this.validateMagnifiedNode(this.treeState.leafOrder, newAdditionalProps);
+            this.validateMaximizeMode(this.treeState.leafOrder);
             this.cleanupNodeModels(this.treeState.leafOrder);
             this.setter(
                 this.leafs,
@@ -944,6 +955,66 @@ export class LayoutModel {
     }
 
     /**
+     * Validate and clean up maximize mode state when the tree changes.
+     * Auto-exits if fewer than 2 leafs remain.
+     */
+    private validateMaximizeMode(leafOrder: LeafOrderEntry[]) {
+        if (!this.getter(this.isMaximizeModeAtom)) return;
+        if (leafOrder.length < 2) {
+            this.setter(this.isMaximizeModeAtom, false);
+            this.setter(this.maximizeActiveBlockIdAtom, null);
+            return;
+        }
+        const activeBlockId = this.getter(this.maximizeActiveBlockIdAtom);
+        if (!activeBlockId || !leafOrder.find((e) => e.blockid === activeBlockId)) {
+            this.setter(this.maximizeActiveBlockIdAtom, leafOrder[0].blockid);
+        }
+    }
+
+    maximizeModeEnter(blockId: string) {
+        const leafOrder = this.getter(this.leafOrder);
+        if (leafOrder.length < 2) return;
+        // Clear magnify first if active
+        if (this.magnifiedNodeId) {
+            this.magnifyNodeToggle(this.magnifiedNodeId);
+        }
+        this.setter(this.isMaximizeModeAtom, true);
+        this.setter(this.maximizeActiveBlockIdAtom, blockId);
+    }
+
+    maximizeModeExit() {
+        this.setter(this.isMaximizeModeAtom, false);
+        this.setter(this.maximizeActiveBlockIdAtom, null);
+    }
+
+    maximizeModeToggle(blockId: string) {
+        const isMaximize = this.getter(this.isMaximizeModeAtom);
+        if (!isMaximize) {
+            this.maximizeModeEnter(blockId);
+            return;
+        }
+        const activeBlockId = this.getter(this.maximizeActiveBlockIdAtom);
+        if (activeBlockId === blockId) {
+            this.maximizeModeExit();
+        } else {
+            this.maximizeSetActiveBlock(blockId);
+        }
+    }
+
+    maximizeModeCycleBlock(offset: 1 | -1) {
+        const leafOrder = this.getter(this.leafOrder);
+        if (!leafOrder.length) return;
+        const activeBlockId = this.getter(this.maximizeActiveBlockIdAtom);
+        const currentIdx = leafOrder.findIndex((e) => e.blockid === activeBlockId);
+        const nextIdx = (currentIdx + offset + leafOrder.length) % leafOrder.length;
+        this.setter(this.maximizeActiveBlockIdAtom, leafOrder[nextIdx].blockid);
+    }
+
+    maximizeSetActiveBlock(blockId: string) {
+        this.setter(this.maximizeActiveBlockIdAtom, blockId);
+    }
+
+    /**
      * Helper function for the placeholderTransform atom, which computes the new transform value when the pending action changes.
      * @param pendingAction The new pending action value.
      * @returns The computed placeholder transform.
@@ -1083,6 +1154,14 @@ export class LayoutModel {
                 disablePointerEvents: this.activeDrag,
                 onClose: () => fireAndForget(() => this.closeNode(nodeid)), // no longer used (instead we use keymodel uxCloseBlock)
                 toggleMagnify: () => this.magnifyNodeToggle(nodeid),
+                isMaximizeMode: this.isMaximizeModeAtom,
+                isMaximizedActive: atom((get) => {
+                    const isMax = get(this.isMaximizeModeAtom);
+                    if (!isMax) return false;
+                    const activeBlockId = get(this.maximizeActiveBlockIdAtom);
+                    return activeBlockId === blockId;
+                }),
+                toggleMaximize: () => this.maximizeModeToggle(blockId),
                 focusNode: () => this.focusNode(nodeid),
                 dragHandleRef: createRef(),
                 displayContainerRef: this.displayContainerRef,
@@ -1297,6 +1376,13 @@ export class LayoutModel {
         }
         if (nodeId === this.magnifiedNodeId) {
             this.magnifyNodeToggle(nodeId);
+        }
+        // If closing the active maximize tab, advance to the next block first
+        if (this.getter(this.isMaximizeModeAtom)) {
+            const activeBlockId = this.getter(this.maximizeActiveBlockIdAtom);
+            if (nodeToDelete.data?.blockId === activeBlockId) {
+                this.maximizeModeCycleBlock(1);
+            }
         }
         const deleteAction: LayoutTreeDeleteNodeAction = {
             type: LayoutTreeActionType.DeleteNode,

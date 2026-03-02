@@ -401,6 +401,9 @@ export interface NodeModel {
     ready: Atom<boolean>;
     disablePointerEvents: Atom<boolean>;
     toggleMagnify: () => void;
+    isMaximizeMode: Atom<boolean>;
+    isMaximizedActive: Atom<boolean>;
+    toggleMaximize: () => void;
     focusNode: () => void;
     onClose: () => void;
     dragHandleRef?: React.RefObject<HTMLDivElement>;
