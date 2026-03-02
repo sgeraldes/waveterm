@@ -85,6 +85,7 @@ interface TypeAheadModalProps {
     giveFocusRef?: React.RefObject<() => boolean>;
     autoFocus?: boolean;
     selectIndex?: number;
+    error?: string;
 }
 
 const TypeAheadModal = ({
@@ -101,6 +102,7 @@ const TypeAheadModal = ({
     giveFocusRef,
     autoFocus,
     selectIndex,
+    error,
 }: TypeAheadModalProps) => {
     const domRect = useDimensionsWithExistingRef(blockRef, 30);
     const width = domRect?.width ?? 0;
@@ -231,11 +233,27 @@ const TypeAheadModal = ({
                         <i className="fa-regular fa-magnifying-glass"></i>
                     </InputRightElement>
                 </InputGroup>
+                {error && (
+                    <div className="connection-error" style={{
+                        color: "var(--error-color, #ff6b6b)",
+                        padding: "8px 12px",
+                        marginTop: "8px",
+                        backgroundColor: "var(--error-bg-color, rgba(255, 107, 107, 0.1))",
+                        borderRadius: "4px",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        fontSize: "13px"
+                    }}>
+                        <i className="fa fa-exclamation-triangle" />
+                        <span>{error}</span>
+                    </div>
+                )}
                 <div
                     ref={suggestionsWrapperRef}
                     className="suggestions-wrapper"
                     style={{
-                        marginTop: suggestions?.length > 0 ? "8px" : "0",
+                        marginTop: suggestions?.length > 0 || error ? "8px" : "0",
                         overflowY: "auto",
                     }}
                 >

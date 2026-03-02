@@ -1,3 +1,4 @@
+import { LoadingSpinner } from "@/element/spinner";
 import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import * as React from "react";
@@ -47,8 +48,7 @@ export function TreeViewComponent({
     if (isLoading) {
         return (
             <div className="treeview-loading">
-                <i className={makeIconClass("spinner", false) + " fa-spin"} />
-                <span>Loading...</span>
+                <LoadingSpinner size="normal" message="Loading..." />
             </div>
         );
     }

@@ -106,7 +106,7 @@ export const WorkspacesWithTabs = memo(
                     eventType: "workspace:update",
                     handler: () => fireAndForget(updateWorkspaceList),
                 }),
-            []
+            [updateWorkspaceList]
         );
 
         const handleUpdateWorkspace = useCallback(

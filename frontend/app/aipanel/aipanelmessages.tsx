@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { useAtomValue } from "jotai";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { AIMessage } from "./aimessage";
 import { AIModeDropdown } from "./aimode";
 import { type WaveUIMessage } from "./aitypes";
@@ -22,28 +22,28 @@ export const AIPanelMessages = memo(({ messages, status, onContextMenu }: AIPane
     const prevStatusRef = useRef<string>(status);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-    const checkIfAtBottom = () => {
+    const checkIfAtBottom = useCallback(() => {
         const container = messagesContainerRef.current;
         if (!container) return true;
 
         const threshold = 50;
         const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
         return scrollBottom <= threshold;
-    };
+    }, []);
 
-    const handleScroll = () => {
+    const handleScroll = useCallback(() => {
         const atBottom = checkIfAtBottom();
         setShouldAutoScroll(atBottom);
-    };
+    }, [checkIfAtBottom]);
 
-    const scrollToBottom = () => {
+    const scrollToBottom = useCallback(() => {
         const container = messagesContainerRef.current;
         if (container) {
             container.scrollTop = container.scrollHeight;
             container.scrollLeft = 0;
             setShouldAutoScroll(true);
         }
-    };
+    }, []);
 
     useEffect(() => {
         const container = messagesContainerRef.current;
@@ -51,23 +51,23 @@ export const AIPanelMessages = memo(({ messages, status, onContextMenu }: AIPane
 
         container.addEventListener("scroll", handleScroll);
         return () => container.removeEventListener("scroll", handleScroll);
-    }, []);
+    }, [handleScroll]);
 
     useEffect(() => {
         model.registerScrollToBottom(scrollToBottom);
-    }, [model]);
+    }, [model, scrollToBottom]);
 
     useEffect(() => {
         if (shouldAutoScroll) {
             scrollToBottom();
         }
-    }, [messages, shouldAutoScroll]);
+    }, [messages, shouldAutoScroll, scrollToBottom]);
 
     useEffect(() => {
         if (isPanelOpen) {
             scrollToBottom();
         }
-    }, [isPanelOpen]);
+    }, [isPanelOpen, scrollToBottom]);
 
     useEffect(() => {
         const wasStreaming = prevStatusRef.current === "streaming";

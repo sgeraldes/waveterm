@@ -155,7 +155,9 @@ function getReconnectItem(
     connStatus: ConnStatus,
     connSelected: string,
     blockId: string,
-    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>,
+    setConnectionError: (error: string) => void,
+    setIsConnecting: (isConnecting: boolean) => void
 ): SuggestionConnectionItem | null {
     if (connSelected != "" || (connStatus.status != "disconnected" && connStatus.status != "error")) {
         return null;
@@ -168,12 +170,21 @@ function getReconnectItem(
         value: "",
         onSelect: async () => {
             globalStore.set(changeConnModalAtom, false);
-            const prtn = RpcApi.ConnConnectCommand(
-                TabRpcClient,
-                { host: connStatus.connection, logblockid: blockId },
-                { timeout: 60000 }
-            );
-            prtn.catch((e) => console.log("error reconnecting", connStatus.connection, e));
+            setIsConnecting(true);
+            try {
+                await RpcApi.ConnConnectCommand(
+                    TabRpcClient,
+                    { host: connStatus.connection, logblockid: blockId },
+                    { timeout: 60000 }
+                );
+                setConnectionError("");
+            } catch (e) {
+                const errorMsg = e instanceof Error ? e.message : String(e);
+                setConnectionError(`Failed to reconnect: ${errorMsg}`);
+                console.error("error reconnecting", connStatus.connection, e);
+            } finally {
+                setIsConnecting(false);
+            }
         },
     };
     return reconnectSuggestionItem;
@@ -229,7 +240,9 @@ function getDisconnectItem(
     connection: string,
     connStatusMap: Map<string, ConnStatus>,
     fullConfig: FullConfigType,
-    changeConnModalAtom: jotai.PrimitiveAtom<boolean>
+    changeConnModalAtom: jotai.PrimitiveAtom<boolean>,
+    setConnectionError: (error: string) => void,
+    setIsConnecting: (isConnecting: boolean) => void
 ): SuggestionConnectionItem | null {
     // Don't show disconnect for local connections (including local shell profiles)
     if (util.isLocalConnection(connection, fullConfig.connections)) {
@@ -247,8 +260,17 @@ function getDisconnectItem(
         value: "",
         onSelect: async () => {
             globalStore.set(changeConnModalAtom, false);
-            const prtn = RpcApi.ConnDisconnectCommand(TabRpcClient, connection, { timeout: 60000 });
-            prtn.catch((e) => console.log("error disconnecting", connStatus.connection, e));
+            setIsConnecting(true);
+            try {
+                await RpcApi.ConnDisconnectCommand(TabRpcClient, connection, { timeout: 60000 });
+                setConnectionError("");
+            } catch (e) {
+                const errorMsg = e instanceof Error ? e.message : String(e);
+                setConnectionError(`Failed to disconnect: ${errorMsg}`);
+                console.error("error disconnecting", connStatus.connection, e);
+            } finally {
+                setIsConnecting(false);
+            }
         },
     };
     return disconnectSuggestionItem;
@@ -328,6 +350,8 @@ const ChangeConnectionBlockModal = React.memo(
         nodeModel: NodeModel;
     }) => {
         const [connSelected, setConnSelected] = React.useState("");
+        const [connectionError, setConnectionError] = React.useState<string>("");
+        const [isConnecting, setIsConnecting] = React.useState(false);
         const changeConnModalOpen = jotai.useAtomValue(changeConnModalAtom);
         const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
         const isNodeFocused = jotai.useAtomValue(nodeModel.isFocused);
@@ -383,27 +407,37 @@ const ChangeConnectionBlockModal = React.memo(
                 if (connName == blockData?.meta?.connection) {
                     return;
                 }
-                const oldFile = blockData?.meta?.file ?? "";
-                const newFile = oldFile == "" ? "" : "~";
-                await RpcApi.SetMetaCommand(TabRpcClient, {
-                    oref: WOS.makeORef("block", blockId),
-                    meta: { connection: connName, file: newFile, "cmd:cwd": null },
-                });
-
+                setIsConnecting(true);
                 try {
-                    await RpcApi.ConnEnsureCommand(
-                        TabRpcClient,
-                        { connname: connName, logblockid: blockId },
-                        { timeout: 60000 }
+                    const oldFile = blockData?.meta?.file ?? "";
+                    const newFile = oldFile == "" ? "" : "~";
+                    await RpcApi.SetMetaCommand(TabRpcClient, {
+                        oref: WOS.makeORef("block", blockId),
+                        meta: { connection: connName, file: newFile, "cmd:cwd": null },
+                    });
+
+                    // CONN-003: Use deduplicator to prevent race conditions
+                    const { connectionDeduplicator } = await import("@/app/util/connection-dedup");
+                    await connectionDeduplicator.ensureConnection(connName, () =>
+                        RpcApi.ConnEnsureCommand(
+                            TabRpcClient,
+                            { connname: connName, logblockid: blockId },
+                            { timeout: 60000 }
+                        )
                     );
+                    setConnectionError("");
                 } catch (e) {
-                    console.log("error connecting", blockId, connName, e);
+                    const errorMsg = e instanceof Error ? e.message : String(e);
+                    setConnectionError(`Failed to connect: ${errorMsg}`);
+                    console.error("error connecting", blockId, connName, e);
+                } finally {
+                    setIsConnecting(false);
                 }
             },
             [blockId, blockData]
         );
 
-        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom);
+        const reconnectSuggestionItem = getReconnectItem(connStatus, connSelected, blockId, changeConnModalAtom, setConnectionError, setIsConnecting);
 
         // Filter out local shell profiles from connList - they're now handled by shell selector
         const remoteConnections = connList.filter((conn) => !util.isLocalShellProfile(conn, fullConfig.connections));
@@ -426,7 +460,7 @@ const ChangeConnectionBlockModal = React.memo(
             filterOutNowsh
         );
         const connectionsEditItem = getConnectionsEditItem(changeConnModalAtom, connSelected);
-        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig, changeConnModalAtom);
+        const disconnectItem = getDisconnectItem(connection, connStatusMap, fullConfig, changeConnModalAtom, setConnectionError, setIsConnecting);
         const newConnectionSuggestionItem = getNewConnectionSuggestionItem(
             connSelected,
             localName,
@@ -517,8 +551,9 @@ const ChangeConnectionBlockModal = React.memo(
                 onKeyDown={(e) => keyutil.keydownWrapper(handleTypeAheadKeyDown)(e)}
                 onChange={(current: string) => setConnSelected(current)}
                 value={connSelected}
-                label="Connect to (username@host)..."
+                label={isConnecting ? "Connecting..." : "Connect to (username@host)..."}
                 onClickBackdrop={() => globalStore.set(changeConnModalAtom, false)}
+                error={connectionError}
             />
         );
     }

@@ -798,16 +798,24 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
             onSave: (newName: string) => {
                 console.log(`newFile: ${newName}`);
                 fireAndForget(async () => {
-                    await RpcApi.FileCreateCommand(
-                        TabRpcClient,
-                        {
-                            info: {
-                                path: await model.formatRemoteUri(`${dirPath}/${newName}`, globalStore.get),
+                    try {
+                        await RpcApi.FileCreateCommand(
+                            TabRpcClient,
+                            {
+                                info: {
+                                    path: await model.formatRemoteUri(`${dirPath}/${newName}`, globalStore.get),
+                                },
                             },
-                        },
-                        null
-                    );
-                    model.refreshCallback();
+                            null
+                        );
+                        model.refreshCallback();
+                    } catch (error) {
+                        console.error("Failed to create file:", error);
+                        setErrorMsg({
+                            status: "File Creation Failed",
+                            text: `${error}`,
+                        });
+                    }
                 });
                 setEntryManagerProps(undefined);
             },
@@ -819,12 +827,20 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
             onSave: (newName: string) => {
                 console.log(`newDirectory: ${newName}`);
                 fireAndForget(async () => {
-                    await RpcApi.FileMkdirCommand(TabRpcClient, {
-                        info: {
-                            path: await model.formatRemoteUri(`${dirPath}/${newName}`, globalStore.get),
-                        },
-                    });
-                    model.refreshCallback();
+                    try {
+                        await RpcApi.FileMkdirCommand(TabRpcClient, {
+                            info: {
+                                path: await model.formatRemoteUri(`${dirPath}/${newName}`, globalStore.get),
+                            },
+                        });
+                        model.refreshCallback();
+                    } catch (error) {
+                        console.error("Failed to create directory:", error);
+                        setErrorMsg({
+                            status: "Directory Creation Failed",
+                            text: `${error}`,
+                        });
+                    }
                 });
                 setEntryManagerProps(undefined);
             },

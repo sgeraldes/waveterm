@@ -1,5 +1,6 @@
 import { globalStore } from "@/app/store/global";
 import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
+import { LoadingSpinner } from "@/element/spinner";
 import { Markdown } from "@/element/markdown";
 import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
@@ -106,8 +107,7 @@ export function NotesComponent({ blockId, model }: NotesComponentProps) {
     if (isLoading && !hasEverLoaded) {
         return (
             <div className="notes-loading">
-                <i className={makeIconClass("spinner", false) + " fa-spin"} />
-                <span>Loading...</span>
+                <LoadingSpinner size="normal" message="Loading..." />
             </div>
         );
     }

@@ -8,9 +8,10 @@ import { getWebServerEndpoint } from "@/util/endpoints";
 import { jotaiLoadableValue } from "@/util/util";
 import { formatRemoteUri } from "@/util/waveutil";
 import { useAtomValue } from "jotai";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { TransformComponent, TransformWrapper, useControls } from "react-zoom-pan-pinch";
 import type { SpecializedViewProps } from "./preview";
+import * as EXIF from "exif-js";
 
 function ImageZoomControls() {
     const { zoomIn, zoomOut, resetTransform } = useControls();
@@ -31,6 +32,47 @@ function ImageZoomControls() {
 }
 
 function StreamingImagePreview({ url }: { url: string }) {
+    const imgRef = useRef<HTMLImageElement>(null);
+    const [imgTransform, setImgTransform] = useState<string>("none");
+
+    useEffect(() => {
+        const img = imgRef.current;
+        if (!img) return;
+
+        const handleLoad = () => {
+            EXIF.getData(img as any, function () {
+                const orientation = EXIF.getTag(this, "Orientation");
+                // Apply CSS transform based on EXIF orientation
+                // 1: Normal (no rotation)
+                // 3: Rotate 180°
+                // 6: Rotate 90° CW
+                // 8: Rotate 90° CCW (270° CW)
+                const transforms: { [key: number]: string } = {
+                    1: "none",
+                    3: "rotate(180deg)",
+                    6: "rotate(90deg)",
+                    8: "rotate(-90deg)",
+                    // Handle mirrored orientations (less common)
+                    2: "scaleX(-1)", // Mirrored horizontal
+                    4: "scaleX(-1) rotate(180deg)", // Mirrored horizontal + 180°
+                    5: "scaleX(-1) rotate(90deg)", // Mirrored horizontal + 90° CW
+                    7: "scaleX(-1) rotate(-90deg)", // Mirrored horizontal + 90° CCW
+                };
+                setImgTransform(transforms[orientation] || "none");
+            });
+        };
+
+        img.addEventListener("load", handleLoad);
+        // If image is already loaded (cached), trigger immediately
+        if (img.complete) {
+            handleLoad();
+        }
+
+        return () => {
+            img.removeEventListener("load", handleLoad);
+        };
+    }, [url]);
+
     return (
         <div className="flex flex-row h-full overflow-hidden items-center justify-center relative">
             <TransformWrapper initialScale={1} centerOnInit pinch={{ step: 10 }}>
@@ -38,7 +80,7 @@ function StreamingImagePreview({ url }: { url: string }) {
                     <>
                         <ImageZoomControls />
                         <TransformComponent wrapperClass="!h-full !w-full">
-                            <img src={url} className="z-[1]" />
+                            <img ref={imgRef} src={url} className="z-[1]" style={{ transform: imgTransform }} />
                         </TransformComponent>
                     </>
                 )}

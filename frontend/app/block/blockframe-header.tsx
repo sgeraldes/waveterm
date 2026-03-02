@@ -191,7 +191,9 @@ const BlockFrame_Header = ({
 
     React.useEffect(() => {
         if (magnified && !preview && !prevMagifiedState.current) {
-            RpcApi.ActivityCommand(TabRpcClient, { nummagnify: 1 });
+            RpcApi.ActivityCommand(TabRpcClient, { nummagnify: 1 }).catch((error) => {
+                console.error("Failed to record magnify activity:", error);
+            });
             recordTEvent("action:magnify", { "block:view": viewName });
         }
         prevMagifiedState.current = magnified;

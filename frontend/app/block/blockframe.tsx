@@ -138,12 +138,21 @@ const BlockFrame_Default_Component = (props: BlockFrameProps) => {
         const connName = blockData?.meta?.connection;
         if (!util.isLocalConnName(connName)) {
             console.log("ensure conn", nodeModel.blockId, connName);
-            RpcApi.ConnEnsureCommand(
-                TabRpcClient,
-                { connname: connName, logblockid: nodeModel.blockId },
-                { timeout: 60000 }
-            ).catch((e) => {
-                console.log("error ensuring connection", nodeModel.blockId, connName, e);
+            // CONN-003: Use deduplicator to prevent race conditions
+            import("@/app/util/connection-dedup").then(({ connectionDeduplicator }) => {
+                connectionDeduplicator
+                    .ensureConnection(connName, () =>
+                        RpcApi.ConnEnsureCommand(
+                            TabRpcClient,
+                            { connname: connName, logblockid: nodeModel.blockId },
+                            { timeout: 60000 }
+                        )
+                    )
+                    .catch((e) => {
+                        const errorMsg = e instanceof Error ? e.message : String(e);
+                        console.error("error ensuring connection", nodeModel.blockId, connName, errorMsg);
+                        // Connection errors are shown via ConnStatusOverlay, no need to set error state here
+                    });
             });
         }
     }, [manageConnection, blockData]);

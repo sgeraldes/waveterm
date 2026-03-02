@@ -170,12 +170,19 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         }
     }, [reinitVersion]);
 
+    const resizeHandlerRef = useRef<() => void>(null);
+
     useEffect(() => {
-        window.addEventListener("resize", () => handleResizeTabs());
-        return () => {
-            window.removeEventListener("resize", () => handleResizeTabs());
-        };
+        resizeHandlerRef.current = () => handleResizeTabs();
     }, [handleResizeTabs]);
+
+    useEffect(() => {
+        const resizeHandler = () => resizeHandlerRef.current?.();
+        window.addEventListener("resize", resizeHandler);
+        return () => {
+            window.removeEventListener("resize", resizeHandler);
+        };
+    }, []); // Empty deps - handler never re-registers
 
     useEffect(() => {
         const allLoaded = tabIds.length > 0 && tabIds.every((id) => tabsLoaded[id]);

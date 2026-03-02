@@ -12,6 +12,7 @@ import (
 	"reflect"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
@@ -122,7 +123,9 @@ type SettingsType struct {
 	MarkdownFontSize      float64 `json:"markdown:fontsize,omitempty"`
 	MarkdownFixedFontSize float64 `json:"markdown:fixedfontsize,omitempty"`
 
-	PreviewShowHiddenFiles *bool `json:"preview:showhiddenfiles,omitempty"`
+	PreviewShowHiddenFiles *bool   `json:"preview:showhiddenfiles,omitempty"`
+	PreviewMaxFileSize     float64 `json:"preview:maxfilesize,omitempty"`
+	PreviewMaxCSVSize      float64 `json:"preview:maxcsvsize,omitempty"`
 
 	TabPreset string `json:"tab:preset,omitempty"`
 
@@ -827,30 +830,82 @@ func SetBaseConfigValue(toMerge waveobj.MetaMapType) error {
 	return WriteWaveHomeConfigFile(SettingsFile, m)
 }
 
+// SetConnectionsConfigValue updates connection configuration metadata.
+// Security: This function enforces CONN-001 security requirement by rejecting
+// any attempt to store passwords or passphrases in plaintext. Use the secure
+// alternatives: ssh:passwordsecretname for passwords, and secretstore for key passphrases.
+// CONN-007: Implements optimistic locking using file modification time to prevent
+// concurrent metadata overwrites.
 func SetConnectionsConfigValue(connName string, toMerge waveobj.MetaMapType) error {
-	m, cerrs := ReadWaveHomeConfigFile(ConnectionsFile)
-	if len(cerrs) > 0 {
-		return fmt.Errorf("error reading config file: %v", cerrs[0])
+	// CONN-001: Safeguard against plaintext password storage
+	if _, hasPassword := toMerge["ssh:password"]; hasPassword {
+		return fmt.Errorf("direct password storage not allowed - use ssh:passwordsecretname instead")
 	}
-	if m == nil {
-		m = make(waveobj.MetaMapType)
+	if _, hasPassphrase := toMerge["ssh:keypassphrase"]; hasPassphrase {
+		return fmt.Errorf("direct passphrase storage not allowed - use secretstore instead")
 	}
-	connData := m.GetMap(connName)
-	if connData == nil {
-		connData = make(waveobj.MetaMapType)
-	}
-	for configKey, val := range toMerge {
-		if configKey == "conn:shellpath" {
-			if s, ok := val.(string); ok && s != "" {
-				if strings.HasPrefix(s, "wsl://") || strings.HasPrefix(s, "ssh://") {
-					return fmt.Errorf("conn:shellpath must be a shell executable path, not a connection URI: %q", s)
+
+	// CONN-007: Optimistic locking retry loop
+	const maxRetries = 5
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Read current file and get modification time
+		configDirAbsPath := wavebase.GetWaveConfigDir()
+		fullFileName := filepath.Join(configDirAbsPath, ConnectionsFile)
+
+		var initialModTime time.Time
+		if fileInfo, err := os.Stat(fullFileName); err == nil {
+			initialModTime = fileInfo.ModTime()
+		}
+
+		m, cerrs := ReadWaveHomeConfigFile(ConnectionsFile)
+		if len(cerrs) > 0 {
+			return fmt.Errorf("error reading config file: %v", cerrs[0])
+		}
+		if m == nil {
+			m = make(waveobj.MetaMapType)
+		}
+		connData := m.GetMap(connName)
+		if connData == nil {
+			connData = make(waveobj.MetaMapType)
+		}
+		for configKey, val := range toMerge {
+			if configKey == "conn:shellpath" {
+				if s, ok := val.(string); ok && s != "" {
+					if strings.HasPrefix(s, "wsl://") || strings.HasPrefix(s, "ssh://") {
+						return fmt.Errorf("conn:shellpath must be a shell executable path, not a connection URI: %q", s)
+					}
 				}
 			}
+			connData[configKey] = val
 		}
-		connData[configKey] = val
+		m[connName] = connData
+
+		// Try to write, but check if file was modified since we read it
+		barr, err := jsonMarshalConfigInOrder(m)
+		if err != nil {
+			return fmt.Errorf("error marshaling config: %w", err)
+		}
+
+		// Check if file was modified since initial read
+		if fileInfo, err := os.Stat(fullFileName); err == nil {
+			if !initialModTime.IsZero() && fileInfo.ModTime().After(initialModTime) {
+				// File was modified by another process, retry
+				log.Printf("[CONN-007] connections.json was modified concurrently, retrying (attempt %d/%d)", attempt+1, maxRetries)
+				time.Sleep(time.Duration(attempt+1) * 50 * time.Millisecond) // Exponential backoff
+				continue
+			}
+		}
+
+		// Write the file
+		err = os.WriteFile(fullFileName, barr, 0644)
+		if err != nil {
+			return fmt.Errorf("error writing config file: %w", err)
+		}
+
+		return nil
 	}
-	m[connName] = connData
-	return WriteWaveHomeConfigFile(ConnectionsFile, m)
+
+	return fmt.Errorf("failed to update connections.json after %d attempts due to concurrent modifications", maxRetries)
 }
 
 func SetShellProfile(profileId string, profile ShellProfileType) error {

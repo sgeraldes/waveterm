@@ -411,38 +411,90 @@ function convertMenuDefArrToMenu(
     return electron.Menu.buildFromTemplate(menuItems);
 }
 
+/**
+ * Displays a custom context menu for a workspace.
+ * Converts the menu definition array to native Electron menu items and shows a popup.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @param workspaceId - The workspace ID where the menu should appear
+ * @param menuDefArr - Array of menu item definitions
+ * @returns boolean - true if menu was shown, false on error (via event.returnValue)
+ */
 electron.ipcMain.on(
     "contextmenu-show",
     (event, workspaceId: string, menuDefArr: ElectronContextMenuItem[]) => {
-        if (menuDefArr.length === 0) {
-            event.returnValue = true;
-            return;
-        }
-        fireAndForget(async () => {
-            const webContents = getWebContentsByWorkspaceId(workspaceId);
-            if (!webContents) {
-                console.error("invalid window for context menu:", workspaceId);
+        try {
+            // Validate parameters
+            if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+                console.error("contextmenu-show: invalid workspaceId - must be non-empty string");
+                event.returnValue = false;
+                return;
+            }
+            if (!Array.isArray(menuDefArr)) {
+                console.error("contextmenu-show: menuDefArr must be an array");
+                event.returnValue = false;
+                return;
+            }
+            if (menuDefArr.length === 0) {
+                event.returnValue = true;
                 return;
             }
 
-            const menu = convertMenuDefArrToMenu(webContents, menuDefArr);
-            menu.popup();
-        });
-        event.returnValue = true;
+            fireAndForget(async () => {
+                try {
+                    const webContents = getWebContentsByWorkspaceId(workspaceId);
+                    if (!webContents) {
+                        console.error("contextmenu-show: invalid window for context menu:", workspaceId);
+                        return;
+                    }
+
+                    const menu = convertMenuDefArrToMenu(webContents, menuDefArr);
+                    menu.popup();
+                } catch (err) {
+                    console.error("contextmenu-show: error in async handler", err);
+                }
+            });
+            event.returnValue = true;
+        } catch (err) {
+            console.error("contextmenu-show: error", err);
+            event.returnValue = false;
+        }
     }
 );
 
+/**
+ * Displays the full application menu as a popup for a workspace.
+ * Used on Windows where the menu bar is not shown by default.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @param workspaceId - The workspace ID where the menu should appear
+ * @returns boolean - true if menu was shown, false on error (via event.returnValue)
+ */
 electron.ipcMain.on("workspace-appmenu-show", (event, workspaceId: string) => {
-    fireAndForget(async () => {
-        const webContents = getWebContentsByWorkspaceId(workspaceId);
-        if (!webContents) {
-            console.error("invalid window for workspace app menu:", workspaceId);
+    try {
+        // Validate workspaceId
+        if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+            console.error("workspace-appmenu-show: invalid workspaceId - must be non-empty string");
+            event.returnValue = false;
             return;
         }
-        const menu = await instantiateAppMenu(workspaceId);
-        menu.popup();
-    });
-    event.returnValue = true;
+
+        fireAndForget(async () => {
+            try {
+                const webContents = getWebContentsByWorkspaceId(workspaceId);
+                if (!webContents) {
+                    console.error("workspace-appmenu-show: invalid window for workspace app menu:", workspaceId);
+                    return;
+                }
+                const menu = await instantiateAppMenu(workspaceId);
+                menu.popup();
+            } catch (err) {
+                console.error("workspace-appmenu-show: error in async handler", err);
+            }
+        });
+        event.returnValue = true;
+    } catch (err) {
+        console.error("workspace-appmenu-show: error", err);
+        event.returnValue = false;
+    }
 });
 
 const dockMenu = electron.Menu.buildFromTemplate([

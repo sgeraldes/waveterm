@@ -8,6 +8,12 @@ const AuthKeyHeader = "X-AuthKey";
 export const WaveAuthKeyEnv = "WAVETERM_AUTH_KEY";
 export const AuthKey = crypto.randomUUID();
 
+/**
+ * Returns the authentication key for internal IPC communication.
+ * This key is used to authenticate requests between the renderer and backend.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - UUID authentication key
+ */
 ipcMain.on("get-auth-key", (event) => {
     event.returnValue = AuthKey;
 });

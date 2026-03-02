@@ -10,17 +10,31 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
+	"github.com/wavetermdev/waveterm/pkg/util/retryutil"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 )
 
 type AnthropicBackend struct{}
 
 var _ AIBackend = AnthropicBackend{}
+
+// anthropicHTTPError captures HTTP error details for retry logic
+type anthropicHTTPError struct {
+	StatusCode int
+	Status     string
+	Body       string
+}
+
+func (e *anthropicHTTPError) Error() string {
+	return fmt.Sprintf("Anthropic API HTTP error: %s - %s", e.Status, e.Body)
+}
 
 // Claude API request types
 type anthropicMessage struct {
@@ -205,18 +219,58 @@ func (AnthropicBackend) StreamCompletion(ctx context.Context, request wshrpc.Wav
 			client.Transport = transport
 		}
 
-		resp, err := client.Do(req)
+		// Create retry options for AI API calls
+		retryOpts := retryutil.DefaultRetryOptions()
+		retryOpts.ShouldRetry = func(err error) bool {
+			// For HTTP responses, check status code
+			if httpErr, ok := err.(*anthropicHTTPError); ok {
+				return retryutil.IsRetryableHTTPStatus(httpErr.StatusCode)
+			}
+			return retryutil.DefaultShouldRetry(err)
+		}
+		retryOpts.OnRetry = func(attempt int, err error, delay time.Duration) {
+			log.Printf("[Anthropic] Retrying API call (attempt %d/%d) after error: %v (waiting %.1fs)",
+				attempt, retryOpts.MaxRetries, err, delay.Seconds())
+		}
+
+		// Attempt HTTP request with retry
+		var resp *http.Response
+		resp, err = retryutil.RetryWithBackoffValue(ctx, func() (*http.Response, error) {
+			// Create a new request for each retry (body may have been consumed)
+			retryReq, err := http.NewRequestWithContext(ctx, "POST", endpoint, strings.NewReader(string(reqBody)))
+			if err != nil {
+				return nil, &retryutil.NonRetryableError{Err: err}
+			}
+			retryReq.Header = req.Header.Clone()
+
+			resp, err := client.Do(retryReq)
+			if err != nil {
+				return nil, err
+			}
+
+			// Check for non-OK status codes
+			if resp.StatusCode != http.StatusOK {
+				bodyBytes, _ := io.ReadAll(resp.Body)
+				resp.Body.Close()
+				return nil, &anthropicHTTPError{
+					StatusCode: resp.StatusCode,
+					Status:     resp.Status,
+					Body:       string(bodyBytes),
+				}
+			}
+
+			return resp, nil
+		}, retryOpts)
+
 		if err != nil {
-			rtn <- makeAIError(fmt.Errorf("failed to send anthropic request: %v", err))
+			if httpErr, ok := err.(*anthropicHTTPError); ok {
+				rtn <- makeAIError(fmt.Errorf("Anthropic API error: %s - %s", httpErr.Status, httpErr.Body))
+			} else {
+				rtn <- makeAIError(fmt.Errorf("failed to send anthropic request: %v", err))
+			}
 			return
 		}
 		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			bodyBytes, _ := io.ReadAll(resp.Body)
-			rtn <- makeAIError(fmt.Errorf("Anthropic API error: %s - %s", resp.Status, string(bodyBytes)))
-			return
-		}
 
 		reader := bufio.NewReader(resp.Body)
 		for {

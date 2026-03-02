@@ -21,6 +21,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/waveobj"
 	"github.com/wavetermdev/waveterm/pkg/wps"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshclient"
+	"github.com/wavetermdev/waveterm/pkg/wslutil"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
 
@@ -229,6 +230,22 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 	status := controller.GetRuntimeStatus()
 	if status.ShellProcStatus == Status_Init {
 		if controllerName == BlockController_Shell || controllerName == BlockController_Cmd {
+			// Validate WSL distributions exist
+			shellProfile := blockData.Meta.GetString(waveobj.MetaKey_ShellProfile, "")
+			if wslDistro, isWsl := getWslDistroFromProfile(shellProfile); isWsl {
+				if wslDistro == "" {
+					return fmt.Errorf("WSL profile %q has IsWsl=true but no distro name configured", shellProfile)
+				}
+				exists, err := wslutil.DistroExists(ctx, wslDistro)
+				if err != nil {
+					return fmt.Errorf("cannot validate WSL distribution: %w", err)
+				}
+				if !exists {
+					return fmt.Errorf("WSL distribution %q not found - it may have been uninstalled", wslDistro)
+				}
+			}
+
+			// Existing connection validation
 			if !conncontroller.IsLocalConnName(connName) {
 				err = conncontroller.EnsureConnection(ctx, connName)
 				if err != nil {
@@ -239,6 +256,8 @@ func ResyncController(ctx context.Context, tabId string, blockId string, rtOpts 
 
 		err = controller.Start(ctx, blockData.Meta, rtOpts, force)
 		if err != nil {
+			// BC-005: Remove failed controller from registry
+			deleteController(blockId)
 			return fmt.Errorf("error starting controller: %w", err)
 		}
 	}

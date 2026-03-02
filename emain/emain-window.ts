@@ -704,46 +704,153 @@ export async function createBrowserWindow(
     return bwin;
 }
 
+/**
+ * Sets the active tab in the window that sent the request.
+ * @param event - IPC event object with sender information
+ * @param tabId - The ID of the tab to activate
+ * @returns void
+ */
 ipcMain.on("set-active-tab", async (event, tabId) => {
-    const ww = getWaveWindowByWebContentsId(event.sender.id);
-    console.log("set-active-tab", tabId, ww?.waveWindowId);
-    await ww?.setActiveTab(tabId, true);
-});
+    try {
+        // Validate tabId
+        if (typeof tabId !== "string" || !tabId.trim()) {
+            console.error("set-active-tab: invalid tabId - must be non-empty string");
+            return;
+        }
 
-ipcMain.on("create-tab", async (event, opts) => {
-    const senderWc = event.sender;
-    const ww = getWaveWindowByWebContentsId(senderWc.id);
-    if (ww != null) {
-        await ww.queueCreateTab();
-    }
-    event.returnValue = true;
-    return null;
-});
-
-ipcMain.on("set-waveai-open", (event, isOpen: boolean) => {
-    const tabView = getWaveTabViewByWebContentsId(event.sender.id);
-    if (tabView) {
-        tabView.isWaveAIOpen = isOpen;
-    }
-});
-
-ipcMain.on("close-tab", async (event, workspaceId, tabId) => {
-    const ww = getWaveWindowByWorkspaceId(workspaceId);
-    if (ww == null) {
-        console.log(`close-tab: no window found for workspace ws=${workspaceId} tab=${tabId}`);
-        return;
-    }
-    await ww.queueCloseTab(tabId);
-    event.returnValue = true;
-    return null;
-});
-
-ipcMain.on("switch-workspace", (event, workspaceId) => {
-    fireAndForget(async () => {
         const ww = getWaveWindowByWebContentsId(event.sender.id);
-        console.log("switch-workspace", workspaceId, ww?.waveWindowId);
-        await ww?.switchWorkspace(workspaceId);
-    });
+        if (!ww) {
+            console.error("set-active-tab: no window found for webContentsId", event.sender.id);
+            return;
+        }
+        console.log("set-active-tab", tabId, ww.waveWindowId);
+        await ww.setActiveTab(tabId, true);
+    } catch (err) {
+        console.error("set-active-tab: error", err);
+    }
+});
+
+/**
+ * Creates a new tab in the window that sent the request.
+ * @param event - IPC event object with sender information (synchronous, uses event.returnValue)
+ * @param opts - Tab creation options (currently unused)
+ * @returns boolean - true if tab was created successfully, false on error
+ */
+ipcMain.on("create-tab", async (event, opts) => {
+    try {
+        const senderWc = event.sender;
+        if (!senderWc || senderWc.isDestroyed()) {
+            console.error("create-tab: sender is destroyed or invalid");
+            event.returnValue = false;
+            return;
+        }
+        const ww = getWaveWindowByWebContentsId(senderWc.id);
+        if (!ww) {
+            console.error("create-tab: no window found for webContentsId", senderWc.id);
+            event.returnValue = false;
+            return;
+        }
+        await ww.queueCreateTab();
+        event.returnValue = true;
+    } catch (err) {
+        console.error("create-tab: error", err);
+        event.returnValue = false;
+    }
+});
+
+/**
+ * Updates the Wave AI panel open state for the current tab view.
+ * Used to track whether the AI panel is visible for layout calculations.
+ * @param event - IPC event object with sender information
+ * @param isOpen - Whether the AI panel is open
+ * @returns void
+ */
+ipcMain.on("set-waveai-open", (event, isOpen: boolean) => {
+    try {
+        // Validate isOpen parameter
+        if (typeof isOpen !== "boolean") {
+            console.error("set-waveai-open: isOpen must be a boolean");
+            return;
+        }
+
+        const tabView = getWaveTabViewByWebContentsId(event.sender.id);
+        if (!tabView) {
+            console.error("set-waveai-open: no tabView found for webContentsId", event.sender.id);
+            return;
+        }
+        tabView.isWaveAIOpen = isOpen;
+    } catch (err) {
+        console.error("set-waveai-open: error", err);
+    }
+});
+
+/**
+ * Closes a tab in the specified workspace.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @param workspaceId - The workspace ID containing the tab
+ * @param tabId - The ID of the tab to close
+ * @returns boolean - true if tab was closed successfully, false on error
+ */
+ipcMain.on("close-tab", async (event, workspaceId, tabId) => {
+    try {
+        // Validate parameters
+        if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+            console.error("close-tab: invalid workspaceId - must be non-empty string");
+            event.returnValue = false;
+            return;
+        }
+        if (typeof tabId !== "string" || !tabId.trim()) {
+            console.error("close-tab: invalid tabId - must be non-empty string");
+            event.returnValue = false;
+            return;
+        }
+
+        const ww = getWaveWindowByWorkspaceId(workspaceId);
+        if (!ww) {
+            console.error(`close-tab: no window found for workspace ws=${workspaceId} tab=${tabId}`);
+            event.returnValue = false;
+            return;
+        }
+        await ww.queueCloseTab(tabId);
+        event.returnValue = true;
+    } catch (err) {
+        console.error("close-tab: error", err);
+        event.returnValue = false;
+    }
+});
+
+/**
+ * Switches the current window to a different workspace.
+ * If the workspace is already open in another window, focuses that window.
+ * If the current workspace is unsaved and has content, opens workspace in a new window.
+ * @param event - IPC event object with sender information
+ * @param workspaceId - The ID of the workspace to switch to
+ * @returns void - Fire-and-forget operation
+ */
+ipcMain.on("switch-workspace", (event, workspaceId) => {
+    try {
+        // Validate workspaceId
+        if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+            console.error("switch-workspace: invalid workspaceId - must be non-empty string");
+            return;
+        }
+
+        fireAndForget(async () => {
+            try {
+                const ww = getWaveWindowByWebContentsId(event.sender.id);
+                if (!ww) {
+                    console.error("switch-workspace: no window found for webContentsId", event.sender.id);
+                    return;
+                }
+                console.log("switch-workspace", workspaceId, ww.waveWindowId);
+                await ww.switchWorkspace(workspaceId);
+            } catch (err) {
+                console.error("switch-workspace: error in async handler", err);
+            }
+        });
+    } catch (err) {
+        console.error("switch-workspace: error", err);
+    }
 });
 
 export async function createWorkspace(window: WaveBrowserWindow) {
@@ -757,45 +864,80 @@ export async function createWorkspace(window: WaveBrowserWindow) {
     }
 }
 
+/**
+ * Creates a new workspace.
+ * If the current window has an unsaved workspace, opens the new workspace in a new window.
+ * Otherwise, switches the current window to the new workspace.
+ * @param event - IPC event object with sender information
+ * @returns void - Fire-and-forget operation
+ */
 ipcMain.on("create-workspace", (event) => {
-    fireAndForget(async () => {
-        const ww = getWaveWindowByWebContentsId(event.sender.id);
-        console.log("create-workspace", ww?.waveWindowId);
-        await createWorkspace(ww);
-    });
+    try {
+        fireAndForget(async () => {
+            try {
+                const ww = getWaveWindowByWebContentsId(event.sender.id);
+                console.log("create-workspace", ww?.waveWindowId ?? "(no window)");
+                await createWorkspace(ww);
+            } catch (err) {
+                console.error("create-workspace: error in async handler", err);
+            }
+        });
+    } catch (err) {
+        console.error("create-workspace: error", err);
+    }
 });
 
+/**
+ * Deletes a workspace after confirmation dialog.
+ * If the workspace is open in the current window, switches to another workspace or closes the window.
+ * @param event - IPC event object with sender information
+ * @param workspaceId - The ID of the workspace to delete
+ * @returns void - Fire-and-forget operation
+ */
 ipcMain.on("delete-workspace", (event, workspaceId) => {
-    fireAndForget(async () => {
-        const ww = getWaveWindowByWebContentsId(event.sender.id);
-        console.log("delete-workspace", workspaceId, ww?.waveWindowId);
-
-        const workspaceList = await WorkspaceService.ListWorkspaces();
-
-        const workspaceHasWindow = !!workspaceList.find((wse) => wse.workspaceid === workspaceId)?.windowid;
-
-        const choice = dialog.showMessageBoxSync(this, {
-            type: "question",
-            buttons: ["Cancel", "Delete Workspace"],
-            title: "Confirm",
-            message: `Deleting workspace will also delete its contents.\n\nContinue?`,
-        });
-        if (choice === 0) {
-            console.log("user cancelled workspace delete", workspaceId, ww?.waveWindowId);
+    try {
+        // Validate workspaceId
+        if (typeof workspaceId !== "string" || !workspaceId.trim()) {
+            console.error("delete-workspace: invalid workspaceId - must be non-empty string");
             return;
         }
 
-        const newWorkspaceId = await WorkspaceService.DeleteWorkspace(workspaceId);
-        console.log("delete-workspace done", workspaceId, ww?.waveWindowId);
-        if (ww?.workspaceId == workspaceId) {
-            if (newWorkspaceId) {
-                await ww.switchWorkspace(newWorkspaceId);
-            } else {
-                console.log("delete-workspace closing window", workspaceId, ww?.waveWindowId);
-                ww.destroy();
+        fireAndForget(async () => {
+            try {
+                const ww = getWaveWindowByWebContentsId(event.sender.id);
+                console.log("delete-workspace", workspaceId, ww?.waveWindowId ?? "(no window)");
+
+                const workspaceList = await WorkspaceService.ListWorkspaces();
+                const workspaceHasWindow = !!workspaceList.find((wse) => wse.workspaceid === workspaceId)?.windowid;
+
+                const choice = dialog.showMessageBoxSync(null, {
+                    type: "question",
+                    buttons: ["Cancel", "Delete Workspace"],
+                    title: "Confirm",
+                    message: `Deleting workspace will also delete its contents.\n\nContinue?`,
+                });
+                if (choice === 0) {
+                    console.log("delete-workspace: user cancelled", workspaceId, ww?.waveWindowId);
+                    return;
+                }
+
+                const newWorkspaceId = await WorkspaceService.DeleteWorkspace(workspaceId);
+                console.log("delete-workspace: done", workspaceId, ww?.waveWindowId);
+                if (ww?.workspaceId == workspaceId) {
+                    if (newWorkspaceId) {
+                        await ww.switchWorkspace(newWorkspaceId);
+                    } else {
+                        console.log("delete-workspace: closing window", workspaceId, ww?.waveWindowId);
+                        ww.destroy();
+                    }
+                }
+            } catch (err) {
+                console.error("delete-workspace: error in async handler", err);
             }
-        }
-    });
+        });
+    } catch (err) {
+        console.error("delete-workspace: error", err);
+    }
 });
 
 export async function createNewWaveWindow() {

@@ -85,7 +85,7 @@ func MakeSSEHandlerCh(w http.ResponseWriter, ctx context.Context) *SSEHandlerCh 
 		w:       w,
 		rc:      http.NewResponseController(w),
 		ctx:     ctx,
-		writeCh: make(chan SSEMessage, 10), // Buffered to prevent blocking
+		writeCh: make(chan SSEMessage, 100), // Buffered to handle fast streaming without backpressure
 	}
 }
 

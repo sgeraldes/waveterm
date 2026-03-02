@@ -110,7 +110,23 @@ function parseMarkdownIntoBlocks(markdown: string): Block[] {
 }
 
 function joinBlocksIntoMarkdown(blocks: Block[]): string {
-    return blocks.map((block) => block.content).join("\n\n");
+    const result: string[] = [];
+    for (let i = 0; i < blocks.length; i++) {
+        const block = blocks[i];
+        const prevBlock = i > 0 ? blocks[i - 1] : null;
+
+        // Use single newline between consecutive list items to preserve list structure
+        // Use double newline between other block types
+        if (i > 0) {
+            if (block.type === "list-item" && prevBlock?.type === "list-item") {
+                result.push("\n");
+            } else {
+                result.push("\n\n");
+            }
+        }
+        result.push(block.content);
+    }
+    return result.join("");
 }
 
 const EditableBlock = React.memo(
@@ -157,7 +173,9 @@ const EditableBlock = React.memo(
 
         const handleBlur = useCallback(() => {
             if (editableRef.current) {
-                const newContent = editableRef.current.textContent || "";
+                // Use innerText instead of textContent to better preserve whitespace
+                // Note: For list items, we need to preserve the original markdown prefix
+                const newContent = editableRef.current.innerText || "";
                 onFinishEdit(newContent);
             }
         }, [onFinishEdit]);
@@ -166,7 +184,7 @@ const EditableBlock = React.memo(
             (e: React.KeyboardEvent<HTMLDivElement>) => {
                 if (e.key === "Escape") {
                     e.preventDefault();
-                    const newContent = editableRef.current?.textContent || "";
+                    const newContent = editableRef.current?.innerText || "";
                     onFinishEdit(newContent);
                     return;
                 }
@@ -179,7 +197,7 @@ const EditableBlock = React.memo(
                         // If cursor is at the beginning of the block, navigate up
                         if (range.startOffset === 0 && range.startContainer === editableRef.current?.firstChild) {
                             e.preventDefault();
-                            const newContent = editableRef.current?.textContent || "";
+                            const newContent = editableRef.current?.innerText || "";
                             onFinishEdit(newContent);
                             onNavigateUp();
                         }
@@ -196,7 +214,7 @@ const EditableBlock = React.memo(
                             (range.endContainer === lastNode || range.endContainer === editableRef.current)
                         ) {
                             e.preventDefault();
-                            const newContent = editableRef.current?.textContent || "";
+                            const newContent = editableRef.current?.innerText || "";
                             onFinishEdit(newContent);
                             onNavigateDown();
                         }

@@ -180,28 +180,75 @@ function getWaveSrvCwd(): string {
     return getWaveDataDir();
 }
 
+/**
+ * Returns whether the app is running in development mode.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns boolean - true if WAVETERM_DEV=1, false otherwise
+ */
 ipcMain.on("get-is-dev", (event) => {
     event.returnValue = isDev;
 });
+
+/**
+ * Returns the current platform name.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns NodeJS.Platform - "darwin", "win32", or "linux"
+ */
 ipcMain.on("get-platform", (event) => {
     event.returnValue = unamePlatform;
 });
+
+/**
+ * Returns the current user's username.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Username from os.userInfo()
+ */
 ipcMain.on("get-user-name", (event) => {
     const userInfo = os.userInfo();
     event.returnValue = userInfo.username;
 });
+
+/**
+ * Returns the system hostname.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Hostname from os.hostname()
+ */
 ipcMain.on("get-host-name", (event) => {
     event.returnValue = os.hostname();
 });
+
+/**
+ * Returns the path to the webview preload script.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Absolute path to preload-webview.cjs
+ */
 ipcMain.on("get-webview-preload", (event) => {
     event.returnValue = path.join(getElectronAppBasePath(), "preload", "preload-webview.cjs");
 });
+
+/**
+ * Returns the Wave Terminal data directory path.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Absolute path to data directory (~/.waveterm or ~/.waveterm-dev)
+ */
 ipcMain.on("get-data-dir", (event) => {
     event.returnValue = getWaveDataDir();
 });
+
+/**
+ * Returns the Wave Terminal config directory path.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Absolute path to config directory (~/.waveterm or ~/.waveterm-dev)
+ */
 ipcMain.on("get-config-dir", (event) => {
     event.returnValue = getWaveConfigDir();
 });
+
+/**
+ * Returns the user's home directory path.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Absolute path to home directory
+ */
 ipcMain.on("get-home-dir", (event) => {
     event.returnValue = app.getPath("home");
 });

@@ -614,6 +614,7 @@ export const WidgetsContent = memo(({ model }: WidgetsContentProps) => {
 
                 model.markAsEdited();
             } catch (err) {
+                console.error("Failed to save widget configuration:", err);
                 setError(`Failed to save: ${err.message || String(err)}`);
             } finally {
                 setIsSaving(false);

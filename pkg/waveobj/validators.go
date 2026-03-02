@@ -561,6 +561,100 @@ func ValidateScript(key string, value interface{}) error {
 	return ValidateString(key, value, MaxScriptLength)
 }
 
+func ValidateConnectionName(key string, value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	s, ok := value.(string)
+	if !ok {
+		return &ValidationError{
+			Key:     key,
+			Value:   value,
+			Message: fmt.Sprintf("must be a string, got %T", value),
+		}
+	}
+
+	if s == "" {
+		return nil
+	}
+
+	if len(s) > MaxStringLength {
+		return &ValidationError{
+			Key:     key,
+			Value:   truncateForError(s, 50),
+			Message: fmt.Sprintf("exceeds maximum length of %d characters", MaxStringLength),
+		}
+	}
+
+	if strings.Contains(s, "\x00") {
+		return &ValidationError{
+			Key:     key,
+			Value:   "[contains null byte]",
+			Message: "contains null byte",
+		}
+	}
+
+	// Reject potentially malicious control characters
+	for _, r := range s {
+		if r < 32 && r != '\t' && r != '\n' && r != '\r' {
+			return &ValidationError{
+				Key:     key,
+				Value:   s,
+				Message: "contains invalid control characters",
+			}
+		}
+	}
+
+	return nil
+}
+
+// ValidateShellProfile checks if a shell profile ID references a valid profile in settings.
+// This validator requires access to the config watcher, so it's implemented as a closure.
+func ValidateShellProfileWithConfig(configGetter func() interface{}) ValidationFunc {
+	return func(key string, value interface{}) error {
+		if value == nil {
+			return nil
+		}
+
+		profileId, ok := value.(string)
+		if !ok {
+			return &ValidationError{
+				Key:     key,
+				Value:   value,
+				Message: fmt.Sprintf("must be a string, got %T", value),
+			}
+		}
+
+		if profileId == "" {
+			return nil
+		}
+
+		// Basic string validation
+		if len(profileId) > MaxStringLength {
+			return &ValidationError{
+				Key:     key,
+				Value:   truncateForError(profileId, 50),
+				Message: fmt.Sprintf("exceeds maximum length of %d characters", MaxStringLength),
+			}
+		}
+
+		// Get the config - the caller should provide a way to access the full config
+		// For now, we'll just validate format and leave existence check to runtime
+		// since validators don't currently have config access
+		if strings.Contains(profileId, "\x00") {
+			return &ValidationError{
+				Key:     key,
+				Value:   "[contains null byte]",
+				Message: "contains null byte",
+			}
+		}
+
+		return nil
+	}
+}
+
+
 func truncateForError(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
@@ -665,9 +759,8 @@ var blockValidators = map[string]ValidationFunc{
 	MetaKey_Controller: func(k string, v interface{}) error {
 		return ValidateString(k, v, 64)
 	},
-	MetaKey_Connection: func(k string, v interface{}) error {
-		return ValidateString(k, v, MaxStringLength)
-	},
+	MetaKey_Connection:  ValidateConnectionName,
+	MetaKey_ShellProfile: ValidateShellProfileWithConfig(nil),
 	MetaKey_FrameTitle: func(k string, v interface{}) error {
 		return ValidateString(k, v, MaxStringLength)
 	},

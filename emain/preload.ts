@@ -71,6 +71,12 @@ contextBridge.exposeInMainWorld("api", {
         filters?: Array<{ name: string; extensions: string[] }>;
     }) => ipcRenderer.invoke("show-open-dialog", options),
     setNativeThemeSource: (theme: "light" | "dark" | "system") => ipcRenderer.send("set-native-theme-source", theme),
+    handleWebViewNavigation: (
+        blockId: string,
+        url: string,
+        eventType: "did-navigate" | "did-navigate-in-page" | "will-navigate",
+        isMainFrame?: boolean
+    ) => ipcRenderer.send("webview-navigation", { blockId, url, eventType, isMainFrame }),
 });
 
 // Custom event for "new-window"

@@ -59,6 +59,8 @@ const Tab = memo(
             const [tabData] = useWaveObjectValue<Tab>(makeORef("tab", id));
             const [originalName, setOriginalName] = useState("");
             const [isEditable, setIsEditable] = useState(false);
+            const [error, setError] = useState<string>("");
+            const [isUpdatingMetadata, setIsUpdatingMetadata] = useState(false);
             const indicator = useAtomValue(getTabIndicatorAtom(id));
 
             const editableRef = useRef<HTMLDivElement>(null);
@@ -194,15 +196,25 @@ const Tab = memo(
             const handleSetBaseDir = useCallback(() => {
                 const currentDir = tabData?.meta?.["tab:basedir"] || "";
                 fireAndForget(async () => {
-                    const newDir = await getApi().showOpenDialog({
-                        title: "Set Tab Base Directory",
-                        defaultPath: currentDir || "~",
-                        properties: ["openDirectory"],
-                    });
-                    if (newDir && newDir.length > 0) {
-                        await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                            "tab:basedir": newDir[0],
+                    try {
+                        const newDir = await getApi().showOpenDialog({
+                            title: "Set Tab Base Directory",
+                            defaultPath: currentDir || "~",
+                            properties: ["openDirectory"],
                         });
+                        if (newDir && newDir.length > 0) {
+                            setIsUpdatingMetadata(true);
+                            await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
+                                "tab:basedir": newDir[0],
+                            });
+                            setError("");
+                        }
+                    } catch (e) {
+                        const msg = e instanceof Error ? e.message : String(e);
+                        setError(`Failed to set base directory: ${msg}`);
+                        console.error("set base directory error:", e);
+                    } finally {
+                        setIsUpdatingMetadata(false);
                     }
                 });
             }, [id, tabData]);
@@ -219,9 +231,19 @@ const Tab = memo(
              */
             const handleClearBaseDir = useCallback(() => {
                 fireAndForget(async () => {
-                    await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                        "tab:basedir": null,
-                    });
+                    setIsUpdatingMetadata(true);
+                    try {
+                        await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
+                            "tab:basedir": null,
+                        });
+                        setError("");
+                    } catch (e) {
+                        const msg = e instanceof Error ? e.message : String(e);
+                        setError(`Failed to clear base directory: ${msg}`);
+                        console.error("clear base directory error:", e);
+                    } finally {
+                        setIsUpdatingMetadata(false);
+                    }
                 });
             }, [id]);
 
@@ -242,9 +264,19 @@ const Tab = memo(
             const handleToggleLock = useCallback(() => {
                 const currentLock = tabData?.meta?.["tab:basedirlock"] || false;
                 fireAndForget(async () => {
-                    await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                        "tab:basedirlock": !currentLock,
-                    });
+                    setIsUpdatingMetadata(true);
+                    try {
+                        await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
+                            "tab:basedirlock": !currentLock,
+                        });
+                        setError("");
+                    } catch (e) {
+                        const msg = e instanceof Error ? e.message : String(e);
+                        setError(`Failed to toggle lock: ${msg}`);
+                        console.error("toggle lock error:", e);
+                    } finally {
+                        setIsUpdatingMetadata(false);
+                    }
                 });
             }, [id, tabData]);
 
@@ -256,9 +288,19 @@ const Tab = memo(
             const handleSetTabColor = useCallback(
                 (color: string | null) => {
                     fireAndForget(async () => {
-                        await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
-                            "tab:color": color,
-                        });
+                        setIsUpdatingMetadata(true);
+                        try {
+                            await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
+                                "tab:color": color,
+                            });
+                            setError("");
+                        } catch (e) {
+                            const msg = e instanceof Error ? e.message : String(e);
+                            setError(`Failed to set tab color: ${msg}`);
+                            console.error("set tab color error:", e);
+                        } finally {
+                            setIsUpdatingMetadata(false);
+                        }
                     });
                 },
                 [id]
@@ -416,6 +458,7 @@ const Tab = memo(
                     }}
                     onContextMenu={handleContextMenu}
                     data-tab-id={id}
+                    title={error || undefined}
                 >
                     {/* Top stripe for manual color only (VS Code style) */}
                     {tabColor && <div className="tab-color-stripe" style={{ backgroundColor: tabColor }} />}

@@ -4,6 +4,7 @@ import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { BlockHeaderSuggestionControl } from "@/app/suggestion/suggestion";
 import { globalStore } from "@/store/global";
 import { isBlank, jotaiLoadableValue, makeConnRoute } from "@/util/util";
+import * as WPS from "@/store/wps";
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useEffect } from "react";
 import { useDrop } from "react-dnd";
@@ -75,30 +76,35 @@ const fetchSuggestions = async (
     query: string,
     reqContext: SuggestionRequestContext
 ): Promise<FetchSuggestionsResponse> => {
-    const conn = await globalStore.get(model.connection);
-    let route = makeConnRoute(conn);
-    if (isBlank(conn)) {
-        route = null;
-    }
-    if (reqContext?.dispose) {
-        RpcApi.DisposeSuggestionsCommand(TabRpcClient, reqContext.widgetid, { noresponse: true, route: route });
+    try {
+        const conn = await globalStore.get(model.connection);
+        let route = makeConnRoute(conn);
+        if (isBlank(conn)) {
+            route = null;
+        }
+        if (reqContext?.dispose) {
+            RpcApi.DisposeSuggestionsCommand(TabRpcClient, reqContext.widgetid, { noresponse: true, route: route });
+            return null;
+        }
+        const fileInfo = await globalStore.get(model.statFile);
+        if (fileInfo == null) {
+            return null;
+        }
+        const sdata = {
+            suggestiontype: "file",
+            "file:cwd": fileInfo.path,
+            query: query,
+            widgetid: reqContext.widgetid,
+            reqnum: reqContext.reqnum,
+            "file:connection": conn,
+        };
+        return await RpcApi.FetchSuggestionsCommand(TabRpcClient, sdata, {
+            route: route,
+        });
+    } catch (error) {
+        console.error("Failed to fetch file suggestions:", error);
         return null;
     }
-    const fileInfo = await globalStore.get(model.statFile);
-    if (fileInfo == null) {
-        return null;
-    }
-    const sdata = {
-        suggestiontype: "file",
-        "file:cwd": fileInfo.path,
-        query: query,
-        widgetid: reqContext.widgetid,
-        reqnum: reqContext.reqnum,
-        "file:connection": conn,
-    };
-    return await RpcApi.FetchSuggestionsCommand(TabRpcClient, sdata, {
-        route: route,
-    });
 };
 
 function PreviewView({
@@ -155,6 +161,30 @@ function PreviewView({
         }
         setErrorMsg(null);
     }, [connection, fileInfo]);
+
+    // Start/stop file watching based on view type
+    useEffect(() => {
+        if (currentView === "codeedit" || currentView === "markdown" || currentView === "csv") {
+            model.startFileWatcher();
+        }
+        return () => {
+            model.stopFileWatcher();
+        };
+    }, [currentView, model]);
+
+    // Subscribe to file change events
+    useEffect(() => {
+        const unsubFn = WPS.waveEventSubscribe({
+            eventType: "file:change",
+            scope: model.blockId,
+            handler: (event) => {
+                model.handleFileChangeEvent();
+            },
+        });
+        return () => {
+            unsubFn();
+        };
+    }, [model]);
 
     if (connStatus?.status != "connected") {
         return null;

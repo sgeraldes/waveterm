@@ -34,7 +34,7 @@ import {
 import * as services from "@/store/services";
 import * as keyutil from "@/util/keyutil";
 import { isMacOS, isWindows } from "@/util/platformutil";
-import { boundNumber, fireAndForget, stringToBase64 } from "@/util/util";
+import { boundNumber, fireAndForget, isLocalConnName, stringToBase64 } from "@/util/util";
 import * as jotai from "jotai";
 import * as React from "react";
 import { getBlockingCommand } from "./shellblocking";
@@ -79,6 +79,14 @@ export class TermViewModel implements ViewModel {
     termConfigedDurable: jotai.Atom<null | boolean>;
     searchAtoms?: SearchAtoms;
 
+    // Reconnection state
+    reconnectionState: jotai.PrimitiveAtom<"idle" | "pending" | "attempting" | "failed">;
+    reconnectAttempts: jotai.PrimitiveAtom<number>;
+    reconnectTimer: jotai.PrimitiveAtom<number>;
+    showReconnectPrompt: jotai.PrimitiveAtom<boolean>;
+    reconnectTimeoutId: number | null;
+    lastDisconnectTime: number;
+
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.viewType = "term";
         this.blockId = blockId;
@@ -92,6 +100,12 @@ export class TermViewModel implements ViewModel {
             return blockData?.meta?.["term:mode"] ?? "term";
         });
         this.isRestarting = jotai.atom(false);
+        this.reconnectionState = jotai.atom("idle");
+        this.reconnectAttempts = jotai.atom(0);
+        this.reconnectTimer = jotai.atom(0);
+        this.showReconnectPrompt = jotai.atom(false);
+        this.reconnectTimeoutId = null;
+        this.lastDisconnectTime = 0;
         this.viewIcon = jotai.atom((get): string | IconButtonDecl => {
             const blockData = get(this.blockAtom);
             const fullConfig = get(atoms.fullConfigAtom);
@@ -317,7 +331,9 @@ export class TermViewModel implements ViewModel {
             .then((rts) => {
                 this.updateShellProcStatus(rts);
             })
-            .catch(() => {});
+            .catch((e) => {
+                console.error("Failed to get initial controller status for block", blockId, ":", e);
+            });
         this.shellProcStatusUnsubFn = waveEventSubscribe({
             eventType: "controllerstatus",
             scope: WOS.makeORef("block", blockId),
@@ -436,7 +452,11 @@ export class TermViewModel implements ViewModel {
 
     sendDataToController(data: string) {
         const b64data = stringToBase64(data);
-        RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, inputdata64: b64data });
+        RpcApi.ControllerInputCommand(TabRpcClient, { blockid: this.blockId, inputdata64: b64data }).catch((error) => {
+            console.error("Failed to send data to controller:", error);
+            // Note: This is a non-critical error during terminal input - terminal may be closed or disconnected.
+            // The terminal will show a status overlay if the connection is actually broken.
+        });
     }
 
     triggerRestartAtom() {
@@ -463,8 +483,31 @@ export class TermViewModel implements ViewModel {
         }
         const curStatus = globalStore.get(this.shellProcFullStatus);
         if (curStatus == null || curStatus.version < fullStatus.version) {
-            globalStore.set(this.shellProcFullStatus, fullStatus);
+            // Detect connection drops: transition from "running" to "done" with a connection
+            const wasRunning = curStatus?.shellprocstatus === "running";
+            const nowDone = fullStatus.shellprocstatus === "done";
+            const hasConnection = fullStatus.shellprocconnname && !isLocalConnName(fullStatus.shellprocconnname);
 
+            if (wasRunning && nowDone && hasConnection) {
+                // This might be a connection drop - check if it's not a clean exit
+                const exitCode = fullStatus.shellprocexitcode;
+                // Exit code 0 is usually a clean exit, non-zero might be a drop
+                // However, SSH drops often show as exit code 255 or 130 (interrupted)
+                if (exitCode !== 0) {
+                    console.log(`[reconnect] Detected potential connection drop for ${fullStatus.shellprocconnname}, exit code: ${exitCode}`);
+                    this.handleConnectionDrop(fullStatus.shellprocconnname);
+                }
+            }
+
+            // Detect successful reconnection: transition from "done" back to "running"
+            const wasDone = curStatus?.shellprocstatus === "done";
+            const nowRunning = fullStatus.shellprocstatus === "running";
+            if (wasDone && nowRunning) {
+                console.log(`[reconnect] Successful reconnection detected`);
+                this.handleReconnectSuccess();
+            }
+
+            globalStore.set(this.shellProcFullStatus, fullStatus);
             this.updateTabTerminalStatus();
         }
     }
@@ -531,6 +574,98 @@ export class TermViewModel implements ViewModel {
         this.shellProcStatusUnsubFn?.();
         this.blockJobStatusUnsubFn?.();
         this.termBPMUnsubFn?.();
+        this.cancelReconnectTimer();
+    }
+
+    cancelReconnectTimer() {
+        if (this.reconnectTimeoutId != null) {
+            clearTimeout(this.reconnectTimeoutId);
+            this.reconnectTimeoutId = null;
+        }
+        globalStore.set(this.reconnectionState, "idle");
+        globalStore.set(this.reconnectTimer, 0);
+        globalStore.set(this.showReconnectPrompt, false);
+    }
+
+    handleConnectionDrop(connName: string) {
+        console.log(`[reconnect] Connection dropped for ${connName}`);
+        this.lastDisconnectTime = Date.now();
+        globalStore.set(this.reconnectAttempts, 0);
+        globalStore.set(this.reconnectionState, "pending");
+        globalStore.set(this.showReconnectPrompt, true);
+
+        // Schedule automatic reconnection after 5 seconds
+        this.scheduleReconnect(5000, 0);
+    }
+
+    scheduleReconnect(delayMs: number, attemptNum: number) {
+        this.cancelReconnectTimer();
+
+        const secondsUntilReconnect = Math.ceil(delayMs / 1000);
+        globalStore.set(this.reconnectTimer, secondsUntilReconnect);
+
+        // Update countdown every second
+        const countdownInterval = setInterval(() => {
+            const currentTimer = globalStore.get(this.reconnectTimer);
+            if (currentTimer > 1) {
+                globalStore.set(this.reconnectTimer, currentTimer - 1);
+            } else {
+                clearInterval(countdownInterval);
+            }
+        }, 1000);
+
+        // Schedule the actual reconnect attempt
+        this.reconnectTimeoutId = window.setTimeout(() => {
+            clearInterval(countdownInterval);
+            this.attemptReconnect(attemptNum);
+        }, delayMs);
+    }
+
+    async attemptReconnect(attemptNum: number) {
+        const maxAttempts = 3;
+        if (attemptNum >= maxAttempts) {
+            console.log(`[reconnect] Max reconnection attempts (${maxAttempts}) reached`);
+            globalStore.set(this.reconnectionState, "failed");
+            globalStore.set(this.showReconnectPrompt, true);
+            return;
+        }
+
+        console.log(`[reconnect] Attempting reconnection (attempt ${attemptNum + 1}/${maxAttempts})`);
+        globalStore.set(this.reconnectAttempts, attemptNum + 1);
+        globalStore.set(this.reconnectionState, "attempting");
+
+        try {
+            await this.forceRestartController();
+            // Success will be detected by updateShellProcStatus
+        } catch (error) {
+            console.error(`[reconnect] Reconnection attempt ${attemptNum + 1} failed:`, error);
+
+            // Schedule next attempt with exponential backoff
+            const nextAttempt = attemptNum + 1;
+            if (nextAttempt < maxAttempts) {
+                const backoffDelay = 5000 * Math.pow(2, nextAttempt); // 10s, 20s
+                console.log(`[reconnect] Scheduling retry ${nextAttempt + 1} in ${backoffDelay}ms`);
+                this.scheduleReconnect(backoffDelay, nextAttempt);
+            } else {
+                globalStore.set(this.reconnectionState, "failed");
+                globalStore.set(this.showReconnectPrompt, true);
+            }
+        }
+    }
+
+    handleReconnectSuccess() {
+        console.log(`[reconnect] Reconnection successful`);
+        this.cancelReconnectTimer();
+        globalStore.set(this.reconnectAttempts, 0);
+        globalStore.set(this.reconnectionState, "idle");
+        globalStore.set(this.showReconnectPrompt, false);
+    }
+
+    manualReconnect() {
+        console.log(`[reconnect] Manual reconnection triggered`);
+        this.cancelReconnectTimer();
+        globalStore.set(this.reconnectAttempts, 0);
+        this.attemptReconnect(0);
     }
 
     giveFocus(): boolean {
@@ -698,6 +833,8 @@ export class TermViewModel implements ViewModel {
         RpcApi.SetMetaCommand(TabRpcClient, {
             oref: WOS.makeORef("block", this.blockId),
             meta: { "term:theme": themeName },
+        }).catch((error) => {
+            console.error("Failed to set terminal theme:", error);
         });
     }
 
@@ -775,7 +912,9 @@ export class TermViewModel implements ViewModel {
                     if (url.protocol.startsWith("http")) {
                         selectionURL = url;
                     }
-                } catch (e) {}
+                } catch (e) {
+                    // Expected: selection is not a valid URL, no action needed
+                }
             }
 
             if (selectionURL) {
@@ -918,7 +1057,7 @@ export class TermViewModel implements ViewModel {
                 RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", this.blockId),
                     meta: { "term:transparency": null },
-                });
+                }).catch((error) => console.error("Failed to set transparency:", error));
             },
         });
         transparencySubMenu.push({
@@ -929,7 +1068,7 @@ export class TermViewModel implements ViewModel {
                 RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", this.blockId),
                     meta: { "term:transparency": 0.5 },
-                });
+                }).catch((error) => console.error("Failed to set transparency:", error));
             },
         });
         transparencySubMenu.push({
@@ -940,7 +1079,7 @@ export class TermViewModel implements ViewModel {
                 RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", this.blockId),
                     meta: { "term:transparency": 0 },
-                });
+                }).catch((error) => console.error("Failed to set transparency:", error));
             },
         });
 
@@ -954,7 +1093,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:fontsize": fontSize },
-                        });
+                        }).catch((error) => console.error("Failed to set font size:", error));
                     },
                 };
             }
@@ -967,7 +1106,7 @@ export class TermViewModel implements ViewModel {
                 RpcApi.SetMetaCommand(TabRpcClient, {
                     oref: WOS.makeORef("block", this.blockId),
                     meta: { "term:fontsize": null },
-                });
+                }).catch((error) => console.error("Failed to set font size:", error));
             },
         });
         fullMenu.push({
@@ -996,7 +1135,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:allowbracketedpaste": null },
-                        });
+                        }).catch((error) => console.error("Failed to set bracketed paste mode:", error));
                     },
                 },
                 {
@@ -1007,7 +1146,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:allowbracketedpaste": true },
-                        });
+                        }).catch((error) => console.error("Failed to set bracketed paste mode:", error));
                     },
                 },
                 {
@@ -1018,7 +1157,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:allowbracketedpaste": false },
-                        });
+                        }).catch((error) => console.error("Failed to set bracketed paste mode:", error));
                     },
                 },
             ],
@@ -1039,7 +1178,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "cmd:clearonstart": true },
-                        });
+                        }).catch((error) => console.error("Failed to set clear on start:", error));
                     },
                 },
                 {
@@ -1050,7 +1189,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "cmd:clearonstart": false },
-                        });
+                        }).catch((error) => console.error("Failed to set clear on start:", error));
                     },
                 },
             ],
@@ -1067,7 +1206,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "cmd:runonstart": true },
-                        });
+                        }).catch((error) => console.error("Failed to set run on start:", error));
                     },
                 },
                 {
@@ -1078,7 +1217,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "cmd:runonstart": false },
-                        });
+                        }).catch((error) => console.error("Failed to set run on start:", error));
                     },
                 },
             ],
@@ -1095,7 +1234,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:conndebug": null },
-                        });
+                        }).catch((error) => console.error("Failed to set connection debug:", error));
                     },
                 },
                 {
@@ -1106,7 +1245,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:conndebug": "info" },
-                        });
+                        }).catch((error) => console.error("Failed to set connection debug:", error));
                     },
                 },
                 {
@@ -1117,7 +1256,7 @@ export class TermViewModel implements ViewModel {
                         RpcApi.SetMetaCommand(TabRpcClient, {
                             oref: WOS.makeORef("block", this.blockId),
                             meta: { "term:conndebug": "debug" },
-                        });
+                        }).catch((error) => console.error("Failed to set connection debug:", error));
                     },
                 },
             ],

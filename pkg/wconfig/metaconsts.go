@@ -78,6 +78,8 @@ const (
 	ConfigKey_MarkdownFixedFontSize          = "markdown:fixedfontsize"
 
 	ConfigKey_PreviewShowHiddenFiles         = "preview:showhiddenfiles"
+	ConfigKey_PreviewMaxFileSize             = "preview:maxfilesize"
+	ConfigKey_PreviewMaxCSVSize              = "preview:maxcsvsize"
 
 	ConfigKey_TabPreset                      = "tab:preset"
 

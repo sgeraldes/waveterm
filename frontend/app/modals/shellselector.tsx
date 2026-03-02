@@ -222,6 +222,8 @@ interface ShellSelectorModalProps {
 const ShellSelectorModal = React.memo(
     ({ blockId, blockRef, shellBtnRef, changeShellModalAtom, nodeModel }: ShellSelectorModalProps) => {
         const [filterText, setFilterText] = React.useState("");
+        const [shellError, setShellError] = React.useState<string>("");
+        const [isChangingShell, setIsChangingShell] = React.useState(false);
         const shellModalOpen = jotai.useAtomValue(changeShellModalAtom);
         const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
         const isNodeFocused = jotai.useAtomValue(nodeModel.isFocused);
@@ -259,23 +261,33 @@ const ShellSelectorModal = React.memo(
                     return;
                 }
 
-                const meta: Record<string, any> = {
-                    "shell:profile": shellId || null,
-                    "connection": null, // WSL is a local shell profile, not a remote connection
-                };
+                setIsChangingShell(true);
+                try {
+                    const meta: Record<string, any> = {
+                        "shell:profile": shellId || null,
+                        "connection": null, // WSL is a local shell profile, not a remote connection
+                    };
 
-                await RpcApi.SetMetaCommand(TabRpcClient, {
-                    oref: WOS.makeORef("block", blockId),
-                    meta,
-                });
+                    await RpcApi.SetMetaCommand(TabRpcClient, {
+                        oref: WOS.makeORef("block", blockId),
+                        meta,
+                    });
 
-                // Force restart the terminal to apply the new shell
-                const tabId = globalStore.get(atoms.staticTabId);
-                RpcApi.ControllerResyncCommand(TabRpcClient, {
-                    tabid: tabId,
-                    blockid: blockId,
-                    forcerestart: true,
-                }).catch((e) => console.log("error resyncing controller:", e));
+                    // Force restart the terminal to apply the new shell
+                    const tabId = globalStore.get(atoms.staticTabId);
+                    await RpcApi.ControllerResyncCommand(TabRpcClient, {
+                        tabid: tabId,
+                        blockid: blockId,
+                        forcerestart: true,
+                    });
+                    setShellError("");
+                } catch (e) {
+                    const errorMsg = e instanceof Error ? e.message : String(e);
+                    setShellError(`Failed to change shell: ${errorMsg}`);
+                    console.error("error resyncing controller:", e);
+                } finally {
+                    setIsChangingShell(false);
+                }
             },
             [blockId, currentShell, shellProfiles]
         );
@@ -326,20 +338,9 @@ const ShellSelectorModal = React.memo(
                 });
             }
 
-            // Also check for WSL distros not in profiles
-            const existingWslIds = new Set(Object.keys(wslProfiles));
-            const additionalWslDistros = wslList.filter((distro) => !existingWslIds.has(`wsl:${distro}`));
-            const filteredAdditionalWsl = additionalWslDistros.filter(
-                (distro) => !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
-            );
-            const additionalWslItems = createWslSuggestionItems(
-                filteredAdditionalWsl,
-                effectiveCurrentShell,
-                defaultShell
-            );
-
-            // Combine WSL items
-            const allWslItems = [...wslProfileItems, ...additionalWslItems];
+            // CONN-007: Only show WSL profiles from shell:profiles - don't show unconfigured distros
+            // Users must explicitly add WSL distros to shell:profiles to use them
+            const allWslItems = wslProfileItems;
             if (allWslItems.length > 0) {
                 suggestions.push({
                     headerText: "WSL Distributions",
@@ -357,18 +358,8 @@ const ShellSelectorModal = React.memo(
                 });
             }
 
-            // WSL Distributions group from live query
-            const filteredWsl = wslList.filter(
-                (distro) => !filterText || distro.toLowerCase().includes(filterText.toLowerCase())
-            );
-            const wslItems = createWslSuggestionItems(filteredWsl, effectiveCurrentShell, defaultShell);
-
-            if (wslItems.length > 0) {
-                suggestions.push({
-                    headerText: "WSL Distributions",
-                    items: wslItems,
-                });
-            }
+            // CONN-007: When no profiles configured, don't show WSL distros from live query
+            // Users should configure shell:profiles first (via Settings > Shells)
         }
 
         // Flatten selection list for keyboard navigation
@@ -443,8 +434,9 @@ const ShellSelectorModal = React.memo(
                 onKeyDown={(e) => keyutil.keydownWrapper(handleKeyDown)(e)}
                 onChange={(current: string) => setFilterText(current)}
                 value={filterText}
-                label="Select Shell..."
+                label={isChangingShell ? "Changing shell..." : "Select Shell..."}
                 onClickBackdrop={() => globalStore.set(changeShellModalAtom, false)}
+                error={shellError}
             />
         );
     }

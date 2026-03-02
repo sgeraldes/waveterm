@@ -17,6 +17,7 @@ import { atoms } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
+import { LoadingSpinner } from "@/element/spinner";
 import { cn, makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -79,13 +80,7 @@ function getShellIconClass(profile: ShellProfileType, profileId: string): string
     return "fa-sharp fa-solid fa-terminal";
 }
 
-const LoadingSpinner = memo(({ message }: { message: string }) => (
-    <div className="shells-loading">
-        <i className="fa-sharp fa-solid fa-spinner fa-spin" />
-        <span>{message}</span>
-    </div>
-));
-LoadingSpinner.displayName = "LoadingSpinner";
+// Removed local LoadingSpinner - now using shared component from @/element/spinner
 
 interface EmptyStateProps {
     onDetect: () => void;
@@ -101,7 +96,7 @@ const EmptyState = memo(({ onDetect, onAdd, isDetecting }: EmptyStateProps) => (
         <button className="shells-btn primary" onClick={onDetect} disabled={isDetecting}>
             {isDetecting ? (
                 <>
-                    <i className="fa-sharp fa-solid fa-spinner fa-spin" />
+                    <LoadingSpinner size="small" />
                     <span>Detecting...</span>
                 </>
             ) : (
@@ -168,6 +163,7 @@ interface ShellEditorProps {
     shell: ShellEntry | null;
     isNew: boolean;
     defaultShellId: string;
+    isSaving: boolean;
     onSave: (id: string, profile: ShellProfileType) => void;
     onDelete: () => void;
     onDuplicate: () => void;
@@ -176,7 +172,7 @@ interface ShellEditorProps {
 }
 
 const ShellEditor = memo(
-    ({ shell, isNew, defaultShellId, onSave, onDelete, onDuplicate, onSetDefault, onCancel }: ShellEditorProps) => {
+    ({ shell, isNew, defaultShellId, isSaving, onSave, onDelete, onDuplicate, onSetDefault, onCancel }: ShellEditorProps) => {
         const [id, setId] = useState(shell?.id || "");
         const [displayName, setDisplayName] = useState(shell?.profile["display:name"] || "");
         const [displayIcon, setDisplayIcon] = useState(shell?.profile["display:icon"] || "");
@@ -360,34 +356,56 @@ const ShellEditor = memo(
                 <div className="editor-actions">
                     <div className="actions-left">
                         {!isNew && (
-                            <button className="shells-btn danger" onClick={onDelete}>
-                                <i className="fa-sharp fa-solid fa-trash" />
+                            <button className="shells-btn danger" onClick={onDelete} disabled={isSaving}>
+                                {isSaving ? (
+                                    <LoadingSpinner size="small" />
+                                ) : (
+                                    <i className="fa-sharp fa-solid fa-trash" />
+                                )}
                                 {isAutodetected ? "Remove" : "Delete"}
                             </button>
                         )}
                         {!isNew && (
-                            <button className="shells-btn secondary" onClick={onDuplicate}>
+                            <button className="shells-btn secondary" onClick={onDuplicate} disabled={isSaving}>
                                 <i className="fa-sharp fa-solid fa-clone" />
                                 Duplicate
                             </button>
                         )}
                         {!isNew && !isDefault && (
-                            <button className="shells-btn secondary" onClick={onSetDefault}>
-                                <i className="fa-sharp fa-solid fa-star" />
-                                Set as Default
+                            <button className="shells-btn secondary" onClick={onSetDefault} disabled={isSaving}>
+                                {isSaving ? (
+                                    <>
+                                        <LoadingSpinner size="small" />
+                                        Setting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fa-sharp fa-solid fa-star" />
+                                        Set as Default
+                                    </>
+                                )}
                             </button>
                         )}
                     </div>
                     <div className="actions-right">
-                        <button className="shells-btn secondary" onClick={onCancel}>
+                        <button className="shells-btn secondary" onClick={onCancel} disabled={isSaving}>
                             Cancel
                         </button>
                         <button
                             className="shells-btn primary"
                             onClick={handleSave}
-                            disabled={isNew && (idError || !id)}
+                            disabled={isSaving || (isNew && (idError || !id))}
                         >
-                            {isNew ? "Add Shell" : "Save Changes"}
+                            {isSaving ? (
+                                <>
+                                    <LoadingSpinner size="small" />
+                                    Saving...
+                                </>
+                            ) : isNew ? (
+                                "Add Shell"
+                            ) : (
+                                "Save Changes"
+                            )}
                         </button>
                     </div>
                 </div>
@@ -435,6 +453,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                 // Success - shells were added
             }
         } catch (err) {
+            console.error("Shell detection failed:", err);
             setError(`Detection failed: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsDetecting(false);
@@ -468,6 +487,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
             setSelectedId(id);
             setIsAddingNew(false);
         } catch (err) {
+            console.error("Failed to save shell profile:", err);
             setError(`Failed to save: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
@@ -487,6 +507,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
             });
             setSelectedId(null);
         } catch (err) {
+            console.error("Failed to delete shell profile:", err);
             setError(`Failed to delete: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
@@ -520,6 +541,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                 "shell:default": selectedShell.id,
             });
         } catch (err) {
+            console.error("Failed to set default shell:", err);
             setError(`Failed to set default: ${err instanceof Error ? err.message : String(err)}`);
         } finally {
             setIsSaving(false);
@@ -532,7 +554,11 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
     }, []);
 
     if (!fullConfig) {
-        return <LoadingSpinner message="Loading shell profiles..." />;
+        return (
+            <div className="loading-spinner-centered">
+                <LoadingSpinner size="normal" message="Loading shell profiles..." />
+            </div>
+        );
     }
 
     return (
@@ -559,7 +585,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                                 title="Detect available shells"
                             >
                                 {isDetecting ? (
-                                    <i className="fa-sharp fa-solid fa-spinner fa-spin" />
+                                    <LoadingSpinner size="small" />
                                 ) : (
                                     <i className="fa-sharp fa-solid fa-wand-magic-sparkles" />
                                 )}
@@ -612,6 +638,7 @@ export const ShellsContent = memo(({ model }: ShellsContentProps) => {
                         shell={isAddingNew ? null : selectedShell}
                         isNew={isAddingNew}
                         defaultShellId={defaultShellId}
+                        isSaving={isSaving}
                         onSave={handleSave}
                         onDelete={handleDelete}
                         onDuplicate={handleDuplicate}

@@ -95,6 +95,8 @@ type WshRpcInterface interface {
 
 	EventRecvCommand(ctx context.Context, data wps.WaveEvent) error
 
+	FileWatchCommand(ctx context.Context, data CommandFileWatchData) error
+
 	WshRpcRemoteFileInterface
 	RemoteStreamCpuDataCommand(ctx context.Context) chan RespOrErrorUnion[TimeSeriesData]
 	RemoteGetInfoCommand(ctx context.Context) (RemoteInfo, error)
@@ -1073,4 +1075,10 @@ type BlockJobStatusData struct {
 	CmdExitTs     int64  `json:"cmdexitts,omitempty"`
 	CmdExitCode   *int   `json:"cmdexitcode,omitempty"`
 	CmdExitSignal string `json:"cmdexitsignal,omitempty"`
+}
+
+type CommandFileWatchData struct {
+	Path   string `json:"path"`
+	Watch  bool   `json:"watch"`  // true to start watching, false to stop
+	BlockId string `json:"blockid,omitempty"`
 }

@@ -354,6 +354,12 @@ func FileRestoreBackupCommand(w *wshutil.WshRpc, data wshrpc.CommandFileRestoreB
 	return err
 }
 
+// command "filewatch", wshserver.FileWatchCommand
+func FileWatchCommand(w *wshutil.WshRpc, data wshrpc.CommandFileWatchData, opts *wshrpc.RpcOpts) error {
+	_, err := sendRpcRequestCallHelper[any](w, "filewatch", data, opts)
+	return err
+}
+
 // command "filewrite", wshserver.FileWriteCommand
 func FileWriteCommand(w *wshutil.WshRpc, data wshrpc.FileData, opts *wshrpc.RpcOpts) error {
 	_, err := sendRpcRequestCallHelper[any](w, "filewrite", data, opts)

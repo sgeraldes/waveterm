@@ -39,6 +39,7 @@ class ConnectionsModel {
             globalStore.set(this.gitBashPathAtom, path);
         } catch (error) {
             console.error("Failed to find git bash path:", error);
+            // Note: This is a background detection - don't notify user unless they try to use git bash
             globalStore.set(this.gitBashPathAtom, "");
         }
     }

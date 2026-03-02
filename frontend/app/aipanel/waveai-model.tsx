@@ -248,6 +248,9 @@ export class WaveAIModel {
         RpcApi.SetRTInfoCommand(TabRpcClient, {
             oref: this.orefContext,
             data: { "waveai:chatid": newChatId },
+        }).catch((error) => {
+            console.error("Failed to set chat ID:", error);
+            this.setError(`Failed to clear chat: ${error instanceof Error ? error.message : String(error)}`);
         });
 
         this.useChatSetMessages?.([]);
@@ -295,10 +298,15 @@ export class WaveAIModel {
     }
 
     async reloadChatFromBackend(chatIdValue: string): Promise<WaveUIMessage[]> {
-        const chatData = await RpcApi.GetWaveAIChatCommand(TabRpcClient, { chatid: chatIdValue });
-        const messages: UIMessage[] = chatData?.messages ?? [];
-        globalStore.set(this.isChatEmptyAtom, messages.length === 0);
-        return messages as WaveUIMessage[];
+        try {
+            const chatData = await RpcApi.GetWaveAIChatCommand(TabRpcClient, { chatid: chatIdValue });
+            const messages: UIMessage[] = chatData?.messages ?? [];
+            globalStore.set(this.isChatEmptyAtom, messages.length === 0);
+            return messages as WaveUIMessage[];
+        } catch (error) {
+            console.error("Failed to reload chat from backend:", error);
+            throw error; // Re-throw to allow callers to handle
+        }
     }
 
     async stopResponse() {
@@ -354,6 +362,9 @@ export class WaveAIModel {
         RpcApi.SetMetaCommand(TabRpcClient, {
             oref: this.orefContext,
             meta: { "waveai:model": model },
+        }).catch((error) => {
+            console.error("Failed to set model:", error);
+            this.setError(`Failed to set model: ${error instanceof Error ? error.message : String(error)}`);
         });
     }
 
@@ -361,6 +372,9 @@ export class WaveAIModel {
         RpcApi.SetMetaCommand(TabRpcClient, {
             oref: this.orefContext,
             meta: { "waveai:widgetcontext": enabled },
+        }).catch((error) => {
+            console.error("Failed to set widget access:", error);
+            this.setError(`Failed to set widget access: ${error instanceof Error ? error.message : String(error)}`);
         });
     }
 
@@ -382,6 +396,9 @@ export class WaveAIModel {
             RpcApi.SetRTInfoCommand(TabRpcClient, {
                 oref: this.orefContext,
                 data: { "waveai:mode": mode },
+            }).catch((error) => {
+                console.error("Failed to set AI mode:", error);
+                this.setError(`Failed to set AI mode: ${error instanceof Error ? error.message : String(error)}`);
             });
         }
     }
@@ -392,56 +409,75 @@ export class WaveAIModel {
         RpcApi.SetRTInfoCommand(TabRpcClient, {
             oref: this.orefContext,
             data: { "waveai:mode": null },
+        }).catch((error) => {
+            console.error("Failed to reset AI mode to default:", error);
+            this.setError(
+                `Failed to reset AI mode to default: ${error instanceof Error ? error.message : String(error)}`
+            );
         });
     }
 
     async fixModeAfterConfigChange(): Promise<void> {
-        const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
-            oref: this.orefContext,
-        });
-        const mode = rtInfo?.["waveai:mode"];
-        if (mode == null || !this.isValidMode(mode)) {
-            this.setAIModeToDefault();
+        try {
+            const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
+                oref: this.orefContext,
+            });
+            const mode = rtInfo?.["waveai:mode"];
+            if (mode == null || !this.isValidMode(mode)) {
+                this.setAIModeToDefault();
+            }
+        } catch (error) {
+            console.error("Failed to fix mode after config change:", error);
+            this.setError(
+                `Failed to update AI mode configuration: ${error instanceof Error ? error.message : String(error)}`
+            );
         }
     }
 
     async getRTInfo(): Promise<Record<string, any>> {
-        const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
-            oref: this.orefContext,
-        });
-        return rtInfo ?? {};
+        try {
+            const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
+                oref: this.orefContext,
+            });
+            return rtInfo ?? {};
+        } catch (error) {
+            console.error("Failed to get RT info:", error);
+            this.setError(`Failed to get runtime info: ${error instanceof Error ? error.message : String(error)}`);
+            return {};
+        }
     }
 
     async loadInitialChat(): Promise<WaveUIMessage[]> {
-        const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
-            oref: this.orefContext,
-        });
-        let chatIdValue = rtInfo?.["waveai:chatid"];
-        if (chatIdValue == null) {
-            chatIdValue = crypto.randomUUID();
-            RpcApi.SetRTInfoCommand(TabRpcClient, {
-                oref: this.orefContext,
-                data: { "waveai:chatid": chatIdValue },
-            });
-        }
-        globalStore.set(this.chatId, chatIdValue);
-
-        const aiModeValue = rtInfo?.["waveai:mode"];
-        if (aiModeValue == null) {
-            const defaultMode = globalStore.get(this.defaultModeAtom);
-            globalStore.set(this.currentAIMode, defaultMode);
-        } else if (this.isValidMode(aiModeValue)) {
-            globalStore.set(this.currentAIMode, aiModeValue);
-        } else {
-            this.setAIModeToDefault();
-        }
-
         try {
+            const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
+                oref: this.orefContext,
+            });
+            let chatIdValue = rtInfo?.["waveai:chatid"];
+            if (chatIdValue == null) {
+                chatIdValue = crypto.randomUUID();
+                RpcApi.SetRTInfoCommand(TabRpcClient, {
+                    oref: this.orefContext,
+                    data: { "waveai:chatid": chatIdValue },
+                }).catch((error) => {
+                    console.error("Failed to set initial chat ID:", error);
+                });
+            }
+            globalStore.set(this.chatId, chatIdValue);
+
+            const aiModeValue = rtInfo?.["waveai:mode"];
+            if (aiModeValue == null) {
+                const defaultMode = globalStore.get(this.defaultModeAtom);
+                globalStore.set(this.currentAIMode, defaultMode);
+            } else if (this.isValidMode(aiModeValue)) {
+                globalStore.set(this.currentAIMode, aiModeValue);
+            } else {
+                this.setAIModeToDefault();
+            }
+
             return await this.reloadChatFromBackend(chatIdValue);
         } catch (error) {
             console.error("Failed to load chat:", error);
             this.setError("Failed to load chat. Starting new chat...");
-
             this.clearChat();
             return [];
         }
@@ -536,6 +572,8 @@ export class WaveAIModel {
             }
         } catch (error) {
             console.error("Failed to fetch rate limit info:", error);
+            // Don't set error UI message here - this is a background operation
+            // that shouldn't interrupt the user
         }
     }
 
@@ -560,6 +598,9 @@ export class WaveAIModel {
         RpcApi.WaveAIToolApproveCommand(TabRpcClient, {
             toolcallid: toolcallid,
             approval: approval,
+        }).catch((error) => {
+            console.error("Failed to send tool approval:", error);
+            this.setError(`Failed to approve tool use: ${error instanceof Error ? error.message : String(error)}`);
         });
     }
 
@@ -568,28 +609,39 @@ export class WaveAIModel {
 
         if (!chatId || !fileName) {
             console.error("Missing chatId or fileName for opening diff", chatId, fileName);
+            this.setError("Cannot open diff: missing required information");
             return;
         }
 
-        const blockDef: BlockDef = {
-            meta: {
-                view: "aifilediff",
-                file: fileName,
-                "aifilediff:chatid": chatId,
-                "aifilediff:toolcallid": toolcallid,
-            },
-        };
-        await createBlock(blockDef, false, true);
+        try {
+            const blockDef: BlockDef = {
+                meta: {
+                    view: "aifilediff",
+                    file: fileName,
+                    "aifilediff:chatid": chatId,
+                    "aifilediff:toolcallid": toolcallid,
+                },
+            };
+            await createBlock(blockDef, false, true);
+        } catch (error) {
+            console.error("Failed to open diff:", error);
+            this.setError(`Failed to open diff: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     async openWaveAIConfig() {
-        const blockDef: BlockDef = {
-            meta: {
-                view: "waveconfig",
-                file: "waveai.json",
-            },
-        };
-        await createBlock(blockDef, false, true);
+        try {
+            const blockDef: BlockDef = {
+                meta: {
+                    view: "waveconfig",
+                    file: "waveai.json",
+                },
+            };
+            await createBlock(blockDef, false, true);
+        } catch (error) {
+            console.error("Failed to open Wave AI config:", error);
+            this.setError(`Failed to open config: ${error instanceof Error ? error.message : String(error)}`);
+        }
     }
 
     openRestoreBackupModal(toolcallid: string) {

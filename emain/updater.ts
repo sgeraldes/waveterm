@@ -211,12 +211,49 @@ export function getResolvedUpdateChannel(): string {
     return isDev() ? "dev" : (autoUpdater.channel ?? "latest");
 }
 
-ipcMain.on("install-app-update", () => fireAndForget(updater?.promptToInstallUpdate.bind(updater)));
-ipcMain.on("get-app-update-status", (event) => {
-    event.returnValue = updater?.status;
+/**
+ * Prompts the user to install a downloaded app update.
+ * The update must have been previously downloaded by the auto-updater.
+ * @returns void - Fire-and-forget operation
+ */
+ipcMain.on("install-app-update", () => {
+    try {
+        if (updater && updater.promptToInstallUpdate) {
+            fireAndForget(() => updater.promptToInstallUpdate());
+        } else {
+            console.error("install-app-update: updater not initialized");
+        }
+    } catch (err) {
+        console.error("install-app-update: error", err);
+    }
 });
+
+/**
+ * Gets the current app update status.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns AppUpdateStatus - Current status: "up-to-date", "checking", "downloading", "ready", or "installing"
+ */
+ipcMain.on("get-app-update-status", (event) => {
+    try {
+        event.returnValue = updater?.status ?? "up-to-date";
+    } catch (err) {
+        console.error("get-app-update-status: error", err);
+        event.returnValue = "up-to-date";
+    }
+});
+
+/**
+ * Gets the current auto-updater channel.
+ * @param event - IPC event object (synchronous, uses event.returnValue)
+ * @returns string - Update channel: "dev", "beta", or "latest"
+ */
 ipcMain.on("get-updater-channel", (event) => {
-    event.returnValue = getResolvedUpdateChannel();
+    try {
+        event.returnValue = getResolvedUpdateChannel();
+    } catch (err) {
+        console.error("get-updater-channel: error", err);
+        event.returnValue = "latest";
+    }
 });
 
 let autoUpdateLock = false;

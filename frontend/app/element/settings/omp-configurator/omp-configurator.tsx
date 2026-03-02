@@ -10,7 +10,7 @@
 
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { cn } from "@/util/util";
+import { cn, jsonDeepEqual } from "@/util/util";
 import { memo, useCallback, useEffect, useState } from "react";
 
 import type { PreviewBackground } from "../preview-background-toggle";
@@ -54,7 +54,7 @@ interface OmpConfiguratorState {
  */
 function hasConfigChanges(original: OmpConfigData | null, edited: OmpConfigData | null): boolean {
     if (!original || !edited) return false;
-    return JSON.stringify(original) !== JSON.stringify(edited);
+    return !jsonDeepEqual(original, edited);
 }
 
 export const OmpConfigurator = memo(({ previewBackground, onConfigChange }: OmpConfiguratorProps) => {

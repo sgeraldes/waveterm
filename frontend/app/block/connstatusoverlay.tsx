@@ -35,6 +35,30 @@ export const ConnStatusOverlay = React.memo(
         const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
         const [showWshError, setShowWshError] = React.useState(false);
 
+        // Get reconnection state from term model if available
+        const termViewModel = viewModel as any;
+        let reconnectionState: "idle" | "pending" | "attempting" | "failed" = "idle";
+        let reconnectAttempts = 0;
+        let reconnectTimer = 0;
+        let showReconnectPrompt = false;
+
+        if (termViewModel?.reconnectionState) {
+            reconnectionState = (jotai.useAtomValue(
+                termViewModel.reconnectionState as jotai.Atom<"idle" | "pending" | "attempting" | "failed">
+            ) ?? "idle") as "idle" | "pending" | "attempting" | "failed";
+        }
+        if (termViewModel?.reconnectAttempts) {
+            reconnectAttempts =
+                (jotai.useAtomValue(termViewModel.reconnectAttempts as jotai.Atom<number>) ?? 0) as number;
+        }
+        if (termViewModel?.reconnectTimer) {
+            reconnectTimer = (jotai.useAtomValue(termViewModel.reconnectTimer as jotai.Atom<number>) ?? 0) as number;
+        }
+        if (termViewModel?.showReconnectPrompt) {
+            showReconnectPrompt =
+                (jotai.useAtomValue(termViewModel.showReconnectPrompt as jotai.Atom<boolean>) ?? false) as boolean;
+        }
+
         React.useEffect(() => {
             if (width) {
                 const hasError = !util.isBlank(connStatus.error);
@@ -44,13 +68,25 @@ export const ConnStatusOverlay = React.memo(
         }, [width, connStatus, setShowError]);
 
         const handleTryReconnect = React.useCallback(() => {
-            const prtn = RpcApi.ConnConnectCommand(
-                TabRpcClient,
-                { host: connName, logblockid: nodeModel.blockId },
-                { timeout: 60000 }
-            );
-            prtn.catch((e) => console.log("error reconnecting", connName, e));
-        }, [connName, nodeModel.blockId]);
+            // Use the term model's reconnection logic if available
+            if (termViewModel?.manualReconnect) {
+                termViewModel.manualReconnect();
+            } else {
+                // Fallback to direct RPC call
+                const prtn = RpcApi.ConnConnectCommand(
+                    TabRpcClient,
+                    { host: connName, logblockid: nodeModel.blockId },
+                    { timeout: 60000 }
+                );
+                prtn.catch((e) => console.log("error reconnecting", connName, e));
+            }
+        }, [connName, nodeModel.blockId, termViewModel]);
+
+        const handleCancelReconnect = React.useCallback(() => {
+            if (termViewModel?.cancelReconnectTimer) {
+                termViewModel.cancelReconnectTimer();
+            }
+        }, [termViewModel]);
 
         const handleDisableWsh = React.useCallback(async () => {
             const metamaptype: unknown = {
@@ -77,11 +113,24 @@ export const ConnStatusOverlay = React.memo(
 
         let statusText = `Disconnected from "${connName}"`;
         let showReconnect = true;
-        if (connStatus.status == "connecting") {
+        let showCancelReconnect = false;
+
+        if (reconnectionState === "pending" && reconnectTimer > 0) {
+            statusText = `Connection lost. Reconnecting in ${reconnectTimer}s...`;
+            showCancelReconnect = true;
+            showReconnect = false;
+        } else if (reconnectionState === "attempting") {
+            const attemptText = reconnectAttempts > 0 ? ` (attempt ${reconnectAttempts}/3)` : "";
+            statusText = `Reconnecting to "${connName}"${attemptText}...`;
+            showReconnect = false;
+            showCancelReconnect = true;
+        } else if (reconnectionState === "failed") {
+            statusText = `Failed to reconnect to "${connName}" after 3 attempts`;
+            showReconnect = true;
+        } else if (connStatus.status == "connecting") {
             statusText = `Connecting to "${connName}"...`;
             showReconnect = false;
-        }
-        if (connStatus.status == "connected") {
+        } else if (connStatus.status == "connected") {
             showReconnect = false;
         }
         let reconDisplay = null;
@@ -121,7 +170,11 @@ export const ConnStatusOverlay = React.memo(
             [showError, showWshError, connStatus.error, connStatus.wsherror]
         );
 
-        if (!showWshError && (isLayoutMode || connStatus.status == "connected" || connModalOpen)) {
+        if (
+            !showWshError &&
+            !showReconnectPrompt &&
+            (isLayoutMode || connStatus.status == "connected" || connModalOpen)
+        ) {
             return null;
         }
 
@@ -153,6 +206,17 @@ export const ConnStatusOverlay = React.memo(
                         <div className="connstatus-actions">
                             <Button className={reconClassName} onClick={handleTryReconnect}>
                                 {reconDisplay}
+                            </Button>
+                        </div>
+                    ) : null}
+                    {showCancelReconnect ? (
+                        <div className="connstatus-actions">
+                            <Button
+                                className={clsx(reconClassName, "outlined grey")}
+                                onClick={handleCancelReconnect}
+                                title="Cancel automatic reconnection"
+                            >
+                                Cancel
                             </Button>
                         </div>
                     ) : null}

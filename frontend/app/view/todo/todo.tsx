@@ -1,6 +1,7 @@
 import { ContextMenuModel } from "@/app/store/contextmenu";
 import { globalStore } from "@/app/store/global";
 import { CodeEditor } from "@/app/view/codeeditor/codeeditor";
+import { LoadingSpinner } from "@/element/spinner";
 import { makeIconClass } from "@/util/util";
 import clsx from "clsx";
 import { useAtomValue, useSetAtom } from "jotai";
@@ -245,8 +246,7 @@ export function TodoComponent({ blockId, model }: TodoComponentProps) {
     if (isLoading) {
         return (
             <div className="todo-loading">
-                <i className={makeIconClass("spinner", false) + " fa-spin"} />
-                <span>Loading...</span>
+                <LoadingSpinner size="normal" message="Loading..." />
             </div>
         );
     }

@@ -19,6 +19,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
+	"github.com/wavetermdev/waveterm/pkg/wconfig"
 	"github.com/wavetermdev/waveterm/pkg/wsl"
 )
 
@@ -120,6 +121,35 @@ func makeCancellableCommand(ctx context.Context, client *wsl.Distro, cmdTemplate
 
 	cmd := client.WslCommand(cmdContext, cmdStr.String())
 	return &cancellableCmd{cmd, cmdCancel}, nil
+}
+
+// DistroExists checks if a WSL distribution is registered on the system
+func DistroExists(ctx context.Context, distroName string) (bool, error) {
+	distros, err := wsl.RegisteredDistros(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to list WSL distributions: %w", err)
+	}
+	for _, distro := range distros {
+		if distro.Name() == distroName {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// CheckWslShellProfileExists verifies a shell profile references an existing WSL distribution
+func CheckWslShellProfileExists(ctx context.Context, profile *wconfig.ShellProfileType) error {
+	if profile == nil || !profile.IsWsl || profile.WslDistro == "" {
+		return nil
+	}
+	exists, err := DistroExists(ctx, profile.WslDistro)
+	if err != nil {
+		return fmt.Errorf("failed to check WSL distribution %q: %w", profile.WslDistro, err)
+	}
+	if !exists {
+		return fmt.Errorf("WSL distribution %q not found (may have been uninstalled)", profile.WslDistro)
+	}
+	return nil
 }
 
 func CpWshToRemote(ctx context.Context, client *wsl.Distro, clientOs string, clientArch string) error {

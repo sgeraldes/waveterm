@@ -102,8 +102,10 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     }, []);
     const executeSearch = React.useCallback(
         (searchText: string, direction: "next" | "previous") => {
+            // Always clear previous search results before starting a new search
+            model.termRef.current?.searchAddon.clearDecorations();
+
             if (searchText === "") {
-                model.termRef.current?.searchAddon.clearDecorations();
                 return;
             }
             try {
@@ -125,6 +127,8 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     searchProps.onNext = React.useCallback(() => executeSearch(searchVal, "next"), [executeSearch, searchVal]);
     React.useEffect(() => {
         if (!searchIsOpen) {
+            // Clear search decorations when search is closed
+            model.termRef.current?.searchAddon.clearDecorations();
             model.giveFocus();
         }
     }, [searchIsOpen]);
@@ -171,6 +175,7 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
                 allowProposedApi: true,
                 ignoreBracketedPasteMode: !termAllowBPM,
                 macOptionIsMeta: termMacOptionIsMeta,
+                reflowCursorLine: true,
                 cursorStyle: ((): "block" | "underline" | "bar" => {
                     const raw = termSettings?.["term:cursorstyle"] ?? blockData?.meta?.["term:cursorstyle"];
                     if (raw === "block" || raw === "underline" || raw === "bar") return raw;

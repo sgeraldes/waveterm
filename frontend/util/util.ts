@@ -120,7 +120,7 @@ function deepCompareReturnPrev(key: any, newValue: any): any {
         return newValue;
     }
     const previousValue = prevValueCache.get(key);
-    if (previousValue !== undefined && JSON.stringify(newValue) === JSON.stringify(previousValue)) {
+    if (previousValue !== undefined && jsonDeepEqual(newValue, previousValue)) {
         return previousValue;
     }
     prevValueCache.set(key, newValue);
@@ -220,10 +220,12 @@ function makeIconClass(icon: string, fw: boolean, opts?: { spin?: boolean; defau
 /**
  * A wrapper function for running a promise and catching any errors
  * @param f The promise to run
+ * @param onError Optional callback to handle errors (in addition to console logging)
  */
-function fireAndForget(f: () => Promise<any>) {
+function fireAndForget(f: () => Promise<any>, onError?: (e: Error) => void) {
     f()?.catch((e) => {
-        console.log("fireAndForget error", e);
+        console.error("fireAndForget error", e);
+        onError?.(e);
     });
 }
 

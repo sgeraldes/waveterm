@@ -8,13 +8,16 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	openaiapi "github.com/sashabaranov/go-openai"
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
+	"github.com/wavetermdev/waveterm/pkg/util/retryutil"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 )
 
@@ -144,7 +147,19 @@ func (OpenAIBackend) StreamCompletion(ctx context.Context, request wshrpc.WaveAI
 			req.N = request.Opts.MaxChoices
 		}
 
-		apiResp, err := client.CreateChatCompletionStream(ctx, req)
+		// Create retry options for AI API calls
+		retryOpts := retryutil.DefaultRetryOptions()
+		retryOpts.OnRetry = func(attempt int, err error, delay time.Duration) {
+			log.Printf("[OpenAI] Retrying API call (attempt %d/%d) after error: %v (waiting %.1fs)",
+				attempt, retryOpts.MaxRetries, err, delay.Seconds())
+		}
+
+		// Attempt to create stream with retry
+		var apiResp *openaiapi.ChatCompletionStream
+		apiResp, err = retryutil.RetryWithBackoffValue(ctx, func() (*openaiapi.ChatCompletionStream, error) {
+			return client.CreateChatCompletionStream(ctx, req)
+		}, retryOpts)
+
 		if err != nil {
 			rtn <- makeAIError(fmt.Errorf("error calling openai API: %v", err))
 			return

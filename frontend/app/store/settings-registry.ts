@@ -1020,6 +1020,30 @@ const allSettings: SettingMetadata[] = [
         type: "boolean",
         tags: ["hidden", "files", "dotfiles"],
     },
+    {
+        key: "preview:maxfilesize",
+        label: "Max File Size (MB)",
+        description:
+            "Maximum file size in megabytes that can be previewed. Files larger than this will show an error message instead of loading. Set to 0 to disable the limit (not recommended).",
+        category: "Preview",
+        controlType: "number",
+        defaultValue: 10,
+        type: "number",
+        validation: { min: 0, max: 1000 },
+        tags: ["size", "limit", "memory", "performance"],
+    },
+    {
+        key: "preview:maxcsvsize",
+        label: "Max CSV Size (MB)",
+        description:
+            "Maximum CSV file size in megabytes that can be previewed in table view. CSV files are more memory-intensive. Larger CSV files will fall back to text editor view.",
+        category: "Preview",
+        controlType: "number",
+        defaultValue: 1,
+        type: "number",
+        validation: { min: 0, max: 100 },
+        tags: ["csv", "size", "limit", "memory"],
+    },
 
     // ===================
     // MARKDOWN SETTINGS

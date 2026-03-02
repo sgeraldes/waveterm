@@ -27,8 +27,8 @@ const BOOKMARKS: { label: string; path: string }[] = [
     { label: "Root", path: "/" },
 ];
 
-const MaxFileSize = 1024 * 1024 * 10;
-const MaxCSVSize = 1024 * 1024 * 1;
+const DefaultMaxFileSize = 1024 * 1024 * 10;
+const DefaultMaxCSVSize = 1024 * 1024 * 1;
 
 const textApplicationMimetypes = [
     "application/sql",
@@ -164,6 +164,7 @@ export class PreviewModel implements ViewModel {
     refreshCallback: () => void;
     directoryKeyDownHandler: (waveEvent: WaveKeyboardEvent) => boolean;
     codeEditKeyDownHandler: (waveEvent: WaveKeyboardEvent) => boolean;
+    fileWatchEnabled: PrimitiveAtom<boolean>;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.viewType = "preview";
@@ -186,6 +187,7 @@ export class PreviewModel implements ViewModel {
         this.monacoRef = createRef();
         this.connectionError = atom("");
         this.errorMsgAtom = atom(null) as PrimitiveAtom<ErrorMsg | null>;
+        this.fileWatchEnabled = atom(false);
         this.viewIcon = atom((get) => {
             const blockData = get(this.blockAtom);
             if (blockData?.meta?.icon) {
@@ -370,7 +372,11 @@ export class PreviewModel implements ViewModel {
         this.connection = atom<Promise<string>>(async (get) => {
             const connName = get(this.blockAtom)?.meta?.connection;
             try {
-                await RpcApi.ConnEnsureCommand(TabRpcClient, { connname: connName }, { timeout: 60000 });
+                // CONN-003: Use deduplicator to prevent race conditions
+                const { connectionDeduplicator } = await import("@/app/util/connection-dedup");
+                await connectionDeduplicator.ensureConnection(connName, () =>
+                    RpcApi.ConnEnsureCommand(TabRpcClient, { connname: connName }, { timeout: 60000 })
+                );
                 globalStore.set(this.connectionError, "");
             } catch (e) {
                 globalStore.set(this.connectionError, e as string);
@@ -416,6 +422,24 @@ export class PreviewModel implements ViewModel {
             if (fileName == null) {
                 return null;
             }
+
+            // Check file size BEFORE loading to prevent memory spikes
+            const fileInfo = await get(this.statFile);
+            if (fileInfo && !fileInfo.notfound && !fileInfo.isdir) {
+                const maxFileSizeMB = (globalStore.get(getSettingsKeyAtom("preview:maxfilesize")) as number) ?? 10;
+                const maxCSVSizeMB = (globalStore.get(getSettingsKeyAtom("preview:maxcsvsize")) as number) ?? 1;
+                const maxFileSize = (maxFileSizeMB as number) * 1024 * 1024;
+                const maxCSVSize = (maxCSVSizeMB as number) * 1024 * 1024;
+
+                // Don't load files that exceed size limits
+                if (fileInfo.mimetype === "text/csv" && maxCSVSize > 0 && fileInfo.size > maxCSVSize) {
+                    return null; // File too large, return null to prevent loading
+                }
+                if (maxFileSize > 0 && fileInfo.size > maxFileSize && !isStreamingType(fileInfo.mimetype)) {
+                    return null; // File too large, return null to prevent loading
+                }
+            }
+
             try {
                 const file = await RpcApi.FileReadCommand(TabRpcClient, {
                     info: {
@@ -513,21 +537,41 @@ export class PreviewModel implements ViewModel {
             const fileNameStr = fileName ? " " + JSON.stringify(fileName) : "";
             return { errorStr: "File Not Found" + fileNameStr };
         }
-        if (fileInfo.size > MaxFileSize) {
-            return { errorStr: "File Too Large to Preview (10 MB Max)" };
-        }
-        if (mimeType == "text/csv" && fileInfo.size > MaxCSVSize) {
-            return { errorStr: "CSV File Too Large to Preview (1 MB Max)" };
-        }
+
+        // Get configurable size limits from settings (convert MB to bytes)
+        const maxFileSizeMB = (globalStore.get(getSettingsKeyAtom("preview:maxfilesize")) as number) ?? 10;
+        const maxCSVSizeMB = (globalStore.get(getSettingsKeyAtom("preview:maxcsvsize")) as number) ?? 1;
+        const maxFileSize = (maxFileSizeMB as number) * 1024 * 1024;
+        const maxCSVSize = (maxCSVSizeMB as number) * 1024 * 1024;
+
+        // Check size limits BEFORE attempting to load file content
+        // This prevents memory spikes from loading large files
         if (mimeType == "directory") {
             return { specializedView: "directory" };
         }
+
+        // Special handling for CSV files - they have a lower limit due to table rendering overhead
         if (mimeType == "text/csv") {
+            if (maxCSVSize > 0 && fileInfo.size > maxCSVSize) {
+                const sizeMB = (fileInfo.size / (1024 * 1024)).toFixed(2);
+                return {
+                    errorStr: `CSV File Too Large to Preview (${sizeMB} MB / ${maxCSVSizeMB} MB max). Increase limit in Settings → Preview → Max CSV Size, or open in external editor.`,
+                };
+            }
             if (editMode) {
                 return { specializedView: "codeedit" };
             }
             return { specializedView: "csv" };
         }
+
+        // Check general file size limit for non-streaming files
+        if (maxFileSize > 0 && fileInfo.size > maxFileSize) {
+            const sizeMB = (fileInfo.size / (1024 * 1024)).toFixed(2);
+            return {
+                errorStr: `File Too Large to Preview (${sizeMB} MB / ${maxFileSizeMB} MB max). Increase limit in Settings → Preview → Max File Size, or open in external editor.`,
+            };
+        }
+
         if (isMarkdownLike(mimeType)) {
             if (editMode) {
                 return { specializedView: "codeedit" };
@@ -841,5 +885,67 @@ export class PreviewModel implements ViewModel {
 
     async formatRemoteUri(path: string, get: Getter): Promise<string> {
         return formatRemoteUri(path, await get(this.connection));
+    }
+
+    async startFileWatcher() {
+        const fileInfo = await globalStore.get(this.statFile);
+        if (!fileInfo || fileInfo.isdir || fileInfo.notfound) {
+            return;
+        }
+
+        const conn = await globalStore.get(this.connection);
+        if (!isBlank(conn)) {
+            // Don't watch remote files
+            return;
+        }
+
+        try {
+            await RpcApi.FileWatchCommand(TabRpcClient, {
+                path: fileInfo.path,
+                watch: true,
+                blockid: this.blockId,
+            });
+            globalStore.set(this.fileWatchEnabled, true);
+
+            // Subscribe to file change events for this block
+            await RpcApi.EventSubCommand(TabRpcClient, {
+                event: "file:change",
+                scopes: [this.blockId],
+            });
+        } catch (e) {
+            console.error("Failed to start file watcher:", e);
+        }
+    }
+
+    async stopFileWatcher() {
+        const watching = globalStore.get(this.fileWatchEnabled);
+        if (!watching) {
+            return;
+        }
+
+        const fileInfo = await globalStore.get(this.statFile);
+        if (!fileInfo) {
+            return;
+        }
+
+        try {
+            await RpcApi.FileWatchCommand(TabRpcClient, {
+                path: fileInfo.path,
+                watch: false,
+                blockid: this.blockId,
+            });
+            globalStore.set(this.fileWatchEnabled, false);
+
+            // Unsubscribe from file change events
+            await RpcApi.EventUnsubCommand(TabRpcClient, "file:change");
+        } catch (e) {
+            console.error("Failed to stop file watcher:", e);
+        }
+    }
+
+    handleFileChangeEvent() {
+        // Refresh the file content
+        globalStore.set(this.refreshVersion, globalStore.get(this.refreshVersion) + 1);
+        globalStore.set(this.fileContentSaved, null);
     }
 }

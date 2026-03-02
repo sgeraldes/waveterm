@@ -32,6 +32,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/wshrpc"
 	"github.com/wavetermdev/waveterm/pkg/wshrpc/wshclient"
 	"github.com/wavetermdev/waveterm/pkg/wshutil"
+	"github.com/wavetermdev/waveterm/pkg/wslutil"
 	"github.com/wavetermdev/waveterm/pkg/wstore"
 )
 
@@ -100,11 +101,29 @@ func (sc *ShellController) Stop(graceful bool, newStatus string, destroy bool) {
 
 	sc.ShellProc.Close()
 	if graceful {
+		// Create done channel before releasing lock
+		done := make(chan struct{})
 		doneCh := sc.ShellProc.DoneCh
+
+		// Wait in separate goroutine
+		go func() {
+			<-doneCh
+			close(done)
+		}()
+
+		// Wait with timeout, lock still held
 		sc.Lock.Unlock()
-		<-doneCh
+		select {
+		case <-done:
+			// Graceful shutdown completed
+		case <-time.After(5 * time.Second):
+			// Timeout - proceed with forced stop
+		}
 		sc.Lock.Lock()
 	}
+
+	// BC-003: Clean up shellInputCh to prevent sending to stale channel
+	sc.ShellInputCh = nil
 
 	sc.ProcStatus = newStatus
 	sc.sendUpdate_nolock()
@@ -337,6 +356,16 @@ func (bc *ShellController) getConnUnion(logCtx context.Context, remoteName strin
 		if wslDistro == "" {
 			return ConnUnion{}, fmt.Errorf("WSL profile %q has IsWsl=true but no WslDistro configured", shellProfileId)
 		}
+		// CONN-006: Validate WSL distribution still exists before starting shell
+		if runtime.GOOS == "windows" {
+			exists, err := wslutil.DistroExists(logCtx, wslDistro)
+			if err != nil {
+				return ConnUnion{}, fmt.Errorf("failed to check WSL distribution %q: %w", wslDistro, err)
+			}
+			if !exists {
+				return ConnUnion{}, fmt.Errorf("WSL distribution %q not found (may have been uninstalled)", wslDistro)
+			}
+		}
 		rtn.ConnType = ConnType_Wsl
 		rtn.WslDistro = wslDistro
 		rtn.WshEnabled = wshEnabled
@@ -552,6 +581,14 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 	shellInputCh := make(chan *BlockInputUnion, 32)
 	bc.ShellInputCh = shellInputCh
 
+	// Create Once for channel close to prevent double-close panic
+	var closeOnce sync.Once
+	closeShellInputCh := func() {
+		closeOnce.Do(func() {
+			close(shellInputCh)
+		})
+	}
+
 	go func() {
 		defer func() {
 			panichandler.PanicHandler("blockcontroller:shellproc-pty-read-loop", recover())
@@ -570,7 +607,7 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 				HandleAppendBlockFile(bc.BlockId, wavebase.BlockFile_Term, []byte(termMsg))
 			}
 			time.Sleep(100 * time.Millisecond)
-			close(shellInputCh)
+			closeShellInputCh()
 		}()
 		buf := make([]byte, 4096)
 		for {
@@ -630,10 +667,20 @@ func (bc *ShellController) manageRunningShellProcess(shellProc *shellexec.ShellP
 			baseMsg = "command exited"
 		}
 		msg := baseMsg
+		isRemoteConnection := bc.ConnName != "" && !conncontroller.IsLocalConnName(bc.ConnName)
+
 		if exitSignal != "" {
 			msg = fmt.Sprintf("%s (signal %s)", baseMsg, exitSignal)
 		} else if exitCode != 0 {
 			msg = fmt.Sprintf("%s (exit code %d)", baseMsg, exitCode)
+			// Common SSH/connection error exit codes
+			if isRemoteConnection {
+				if exitCode == 255 {
+					msg = fmt.Sprintf("%s - connection error (exit code %d)", baseMsg, exitCode)
+				} else if exitCode == 130 || exitCode == 143 {
+					msg = fmt.Sprintf("%s - interrupted (exit code %d)", baseMsg, exitCode)
+				}
+			}
 		}
 		bc.writeMutedMessageToTerminal("[" + msg + "]")
 		go checkCloseOnExit(bc.BlockId, exitCode)

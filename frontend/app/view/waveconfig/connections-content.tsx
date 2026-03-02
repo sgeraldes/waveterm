@@ -16,6 +16,7 @@ import { atoms, getApi } from "@/app/store/global";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
+import { LoadingSpinner } from "@/element/spinner";
 import { cn } from "@/util/util";
 import { useAtomValue } from "jotai";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -414,15 +415,7 @@ function stringToArray(str: string): string[] {
 // Components
 // ============================================
 
-const LoadingSpinner = memo(({ message }: { message: string }) => {
-    return (
-        <div className="connections-loading">
-            <i className="fa-sharp fa-solid fa-spinner fa-spin" />
-            <span>{message}</span>
-        </div>
-    );
-});
-LoadingSpinner.displayName = "LoadingSpinner";
+// Removed local LoadingSpinner - now using shared component from @/element/spinner
 
 interface EmptyStateProps {
     onAddConnection: () => void;
@@ -811,7 +804,7 @@ const ConnectionEditor = memo(({ connection, onBack, onDelete, onSave }: Connect
                     <button className="connections-btn primary" onClick={handleSave} disabled={!hasChanges || isSaving}>
                         {isSaving ? (
                             <>
-                                <i className="fa-sharp fa-solid fa-spinner fa-spin" />
+                                <LoadingSpinner size="small" />
                                 <span>Saving...</span>
                             </>
                         ) : (
@@ -918,6 +911,7 @@ export const ConnectionsContent = memo(({ model }: ConnectionsContentProps) => {
             setIsAddingNew(false);
             setSelectedConnection(name);
         } catch (err) {
+            console.error("Failed to add connection:", err);
             setError(`Failed to add connection: ${err.message || String(err)}`);
         } finally {
             setIsLoading(false);
@@ -936,6 +930,7 @@ export const ConnectionsContent = memo(({ model }: ConnectionsContentProps) => {
                 };
                 await RpcApi.SetConnectionsConfigCommand(TabRpcClient, data);
             } catch (err) {
+                console.error("Failed to save connection:", err);
                 setError(`Failed to save connection: ${err.message || String(err)}`);
                 throw err;
             }
@@ -964,8 +959,9 @@ export const ConnectionsContent = memo(({ model }: ConnectionsContentProps) => {
                         connectionsData = JSON.parse(content);
                     }
                 }
-            } catch {
+            } catch (readError) {
                 // File doesn't exist or is empty - nothing to delete
+                console.warn("Connection file read failed:", readError);
                 setSelectedConnection(null);
                 return;
             }
@@ -982,6 +978,7 @@ export const ConnectionsContent = memo(({ model }: ConnectionsContentProps) => {
 
             setSelectedConnection(null);
         } catch (err) {
+            console.error("Failed to delete connection:", err);
             setError(`Failed to delete connection: ${err.message || String(err)}`);
             throw err;
         }

@@ -529,6 +529,7 @@ export const TabVarsContent = memo(({ model }: TabVarsContentProps) => {
             if (err.message?.includes("not found") || err.message?.includes("ENOENT")) {
                 setPresetsData({});
             } else {
+                console.error("Failed to load tab variable presets:", err);
                 setErrorMessage(`Failed to load presets: ${err.message || String(err)}`);
             }
         } finally {
@@ -551,6 +552,7 @@ export const TabVarsContent = memo(({ model }: TabVarsContentProps) => {
                 });
                 setPresetsData(data);
             } catch (err: any) {
+                console.error("Failed to save tab variable presets:", err);
                 setErrorMessage(`Failed to save presets: ${err.message || String(err)}`);
                 throw err; // Re-throw so callers can handle accordingly
             } finally {

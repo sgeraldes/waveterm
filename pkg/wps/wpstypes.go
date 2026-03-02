@@ -25,6 +25,7 @@ const (
 	Event_AIModeConfig        = "waveai:modeconfig"
 	Event_TabIndicator        = "tab:indicator"
 	Event_BlockJobStatus      = "block:jobstatus" // type: BlockJobStatusData
+	Event_FileChange          = "file:change"     // type: FileChangeEventData
 )
 
 type WaveEvent struct {
@@ -58,4 +59,10 @@ type WSFileEventData struct {
 	FileName string `json:"filename"`
 	FileOp   string `json:"fileop"`
 	Data64   string `json:"data64"`
+}
+
+type FileChangeEventData struct {
+	Path    string `json:"path"`
+	BlockId string `json:"blockid,omitempty"`
+	ModTime int64  `json:"modtime,omitempty"`
 }

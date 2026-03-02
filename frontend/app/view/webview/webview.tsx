@@ -219,9 +219,21 @@ const WebView = memo(({ model, onFailLoad, blockRef, initialSrc }: WebViewProps)
         const webview = model.webviewRef.current;
         if (!webview) return;
 
-        const navigateListener = (e: { isMainFrame: boolean; url: string }) => {
+        const navigateListenerDidNavigate = (e: { isMainFrame: boolean; url: string }) => {
             setErrorText("");
-            if (e.isMainFrame) model.handleNavigate(e.url);
+            if (e.isMainFrame) {
+                model.handleNavigate(e.url);
+            }
+            // Forward navigation event to main process
+            getApi().handleWebViewNavigation(model.blockId, e.url, "did-navigate", e.isMainFrame);
+        };
+        const navigateListenerDidNavigateInPage = (e: { isMainFrame: boolean; url: string }) => {
+            setErrorText("");
+            if (e.isMainFrame) {
+                model.handleNavigate(e.url);
+            }
+            // Forward navigation event to main process
+            getApi().handleWebViewNavigation(model.blockId, e.url, "did-navigate-in-page", e.isMainFrame);
         };
         const newWindowHandler = (e: Event & { detail: { url: string } }) => {
             e.preventDefault();
@@ -275,9 +287,9 @@ const WebView = memo(({ model, onFailLoad, blockRef, initialSrc }: WebViewProps)
             }
         };
 
-        webview.addEventListener("did-frame-navigate", navigateListener as unknown as EventListener);
-        webview.addEventListener("did-navigate-in-page", navigateListener as unknown as EventListener);
-        webview.addEventListener("did-navigate", navigateListener as unknown as EventListener);
+        webview.addEventListener("did-frame-navigate", navigateListenerDidNavigate as unknown as EventListener);
+        webview.addEventListener("did-navigate-in-page", navigateListenerDidNavigateInPage as unknown as EventListener);
+        webview.addEventListener("did-navigate", navigateListenerDidNavigate as unknown as EventListener);
         webview.addEventListener("did-start-loading", startLoadingHandler);
         webview.addEventListener("did-stop-loading", stopLoadingHandler);
         webview.addEventListener("new-window", newWindowHandler);
@@ -291,9 +303,9 @@ const WebView = memo(({ model, onFailLoad, blockRef, initialSrc }: WebViewProps)
         webview.addEventListener("ipc-message", handleIpcMessage);
 
         return () => {
-            webview.removeEventListener("did-frame-navigate", navigateListener as unknown as EventListener);
-            webview.removeEventListener("did-navigate", navigateListener as unknown as EventListener);
-            webview.removeEventListener("did-navigate-in-page", navigateListener as unknown as EventListener);
+            webview.removeEventListener("did-frame-navigate", navigateListenerDidNavigate as unknown as EventListener);
+            webview.removeEventListener("did-navigate", navigateListenerDidNavigate as unknown as EventListener);
+            webview.removeEventListener("did-navigate-in-page", navigateListenerDidNavigateInPage as unknown as EventListener);
             webview.removeEventListener("new-window", newWindowHandler);
             webview.removeEventListener("did-fail-load", failLoadHandler);
             webview.removeEventListener("did-start-loading", startLoadingHandler);

@@ -3,9 +3,11 @@
 
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
+import { showErrorNotification } from "@/util/errorutil";
 import { formatRemoteUri } from "@/util/waveutil";
 
 const IMAGES_DIR = ".wave/images";
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function generateImageFilename(): string {
     const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
@@ -19,13 +21,25 @@ export function getMarkdownImageRef(filename: string): string {
     return `![](.wave/images/${filename})`;
 }
 
-async function imageItemToBase64(item: DataTransferItem): Promise<string> {
+async function imageItemToBase64(item: DataTransferItem): Promise<string | null> {
     return new Promise((resolve, reject) => {
         const file = item.getAsFile();
         if (!file) {
             reject(new Error("Cannot get file from clipboard item"));
             return;
         }
+
+        // Validate file size
+        if (file.size > MAX_IMAGE_SIZE) {
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            showErrorNotification(
+                "Image Too Large",
+                `Image size (${sizeMB} MB) exceeds maximum allowed size of 10 MB. Please use a smaller image.`
+            );
+            resolve(null);
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = (e) => {
             const dataUrl = e.target?.result as string;
@@ -81,6 +95,11 @@ export async function handleImagePaste(
 
     // Convert clipboard image to base64
     const base64Data = await imageItemToBase64(imageItem);
+
+    // If validation failed (image too large), return null
+    if (!base64Data) {
+        return null;
+    }
 
     // Generate unique filename and save
     const filename = generateImageFilename();

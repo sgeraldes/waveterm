@@ -292,6 +292,13 @@ declare global {
         restoretofilename: string;
     };
 
+    // wshrpc.CommandFileWatchData
+    type CommandFileWatchData = {
+        path: string;
+        watch: boolean;
+        blockid?: string;
+    };
+
     // wshrpc.CommandGetMetaData
     type CommandGetMetaData = {
         oref: ORef;
@@ -1266,6 +1273,8 @@ declare global {
         timeout?: number;
         noresponse?: boolean;
         route?: string;
+        retry?: boolean; // Enable/disable retry (default: true)
+        maxRetries?: number; // Maximum retry attempts (default: 3)
     };
 
     // waveobj.RuntimeOpts
@@ -1368,6 +1377,8 @@ declare global {
         "markdown:fontsize"?: number;
         "markdown:fixedfontsize"?: number;
         "preview:showhiddenfiles"?: boolean;
+        "preview:maxfilesize"?: number;
+        "preview:maxcsvsize"?: number;
         "tab:preset"?: string;
         "widget:*"?: boolean;
         "widget:showhelp"?: boolean;

@@ -23,6 +23,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/blocklogger"
 	"github.com/wavetermdev/waveterm/pkg/filebackup"
 	"github.com/wavetermdev/waveterm/pkg/filestore"
+	"github.com/wavetermdev/waveterm/pkg/filewatcher"
 	"github.com/wavetermdev/waveterm/pkg/genconn"
 	"github.com/wavetermdev/waveterm/pkg/jobcontroller"
 	"github.com/wavetermdev/waveterm/pkg/panichandler"
@@ -134,6 +135,53 @@ func (ws *WshServer) SetMetaCommand(ctx context.Context, data wshrpc.CommandSetM
 	if err := waveobj.ValidateMetadata(oref, data.Meta); err != nil {
 		return fmt.Errorf("metadata validation failed: %w", err)
 	}
+
+	// Additional validation for Block metadata
+	if oref.OType == waveobj.OType_Block {
+		fullConfig := wconfig.GetWatcher().GetFullConfig()
+
+		// CONN-005: Validate shell:profile exists in settings
+		// CONN-006: WSL distribution existence is checked in shellcontroller.go when starting shell
+		if profileId, ok := data.Meta[waveobj.MetaKey_ShellProfile]; ok && profileId != nil {
+			if profileIdStr, ok := profileId.(string); ok && profileIdStr != "" {
+				if fullConfig.Settings.ShellProfiles != nil {
+					if _, exists := fullConfig.Settings.ShellProfiles[profileIdStr]; !exists {
+						return fmt.Errorf("shell profile %q not found in settings", profileIdStr)
+					}
+				} else {
+					return fmt.Errorf("shell profile %q not found (no profiles configured)", profileIdStr)
+				}
+			}
+		}
+
+		// CONN-005: Validate cmd:cwd for WSL shells
+		if cwdPath, ok := data.Meta[waveobj.MetaKey_CmdCwd]; ok && cwdPath != nil {
+			if cwdStr, ok := cwdPath.(string); ok && cwdStr != "" {
+				// Get the block to check its shell profile
+				block, err := wstore.DBMustGet[*waveobj.Block](ctx, oref.OID)
+				if err == nil && block != nil {
+					profileId := block.Meta.GetString(waveobj.MetaKey_ShellProfile, "")
+					// Check if new metadata is setting shell:profile
+					if newProfileId, ok := data.Meta[waveobj.MetaKey_ShellProfile]; ok && newProfileId != nil {
+						if newProfileIdStr, ok := newProfileId.(string); ok {
+							profileId = newProfileIdStr
+						}
+					}
+					if profileId != "" && fullConfig.Settings.ShellProfiles != nil {
+						if profile, exists := fullConfig.Settings.ShellProfiles[profileId]; exists && profile.IsWsl {
+							// WSL shell - validate UNC path is within the distribution
+							if strings.HasPrefix(cwdStr, "\\\\wsl.localhost\\") || strings.HasPrefix(cwdStr, "\\\\wsl$\\") {
+								if err := validateWslUncPath(cwdStr, profile.WslDistro); err != nil {
+									return fmt.Errorf("invalid WSL path for %s: %w", profileId, err)
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	err := wstore.UpdateObjectMeta(ctx, oref, data.Meta, false)
 	if err != nil {
 		return fmt.Errorf("error updating object meta: %w", err)
@@ -141,6 +189,36 @@ func (ws *WshServer) SetMetaCommand(ctx context.Context, data wshrpc.CommandSetM
 	wcore.SendWaveObjUpdate(oref)
 	return nil
 }
+
+// validateWslUncPath checks if a UNC path is within the specified WSL distribution
+func validateWslUncPath(uncPath string, expectedDistro string) error {
+	if expectedDistro == "" {
+		return nil // No distro specified, can't validate
+	}
+
+	// Normalize path separators
+	uncPath = filepath.Clean(uncPath)
+	parts := strings.Split(uncPath, string(filepath.Separator))
+
+	// UNC path format: \\wsl.localhost\<distro>\path or \\wsl$\<distro>\path
+	if len(parts) < 4 {
+		return fmt.Errorf("invalid UNC path format")
+	}
+
+	server := parts[2]
+	distro := parts[3]
+
+	if server != "wsl.localhost" && server != "wsl$" {
+		return fmt.Errorf("not a WSL UNC path (server=%s)", server)
+	}
+
+	if distro != expectedDistro {
+		return fmt.Errorf("path is for distribution %q but shell profile uses %q", distro, expectedDistro)
+	}
+
+	return nil
+}
+
 
 func (ws *WshServer) GetRTInfoCommand(ctx context.Context, data wshrpc.CommandGetRTInfoData) (*waveobj.ObjRTInfo, error) {
 	return wstore.GetRTInfo(data.ORef), nil
@@ -1553,4 +1631,40 @@ func (ws *WshServer) OmpReinitCommand(ctx context.Context, data wshrpc.CommandOm
 
 func (ws *WshServer) BlockJobStatusCommand(ctx context.Context, blockId string) (*wshrpc.BlockJobStatusData, error) {
 	return jobcontroller.GetBlockJobStatus(ctx, blockId)
+}
+
+func (ws *WshServer) FileWatchCommand(ctx context.Context, data wshrpc.CommandFileWatchData) error {
+	// This command is only supported for local files, not remote
+	// Remote file watching would require implementing similar logic in wsh
+	if data.Path == "" {
+		return fmt.Errorf("path is required")
+	}
+	if data.BlockId == "" {
+		return fmt.Errorf("blockId is required")
+	}
+
+	// Get absolute path
+	absPath, err := filepath.Abs(data.Path)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
+	// Verify file exists
+	if _, err := os.Stat(absPath); err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file does not exist: %s", absPath)
+		}
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+
+	fw := filewatcher.GetWatcher()
+	if fw == nil {
+		return fmt.Errorf("file watcher not available")
+	}
+
+	if data.Watch {
+		return fw.AddWatch(absPath, data.BlockId)
+	} else {
+		return fw.RemoveWatch(absPath, data.BlockId)
+	}
 }

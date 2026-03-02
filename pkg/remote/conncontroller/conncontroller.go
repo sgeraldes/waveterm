@@ -698,18 +698,22 @@ func (conn *SSHConn) WaitForConnect(ctx context.Context) error {
 		if status.Status == Status_Connecting {
 			select {
 			case <-ctx.Done():
-				return fmt.Errorf("context timeout")
+				return fmt.Errorf("connection timeout")
 			case <-time.After(100 * time.Millisecond):
 				continue
 			}
 		}
 		if status.Status == Status_Init || status.Status == Status_Disconnected {
-			return fmt.Errorf("disconnected")
+			return fmt.Errorf("connection disconnected")
 		}
 		if status.Status == Status_Error {
-			return fmt.Errorf("error: %v", status.Error)
+			// CONN-011, CONN-012: Use SimpleMessageFromPossibleConnectionError and include error details
+			if status.Error != "" {
+				return fmt.Errorf("connection failed: %s", remote.SimpleMessageFromPossibleConnectionError(fmt.Errorf("%s", status.Error)))
+			}
+			return fmt.Errorf("connection error")
 		}
-		return fmt.Errorf("unknown status: %q", status.Status)
+		return fmt.Errorf("unknown connection status: %q", status.Status)
 	}
 }
 
@@ -1017,7 +1021,8 @@ func EnsureConnection(ctx context.Context, connName string) error {
 	}
 	connOpts, err := remote.ParseOpts(connName)
 	if err != nil {
-		return fmt.Errorf("error parsing connection name: %w", err)
+		// CONN-011: Use SimpleMessageFromPossibleConnectionError
+		return fmt.Errorf("error parsing connection name: %s", remote.SimpleMessageFromPossibleConnectionError(err))
 	}
 	conn := GetConn(connOpts)
 	if conn == nil {
@@ -1032,7 +1037,11 @@ func EnsureConnection(ctx context.Context, connName string) error {
 	case Status_Init, Status_Disconnected:
 		return conn.Connect(ctx, &wconfig.ConnKeywords{})
 	case Status_Error:
-		return fmt.Errorf("connection error: %s", connStatus.Error)
+		// CONN-012: Include connStatus.Error to distinguish from "not connected"
+		if connStatus.Error != "" {
+			return fmt.Errorf("connection failed: %s", remote.SimpleMessageFromPossibleConnectionError(fmt.Errorf("%s", connStatus.Error)))
+		}
+		return fmt.Errorf("connection in error state")
 	default:
 		return fmt.Errorf("unknown connection status %q", connStatus.Status)
 	}

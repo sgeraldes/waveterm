@@ -18,6 +18,7 @@ const dlog = debug("wave:wos");
 type WaveObjectDataItemType<T extends WaveObj> = {
     value: T;
     loading: boolean;
+    error?: string;
 };
 
 type WaveObjectValue<T extends WaveObj> = {
@@ -153,7 +154,10 @@ function reloadWaveObject<T extends WaveObj>(oref: string): Promise<T> {
     }
     const prtn = GetObject<T>(oref);
     prtn.then((val) => {
-        globalStore.set(wov.dataAtom, { value: val, loading: false });
+        globalStore.set(wov.dataAtom, { value: val, loading: false, error: undefined });
+    }).catch((err) => {
+        console.error("WOS reload error for", oref, ":", err);
+        globalStore.set(wov.dataAtom, { value: null, loading: false, error: String(err?.message || err) });
     });
     return prtn;
 }
@@ -167,23 +171,29 @@ function createWaveValueObject<T extends WaveObj>(oref: string, shouldFetch: boo
     const startTs = Date.now();
     const localPromise = GetObject<T>(oref);
     wov.pendingPromise = localPromise;
-    localPromise.then((val) => {
-        if (wov.pendingPromise != localPromise) {
-            return;
-        }
-        const [otype, oid] = splitORef(oref);
-        if (val != null) {
-            if (val["otype"] != otype) {
-                throw new Error("GetObject returned wrong type");
+    localPromise
+        .then((val) => {
+            if (wov.pendingPromise != localPromise) {
+                return;
             }
-            if (val["oid"] != oid) {
-                throw new Error("GetObject returned wrong id");
+            const [otype, oid] = splitORef(oref);
+            if (val != null) {
+                if (val["otype"] != otype) {
+                    throw new Error("GetObject returned wrong type");
+                }
+                if (val["oid"] != oid) {
+                    throw new Error("GetObject returned wrong id");
+                }
             }
-        }
-        wov.pendingPromise = null;
-        globalStore.set(wov.dataAtom, { value: val, loading: false });
-        dlog("WaveObj resolved", oref, Date.now() - startTs + "ms");
-    });
+            wov.pendingPromise = null;
+            globalStore.set(wov.dataAtom, { value: val, loading: false, error: undefined });
+            dlog("WaveObj resolved", oref, Date.now() - startTs + "ms");
+        })
+        .catch((err) => {
+            console.error("WOS load error for", oref, ":", err);
+            wov.pendingPromise = null;
+            globalStore.set(wov.dataAtom, { value: null, loading: false, error: String(err?.message || err) });
+        });
     return wov;
 }
 
@@ -227,7 +237,15 @@ function getWaveObjectLoadingAtom(oref: string): Atom<boolean> {
     });
 }
 
-function useWaveObjectValue<T extends WaveObj>(oref: string): [T, boolean] {
+function getWaveObjectErrorAtom(oref: string): Atom<string | undefined> {
+    const wov = getWaveObjectValue(oref);
+    return atom((get) => {
+        const dataValue = get(wov.dataAtom);
+        return dataValue.error;
+    });
+}
+
+function useWaveObjectValue<T extends WaveObj>(oref: string): [T, boolean, string?] {
     const wov = getWaveObjectValue<T>(oref);
     useEffect(() => {
         wov.refCount++;
@@ -236,7 +254,7 @@ function useWaveObjectValue<T extends WaveObj>(oref: string): [T, boolean] {
         };
     }, [oref]);
     const atomVal = useAtomValue(wov.dataAtom);
-    return [atomVal.value, atomVal.loading];
+    return [atomVal.value, atomVal.loading, atomVal.error];
 }
 
 function updateWaveObject(update: WaveObjUpdate) {
@@ -247,7 +265,7 @@ function updateWaveObject(update: WaveObjUpdate) {
     const wov = getWaveObjectValue(oref);
     if (update.updatetype == "delete") {
         dlog("WaveObj deleted", oref);
-        globalStore.set(wov.dataAtom, { value: null, loading: false });
+        globalStore.set(wov.dataAtom, { value: null, loading: false, error: undefined });
     } else {
         if (!isValidWaveObj(update.obj)) {
             console.warn("invalid wave object update", update);
@@ -258,7 +276,7 @@ function updateWaveObject(update: WaveObjUpdate) {
             return;
         }
         dlog("WaveObj updated", oref);
-        globalStore.set(wov.dataAtom, { value: update.obj, loading: false });
+        globalStore.set(wov.dataAtom, { value: update.obj, loading: false, error: undefined });
     }
     wov.holdTime = Date.now() + defaultHoldTime;
     return;
@@ -303,7 +321,7 @@ function setObjectValue<T extends WaveObj>(value: T, setFn?: Setter, pushToServe
     if (setFn === undefined) {
         setFn = globalStore.set;
     }
-    setFn(wov.dataAtom, { value: value, loading: false });
+    setFn(wov.dataAtom, { value: value, loading: false, error: undefined });
     if (pushToServer) {
         fireAndForget(() => ObjectService.UpdateObject(value, false));
     }
@@ -315,6 +333,7 @@ export {
     clearWaveObjectCache,
     getObjectValue,
     getWaveObjectAtom,
+    getWaveObjectErrorAtom,
     getWaveObjectLoadingAtom,
     loadAndPinWaveObject,
     makeORef,

@@ -50,14 +50,12 @@ class WorkspaceLayoutModel {
         this.handlePanelLayout = this.handlePanelLayout.bind(this);
 
         this.debouncedPersistWidth = debounce((width: number) => {
-            try {
-                RpcApi.SetMetaCommand(TabRpcClient, {
-                    oref: WOS.makeORef("tab", this.getTabId()),
-                    meta: { "waveai:panelwidth": width },
-                });
-            } catch (e) {
-                console.warn("Failed to persist panel width:", e);
-            }
+            RpcApi.SetMetaCommand(TabRpcClient, {
+                oref: WOS.makeORef("tab", this.getTabId()),
+                meta: { "waveai:panelwidth": width },
+            }).catch((error) => {
+                console.warn("Failed to persist panel width:", error);
+            });
         }, 300);
     }
 
@@ -235,6 +233,8 @@ class WorkspaceLayoutModel {
         RpcApi.SetMetaCommand(TabRpcClient, {
             oref: WOS.makeORef("tab", this.getTabId()),
             meta: { "waveai:panelopen": visible },
+        }).catch((error) => {
+            console.error("Failed to persist Wave AI panel visibility:", error);
         });
         this.enableTransitions(250);
         this.syncAIPanelRef();

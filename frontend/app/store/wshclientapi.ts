@@ -292,6 +292,11 @@ class RpcApiType {
         return client.wshRpcCall("filerestorebackup", data, opts);
     }
 
+    // command "filewatch" [call]
+    FileWatchCommand(client: WshClient, data: CommandFileWatchData, opts?: RpcOpts): Promise<void> {
+        return client.wshRpcCall("filewatch", data, opts);
+    }
+
     // command "filewrite" [call]
     FileWriteCommand(client: WshClient, data: FileData, opts?: RpcOpts): Promise<void> {
         return client.wshRpcCall("filewrite", data, opts);

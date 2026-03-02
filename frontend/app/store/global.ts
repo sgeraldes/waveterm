@@ -1020,3 +1020,6 @@ export {
     useSettingsKeyAtom,
     WOS,
 };
+
+// Re-export error utilities for convenience
+export { showErrorNotification, showErrorNotificationFromError, showWarningNotification } from "@/util/errorutil";

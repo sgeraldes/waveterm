@@ -34,9 +34,14 @@ export async function handleWaveAIContextMenu(e: React.MouseEvent, showCopy: boo
 
     menu.push({ type: "separator" });
 
-    const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
-        oref: model.orefContext,
-    });
+    let rtInfo: Record<string, any> = {};
+    try {
+        rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
+            oref: model.orefContext,
+        });
+    } catch (error) {
+        console.error("Failed to get RT info for Wave AI context menu:", error);
+    }
 
     const currentMaxTokens = rtInfo?.["waveai:maxoutputtokens"] ?? 4096;
 
@@ -51,6 +56,8 @@ export async function handleWaveAIContextMenu(e: React.MouseEvent, showCopy: boo
                 RpcApi.SetRTInfoCommand(TabRpcClient, {
                     oref: model.orefContext,
                     data: { "waveai:maxoutputtokens": 1024 },
+                }).catch((error) => {
+                    console.error("Failed to set max output tokens to 1k:", error);
                 });
             },
         });
@@ -64,6 +71,8 @@ export async function handleWaveAIContextMenu(e: React.MouseEvent, showCopy: boo
                 RpcApi.SetRTInfoCommand(TabRpcClient, {
                     oref: model.orefContext,
                     data: { "waveai:maxoutputtokens": 4096 },
+                }).catch((error) => {
+                    console.error("Failed to set max output tokens to 4k:", error);
                 });
             },
         },
@@ -75,6 +84,8 @@ export async function handleWaveAIContextMenu(e: React.MouseEvent, showCopy: boo
                 RpcApi.SetRTInfoCommand(TabRpcClient, {
                     oref: model.orefContext,
                     data: { "waveai:maxoutputtokens": 16384 },
+                }).catch((error) => {
+                    console.error("Failed to set max output tokens to 16k:", error);
                 });
             },
         },
@@ -86,6 +97,8 @@ export async function handleWaveAIContextMenu(e: React.MouseEvent, showCopy: boo
                 RpcApi.SetRTInfoCommand(TabRpcClient, {
                     oref: model.orefContext,
                     data: { "waveai:maxoutputtokens": 65536 },
+                }).catch((error) => {
+                    console.error("Failed to set max output tokens to 64k:", error);
                 });
             },
         }

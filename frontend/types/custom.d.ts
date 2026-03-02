@@ -125,6 +125,12 @@ declare global {
         doRefresh: () => void;
         showOpenDialog: (options: OpenDialogOptions) => Promise<string[]>;
         setNativeThemeSource: (theme: "light" | "dark" | "system") => void;
+        handleWebViewNavigation: (
+            blockId: string,
+            url: string,
+            eventType: "did-navigate" | "did-navigate-in-page" | "will-navigate",
+            isMainFrame?: boolean
+        ) => void;
     };
 
     type ElectronContextMenuItem = {

@@ -1,0 +1,67 @@
+// Copyright 2026, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+/**
+ * Loading Spinner Styles
+ *
+ * Consistent styling for loading states across the application.
+ */
+
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--grey-text-color);
+
+    .loading-message {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    // Size variants
+    &.spinner-small {
+        gap: 4px;
+
+        i {
+            font-size: 12px;
+        }
+
+        .loading-message {
+            font-size: 12px;
+        }
+    }
+
+    &.spinner-normal {
+        gap: 8px;
+
+        i {
+            font-size: 16px;
+        }
+
+        .loading-message {
+            font-size: 14px;
+        }
+    }
+
+    &.spinner-large {
+        gap: 12px;
+
+        i {
+            font-size: 24px;
+        }
+
+        .loading-message {
+            font-size: 16px;
+        }
+    }
+}
+
+// Full-page centered loading state helper
+.loading-spinner-centered {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    min-height: 200px;
+}

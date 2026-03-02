@@ -200,6 +200,12 @@
         "preview:showhiddenfiles": {
           "type": "boolean"
         },
+        "preview:maxfilesize": {
+          "type": "number"
+        },
+        "preview:maxcsvsize": {
+          "type": "number"
+        },
         "tab:preset": {
           "type": "string"
         },

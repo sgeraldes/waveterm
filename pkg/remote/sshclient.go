@@ -29,6 +29,7 @@ import (
 	"github.com/wavetermdev/waveterm/pkg/secretstore"
 	"github.com/wavetermdev/waveterm/pkg/trimquotes"
 	"github.com/wavetermdev/waveterm/pkg/userinput"
+	"github.com/wavetermdev/waveterm/pkg/util/retryutil"
 	"github.com/wavetermdev/waveterm/pkg/util/shellutil"
 	"github.com/wavetermdev/waveterm/pkg/util/utilfn"
 	"github.com/wavetermdev/waveterm/pkg/wavebase"
@@ -684,31 +685,52 @@ func createClientConfig(connCtx context.Context, sshKeywords *wconfig.ConnKeywor
 }
 
 func connectInternal(ctx context.Context, networkAddr string, clientConfig *ssh.ClientConfig, currentClient *ssh.Client) (*ssh.Client, error) {
-	var clientConn net.Conn
-	var err error
-	if currentClient == nil {
-		d := net.Dialer{Timeout: clientConfig.Timeout}
-		blocklogger.Infof(ctx, "[conndebug] ssh dial %s\n", networkAddr)
-		clientConn, err = d.DialContext(ctx, "tcp", networkAddr)
+	// Configure retry for transient network errors
+	retryOpts := retryutil.DefaultRetryOptions()
+	retryOpts.MaxRetries = 2 // Fewer retries for SSH to avoid long hangs
+	retryOpts.ShouldRetry = func(err error) bool {
+		// Don't retry authentication errors (they won't succeed on retry)
+		if _, ok := err.(UserInputCancelError); ok {
+			return false
+		}
+		// Use default retry logic for network errors
+		return retryutil.DefaultShouldRetry(err)
+	}
+	retryOpts.OnRetry = func(attempt int, err error, delay time.Duration) {
+		blocklogger.Infof(ctx, "[conndebug] Retrying SSH connection to %s (attempt %d/%d) after error: %v (waiting %.1fs)\n",
+			networkAddr, attempt, retryOpts.MaxRetries, SimpleMessageFromPossibleConnectionError(err), delay.Seconds())
+	}
+
+	// Attempt connection with retry
+	return retryutil.RetryWithBackoffValue(ctx, func() (*ssh.Client, error) {
+		var clientConn net.Conn
+		var err error
+		if currentClient == nil {
+			d := net.Dialer{Timeout: clientConfig.Timeout}
+			blocklogger.Infof(ctx, "[conndebug] ssh dial %s\n", networkAddr)
+			clientConn, err = d.DialContext(ctx, "tcp", networkAddr)
+			if err != nil {
+				blocklogger.Infof(ctx, "[conndebug] ERROR dial error: %v\n", err)
+				return nil, err
+			}
+		} else {
+			blocklogger.Infof(ctx, "[conndebug] ssh dial (from client) %s\n", networkAddr)
+			clientConn, err = currentClient.DialContext(ctx, "tcp", networkAddr)
+			if err != nil {
+				blocklogger.Infof(ctx, "[conndebug] ERROR dial error: %v\n", err)
+				return nil, err
+			}
+		}
+		c, chans, reqs, err := ssh.NewClientConn(clientConn, networkAddr, clientConfig)
 		if err != nil {
-			blocklogger.Infof(ctx, "[conndebug] ERROR dial error: %v\n", err)
+			// Close the connection on auth/negotiation failure
+			clientConn.Close()
+			blocklogger.Infof(ctx, "[conndebug] ERROR ssh auth/negotiation: %s\n", SimpleMessageFromPossibleConnectionError(err))
 			return nil, err
 		}
-	} else {
-		blocklogger.Infof(ctx, "[conndebug] ssh dial (from client) %s\n", networkAddr)
-		clientConn, err = currentClient.DialContext(ctx, "tcp", networkAddr)
-		if err != nil {
-			blocklogger.Infof(ctx, "[conndebug] ERROR dial error: %v\n", err)
-			return nil, err
-		}
-	}
-	c, chans, reqs, err := ssh.NewClientConn(clientConn, networkAddr, clientConfig)
-	if err != nil {
-		blocklogger.Infof(ctx, "[conndebug] ERROR ssh auth/negotiation: %s\n", SimpleMessageFromPossibleConnectionError(err))
-		return nil, err
-	}
-	blocklogger.Infof(ctx, "[conndebug] successful ssh connection to %s\n", networkAddr)
-	return ssh.NewClient(c, chans, reqs), nil
+		blocklogger.Infof(ctx, "[conndebug] successful ssh connection to %s\n", networkAddr)
+		return ssh.NewClient(c, chans, reqs), nil
+	}, retryOpts)
 }
 
 func ConnectToClient(connCtx context.Context, opts *SSHOpts, currentClient *ssh.Client, jumpNum int32, connFlags *wconfig.ConnKeywords) (*ssh.Client, int32, error) {

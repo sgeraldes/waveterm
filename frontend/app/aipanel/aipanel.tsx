@@ -13,7 +13,7 @@ import { cn } from "@/util/util";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import * as jotai from "jotai";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDrop } from "react-dnd";
 import { formatFileSizeError, isAcceptableFile, validateFileSize } from "./ai-utils";
 import { AIDroppedFiles } from "./aidroppedfiles";
@@ -238,7 +238,7 @@ const AIPanelComponentInner = memo(() => {
     // Telemetry removed - Wave AI always accessible
     const allowAccess = true;
 
-    const { messages, sendMessage, status, setMessages, error, stop } = useChat<WaveUIMessage>({
+    const { messages: rawMessages, sendMessage, status, setMessages, error, stop } = useChat<WaveUIMessage>({
         transport: new DefaultChatTransport({
             api: model.getUseChatEndpointUrl(),
             prepareSendMessagesRequest: (opts) => {
@@ -259,23 +259,63 @@ const AIPanelComponentInner = memo(() => {
         },
     });
 
+    // Throttle message updates using requestAnimationFrame to prevent excessive re-renders
+    // during fast streaming responses
+    const [throttledMessages, setThrottledMessages] = useState<WaveUIMessage[]>(rawMessages);
+    const rafIdRef = useRef<number | null>(null);
+    const pendingMessagesRef = useRef<WaveUIMessage[] | null>(null);
+
+    useEffect(() => {
+        // Store the latest messages
+        pendingMessagesRef.current = rawMessages;
+
+        // If not currently streaming or if no animation frame is scheduled, update immediately
+        if (status !== "streaming" || rafIdRef.current === null) {
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+
+            rafIdRef.current = requestAnimationFrame(() => {
+                rafIdRef.current = null;
+                if (pendingMessagesRef.current !== null) {
+                    setThrottledMessages(pendingMessagesRef.current);
+                    pendingMessagesRef.current = null;
+                }
+            });
+        }
+        // During streaming, the scheduled frame will pick up the latest messages
+    }, [rawMessages, status]);
+
+    // Cleanup animation frame on unmount
+    useEffect(() => {
+        return () => {
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+                rafIdRef.current = null;
+            }
+        };
+    }, []);
+
+    // Use throttled messages for rendering
+    const messages = throttledMessages;
+
     model.registerUseChatData(sendMessage, setMessages, status, stop);
 
     // console.log("AICHAT messages", messages);
     (window as any).aichatmessages = messages;
     (window as any).aichatstatus = status;
 
-    const handleKeyDown = (waveEvent: WaveKeyboardEvent): boolean => {
+    const handleKeyDown = useCallback((waveEvent: WaveKeyboardEvent): boolean => {
         if (checkKeyPressed(waveEvent, "Cmd:k")) {
             model.clearChat();
             return true;
         }
         return false;
-    };
+    }, [model]);
 
     useEffect(() => {
         globalStore.set(model.isAIStreaming, status == "streaming");
-    }, [status]);
+    }, [status, model]);
 
     useEffect(() => {
         const keyHandler = keydownWrapper(handleKeyDown);
@@ -283,7 +323,7 @@ const AIPanelComponentInner = memo(() => {
         return () => {
             document.removeEventListener("keydown", keyHandler);
         };
-    }, []);
+    }, [handleKeyDown]);
 
     useEffect(() => {
         const loadChat = async () => {

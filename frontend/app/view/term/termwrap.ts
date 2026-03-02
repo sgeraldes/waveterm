@@ -262,7 +262,9 @@ export class TermWrap {
                             this.terminal.paste(text);
                         }
                     })
-                    .catch(() => {});
+                    .catch((e) => {
+                        console.error("Failed to read clipboard for middle-click paste:", e);
+                    });
             }
         };
         this.terminal.element?.addEventListener("auxclick", auxclickHandler);
@@ -397,14 +399,18 @@ export class TermWrap {
         this.promptMarkers.forEach((marker) => {
             try {
                 marker.dispose();
-            } catch {} // eslint-disable-line no-empty
+            } catch (e) {
+                console.error("Error disposing prompt marker:", e);
+            }
         });
         this.promptMarkers = [];
         this.terminal.dispose();
         this.toDispose.forEach((d) => {
             try {
                 d.dispose();
-            } catch {} // eslint-disable-line no-empty
+            } catch (e) {
+                console.error("Error disposing terminal resource:", e);
+            }
         });
         this.mainFileSubject.release();
     }

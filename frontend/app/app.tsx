@@ -30,6 +30,7 @@ import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { AppBackground } from "./app-bg";
 import { CenteredDiv } from "./element/quickelems";
+import { ErrorBoundary } from "./element/errorboundary";
 import { useTheme } from "./hook/usetheme";
 import { NotificationBubbles } from "./notification/notificationbubbles";
 
@@ -258,7 +259,8 @@ const FlashError = () => {
                 removeFlashError(ferr.id);
             }
         }
-        setTimeout(() => setTicker(ticker + 1), 1000);
+        const timeoutId = setTimeout(() => setTicker(ticker + 1), 1000);
+        return () => clearTimeout(timeoutId);
     }, [flashErrors, ticker, hoveredId]);
 
     if (flashErrors.length == 0) {
@@ -315,6 +317,84 @@ const FlashError = () => {
     );
 };
 
+function sanitizeErrorMessage(error: Error): string {
+    if (!error?.message) return "Unknown error occurred";
+    // Take only the first line, remove file paths and "at" traces
+    const firstLine = error.message.split("\n")[0];
+    return firstLine.replace(/\s+at\s+.*$/g, "").trim();
+}
+
+function copyErrorDetails(error: Error) {
+    const details = JSON.stringify(
+        {
+            name: error?.name || "Error",
+            message: error?.message || "Unknown error",
+            stack: error?.stack || "No stack trace available",
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+        },
+        null,
+        2
+    );
+    navigator.clipboard.writeText(details);
+}
+
+const AppCrashFallback = ({ error }: { error: Error }) => (
+    <div className="flex flex-col items-center justify-center h-full bg-[var(--main-bg-color)]">
+        <i className="fa fa-exclamation-triangle text-6xl text-red-500 mb-4" />
+        <h1 className="text-2xl font-bold mb-2">Wave Terminal Error</h1>
+        <p className="text-gray-400 mb-4 text-center max-w-md">
+            Wave Terminal encountered an unexpected error and needs to reload.
+        </p>
+        {error && (
+            <p className="text-gray-500 text-sm mb-4 text-center max-w-md">{sanitizeErrorMessage(error)}</p>
+        )}
+        <button
+            className="px-4 py-2 bg-accent-500 hover:bg-accent-600 rounded"
+            onClick={() => window.location.reload()}
+        >
+            <i className="fa fa-refresh mr-2" />
+            Reload Application
+        </button>
+        {error && (
+            <details className="mt-6 max-w-2xl">
+                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-400">
+                    Technical Details
+                </summary>
+                <div className="mt-2 p-4 bg-black/50 rounded text-xs space-y-2 text-left">
+                    <div>
+                        <strong className="text-gray-300">Error:</strong>{" "}
+                        <span className="text-gray-400">{error.name || "Error"}</span>
+                    </div>
+                    <div>
+                        <strong className="text-gray-300">Message:</strong>{" "}
+                        <span className="text-gray-400">{error.message || "Unknown error"}</span>
+                    </div>
+                    <div>
+                        <strong className="text-gray-300">Time:</strong>{" "}
+                        <span className="text-gray-400">{new Date().toISOString()}</span>
+                    </div>
+                    {error.stack && (
+                        <div>
+                            <strong className="text-gray-300">Stack Trace:</strong>
+                            <pre className="mt-1 text-xs overflow-auto max-h-48 text-gray-400 whitespace-pre-wrap">
+                                {error.stack}
+                            </pre>
+                        </div>
+                    )}
+                    <button
+                        className="mt-2 px-3 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+                        onClick={() => copyErrorDetails(error)}
+                    >
+                        <i className="fa fa-copy mr-1" />
+                        Copy Error Details
+                    </button>
+                </div>
+            </details>
+        )}
+    </div>
+);
+
 const AppInner = () => {
     const prefersReducedMotion = useAtomValue(atoms.prefersReducedMotionAtom);
     const client = useAtomValue(ClientModel.getInstance().clientAtom);
@@ -331,25 +411,27 @@ const AppInner = () => {
     }
 
     return (
-        <div
-            className={clsx("flex flex-col w-full h-full", PLATFORM, {
-                fullscreen: isFullScreen,
-                "prefers-reduced-motion": prefersReducedMotion,
-            })}
-            onContextMenu={handleContextMenu}
-        >
-            <AppBackground />
-            <AppKeyHandlers />
-            <AppFocusHandler />
-            <AppThemeUpdater />
-            <AppSettingsUpdater />
-            <TabIndicatorAutoClearing />
-            <DndProvider backend={HTML5Backend}>
-                <Workspace />
-            </DndProvider>
-            <FlashError />
-            {isDev() ? <NotificationBubbles></NotificationBubbles> : null}
-        </div>
+        <ErrorBoundary fallback={<AppCrashFallback error={null} />}>
+            <div
+                className={clsx("flex flex-col w-full h-full", PLATFORM, {
+                    fullscreen: isFullScreen,
+                    "prefers-reduced-motion": prefersReducedMotion,
+                })}
+                onContextMenu={handleContextMenu}
+            >
+                <AppBackground />
+                <AppKeyHandlers />
+                <AppFocusHandler />
+                <AppThemeUpdater />
+                <AppSettingsUpdater />
+                <TabIndicatorAutoClearing />
+                <DndProvider backend={HTML5Backend}>
+                    <Workspace />
+                </DndProvider>
+                <FlashError />
+                {isDev() ? <NotificationBubbles></NotificationBubbles> : null}
+            </div>
+        </ErrorBoundary>
     );
 };
 

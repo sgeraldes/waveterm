@@ -48,6 +48,12 @@ func DBGetCount[T waveobj.WaveObj](ctx context.Context) (int, error) {
 }
 
 // returns (num named workespaces, num total workspaces, error)
+// Note: This function is currently unused (dead code).
+// The workspace name query intentionally has no index because:
+// - db_workspace table is typically <10 rows (one per workspace)
+// - Full table scan on small tables is faster than index lookup overhead
+// - Query would only be for statistics collection (very rare)
+// - Index maintenance cost exceeds any query benefit at this scale
 func DBGetWSCounts(ctx context.Context) (int, int, error) {
 	var named, total int
 	err := WithTx(ctx, func(tx *TxWrap) error {
