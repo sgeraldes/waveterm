@@ -22,6 +22,7 @@ import { useDevicePixelRatio } from "use-device-pixel-ratio";
 import { LayoutModel } from "./layoutModel";
 import { useNodeModel, useTileLayout } from "./layoutModelHooks";
 import "./tilelayout.scss";
+import { MaximizeTabBar } from "./MaximizeTabBar";
 import {
     LayoutNode,
     LayoutTreeActionType,
@@ -60,6 +61,7 @@ function TileLayoutComponent({ tabAtom, contents, getCursorPoint }: TileLayoutPr
     const setActiveDrag = useSetAtom(layoutModel.activeDrag);
     const setReady = useSetAtom(layoutModel.ready);
     const isResizing = useAtomValue(layoutModel.isResizing);
+    const isMaximizeMode = useAtomValue(layoutModel.isMaximizeModeAtom);
 
     const { activeDrag, dragClientOffset, dragItemType } = useDragLayer((monitor) => ({
         activeDrag: monitor.isDragging(),
@@ -120,16 +122,22 @@ function TileLayoutComponent({ tabAtom, contents, getCursorPoint }: TileLayoutPr
     return (
         <Suspense>
             <div
-                className={clsx("tile-layout", contents.className, { animate: animate && !isResizing })}
+                className={clsx("tile-layout", contents.className, {
+                    animate: animate && !isResizing,
+                    "maximize-mode": isMaximizeMode,
+                })}
                 style={tileStyle}
             >
+                {isMaximizeMode && <MaximizeTabBar layoutModel={layoutModel} />}
                 <div key="display" ref={layoutModel.displayContainerRef} className="display-container">
                     <ResizeHandleWrapper layoutModel={layoutModel} />
                     <DisplayNodesWrapper layoutModel={layoutModel} />
-                    <NodeBackdrops layoutModel={layoutModel} />
+                    {!isMaximizeMode && <NodeBackdrops layoutModel={layoutModel} />}
                 </div>
-                <Placeholder key="placeholder" layoutModel={layoutModel} style={{ top: 10000, ...overlayTransform }} />
-                <OverlayNodeWrapper layoutModel={layoutModel} />
+                {!isMaximizeMode && (
+                    <Placeholder key="placeholder" layoutModel={layoutModel} style={{ top: 10000, ...overlayTransform }} />
+                )}
+                {!isMaximizeMode && <OverlayNodeWrapper layoutModel={layoutModel} />}
             </div>
         </Suspense>
     );
@@ -229,6 +237,8 @@ const DisplayNode = ({ layoutModel, node }: DisplayNodeProps) => {
     const devicePixelRatio = useDevicePixelRatio();
     const isEphemeral = useAtomValue(nodeModel.isEphemeral);
     const isMagnified = useAtomValue(nodeModel.isMagnified);
+    const isMaximizeMode = useAtomValue(nodeModel.isMaximizeMode);
+    const isMaximizedActive = useAtomValue(nodeModel.isMaximizedActive);
 
     const [{ isDragging }, drag, dragPreview] = useDrag(
         () => ({
@@ -300,6 +310,12 @@ const DisplayNode = ({ layoutModel, node }: DisplayNodeProps) => {
         drag(nodeModel.dragHandleRef);
     }, [drag, nodeModel.dragHandleRef.current]);
 
+    const maximizeStyle: React.CSSProperties | undefined = isMaximizeMode
+        ? isMaximizedActive
+            ? { position: "absolute", top: 0, left: 0, width: "100%", height: "100%", display: "block", zIndex: 1 }
+            : { display: "none" }
+        : undefined;
+
     return (
         <div
             className={clsx("tile-node", {
@@ -308,7 +324,7 @@ const DisplayNode = ({ layoutModel, node }: DisplayNodeProps) => {
             key={node.id}
             ref={tileNodeRef}
             id={node.id}
-            style={addlProps?.transform}
+            style={isMaximizeMode ? maximizeStyle : addlProps?.transform}
             onPointerEnter={generatePreviewImage}
             onPointerOver={(event) => event.stopPropagation()}
         >

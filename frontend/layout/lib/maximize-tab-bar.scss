@@ -1,0 +1,85 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.maximize-tab-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: stretch;
+    background: var(--panel-bg-color);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    z-index: 10;
+    flex-shrink: 0;
+
+    // Hide scrollbar but keep functionality
+    &::-webkit-scrollbar {
+        height: 0;
+    }
+
+    .maximize-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 12px;
+        cursor: pointer;
+        white-space: nowrap;
+        border-right: 1px solid var(--border-color);
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        min-width: 80px;
+        max-width: 180px;
+        user-select: none;
+
+        &:hover {
+            background: var(--highlight-bg-color, rgba(255, 255, 255, 0.05));
+            color: var(--main-text-color);
+        }
+
+        &.active {
+            background: var(--highlight-bg-color, rgba(255, 255, 255, 0.08));
+            color: var(--main-text-color);
+            border-bottom: 2px solid var(--accent-color);
+
+            i {
+                color: var(--accent-color);
+            }
+        }
+
+        i {
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+
+        .maximize-tab-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    }
+
+    .maximize-tab-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        min-width: 32px;
+        margin-left: auto;
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        border-left: 1px solid var(--border-color);
+        flex-shrink: 0;
+
+        &:hover {
+            background: var(--highlight-bg-color, rgba(255, 255, 255, 0.05));
+            color: var(--main-text-color);
+        }
+
+        i {
+            font-size: 12px;
+        }
+    }
+}

@@ -147,3 +147,19 @@
         border-radius: calc(var(--block-border-radius) + 2px);
     }
 }
+
+// Maximize mode overrides
+.tile-layout.maximize-mode {
+    .display-container {
+        top: 32px;
+        height: calc(100% - 32px);
+    }
+
+    .resize-handle {
+        display: none;
+    }
+
+    .overlay-container {
+        display: none;
+    }
+}
