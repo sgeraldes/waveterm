@@ -16,11 +16,16 @@
     flex-shrink: 0;
     // Darker shadow to be visible against dark content area
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.5);
+    // Allow dragging the entire Electron window from this bar
+    -webkit-app-region: drag;
+    user-select: none;
 
     .breadcrumb-content {
         display: flex;
         align-items: center;
         overflow: hidden;
+        // Segments are clickable — must not be draggable
+        -webkit-app-region: no-drag;
     }
 
     .separator {
@@ -47,6 +52,8 @@
         gap: 8px;
         margin-left: auto;
         padding-left: 12px;
+        // Buttons must not interfere with drag
+        -webkit-app-region: no-drag;
     }
 
     .menu-button {

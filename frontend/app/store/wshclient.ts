@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { sendRpcCommand, sendRpcResponse } from "@/app/store/wshrpcutil-base";
-import { retryWithBackoff, RetryOptions } from "@/util/retryutil";
 import * as util from "@/util/util";
 
 const notFoundLogMap = new Map<string, boolean>();
@@ -49,50 +48,26 @@ class WshClient {
     }
 
     wshRpcCall(command: string, data: any, opts: RpcOpts): Promise<any> {
-        // Check if retry is enabled for this call
-        const shouldRetry = opts?.retry !== false; // Default to true unless explicitly disabled
-
-        const executeCall = async () => {
-            const msg: RpcMessage = {
-                command: command,
-                data: data,
-                source: this.routeId,
-            };
-            if (!opts?.noresponse) {
-                msg.reqid = crypto.randomUUID();
-            }
-            if (opts?.timeout) {
-                msg.timeout = opts.timeout;
-            }
-            if (opts?.route) {
-                msg.route = opts.route;
-            }
-            const rpcGen = sendRpcCommand(this.openRpcs, msg);
-            if (rpcGen == null) {
-                return null;
-            }
-            const respMsgPromise = rpcGen.next(true); // pass true to force termination of rpc after 1 response (not streaming)
-            const result = await respMsgPromise;
-            return result.value;
+        const msg: RpcMessage = {
+            command: command,
+            data: data,
+            source: this.routeId,
         };
-
-        if (!shouldRetry) {
-            return executeCall();
+        if (!opts?.noresponse) {
+            msg.reqid = crypto.randomUUID();
         }
-
-        // Configure retry for network operations
-        const retryOpts: RetryOptions = {
-            maxRetries: opts?.maxRetries ?? 3,
-            initialDelay: 1000,
-            maxDelay: 8000, // Lower max delay for RPC calls
-            onRetry: (attempt, error, delay) => {
-                console.log(
-                    `[RPC] Retrying ${command} (attempt ${attempt}/3) after error: ${error.message} (waiting ${(delay / 1000).toFixed(1)}s)`
-                );
-            },
-        };
-
-        return retryWithBackoff(executeCall, retryOpts);
+        if (opts?.timeout) {
+            msg.timeout = opts.timeout;
+        }
+        if (opts?.route) {
+            msg.route = opts.route;
+        }
+        const rpcGen = sendRpcCommand(this.openRpcs, msg);
+        if (rpcGen == null) {
+            return Promise.resolve(null);
+        }
+        const respMsgPromise = rpcGen.next(true); // pass true to force termination of rpc after 1 response (not streaming)
+        return respMsgPromise.then((result) => result.value);
     }
 
     wshRpcStream(command: string, data: any, opts: RpcOpts): AsyncGenerator<any, void, boolean> {
