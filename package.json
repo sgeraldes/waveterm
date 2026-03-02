@@ -123,7 +123,7 @@
         "react-dnd-html5-backend": "^16.0.1",
         "react-dom": "^19.2.4",
         "react-frame-component": "^5.2.7",
-        "react-markdown": "^9.0.3",
+        "react-markdown": "^10.1.0",
         "react-resizable-panels": "^3.0.6",
         "react-zoom-pan-pinch": "^3.7.0",
         "recharts": "^2.15.4",
