@@ -1273,8 +1273,6 @@ declare global {
         timeout?: number;
         noresponse?: boolean;
         route?: string;
-        retry?: boolean; // Enable/disable retry (default: true)
-        maxRetries?: number; // Maximum retry attempts (default: 3)
     };
 
     // waveobj.RuntimeOpts

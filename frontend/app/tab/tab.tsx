@@ -227,7 +227,7 @@ const Tab = memo(
              * - Smart auto-detection from OSC 7 is re-enabled
              *
              * @remarks
-             * Only clears `tab:basedir`, does NOT touch `tab:basedirlock`
+             * Clears both `tab:basedir` and `tab:basedirlock`, re-enabling OSC 7 smart auto-detection.
              */
             const handleClearBaseDir = useCallback(() => {
                 fireAndForget(async () => {
@@ -235,6 +235,7 @@ const Tab = memo(
                     try {
                         await ObjectService.UpdateObjectMeta(makeORef("tab", id), {
                             "tab:basedir": null,
+                            "tab:basedirlock": null,
                         });
                         setError("");
                     } catch (e) {

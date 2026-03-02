@@ -74,7 +74,8 @@ function isNetworkPath(path: string): boolean {
         return true;
     }
 
-    if (/^[^/\\]+:/.test(path)) {
+    // Match protocol-like prefixes (smb://, nfs://, etc.) but NOT single-letter Windows drive paths
+    if (/^[a-zA-Z]{2,}:/.test(path)) {
         return true;
     }
 
@@ -216,9 +217,26 @@ export async function handleStaleBasedir(tabId: string, path: string, reason: St
     const tabORef = WOS.makeORef("tab", tabId);
 
     try {
+        // Don't clear for transient errors — directory may be temporarily unreachable
+        if (reason === "access_denied" || reason === "network_error") {
+            const { pushNotification } = await import("./global");
+            pushNotification({
+                id: `stale-basedir-${tabId}`,
+                icon: "triangle-exclamation",
+                type: "warning",
+                title: "Tab base directory inaccessible",
+                message: getReasonMessage(reason, path),
+                timestamp: new Date().toISOString(),
+                expiration: Date.now() + 10000,
+                persistent: false,
+            });
+            console.log(`[TabBasedir] Inaccessible basedir for tab ${tabId}: ${path} (${reason}) - not clearing`);
+            return;
+        }
+        // Only clear for permanent failures (not_found, not_directory, unknown_error)
+        // Preserve tab:basedirlock — the user set it intentionally
         await ObjectService.UpdateObjectMeta(tabORef, {
             "tab:basedir": null,
-            "tab:basedirlock": false,
         });
 
         const { pushNotification } = await import("./global");
@@ -244,11 +262,11 @@ export async function handleMultipleStaleBasedirs(
 ): Promise<void> {
     if (staleTabs.length === 0) return;
 
+    // Preserve tab:basedirlock — the user set it intentionally
     const clearPromises = staleTabs.map(({ tabId }) => {
         const tabORef = WOS.makeORef("tab", tabId);
         return ObjectService.UpdateObjectMeta(tabORef, {
             "tab:basedir": null,
-            "tab:basedirlock": false,
         });
     });
 

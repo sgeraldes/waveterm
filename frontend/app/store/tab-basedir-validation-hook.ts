@@ -9,9 +9,17 @@ import * as WOS from "./wos";
 
 const DEBOUNCE_INTERVAL_MS = 500; // Minimum time between validations
 
+// Tracks tabs currently undergoing validation to prevent concurrent runs
+const validationInFlight = new Set<string>();
+
 // Validate tab basedir when tab is activated
 async function validateActiveTabBasedir(tabId: string): Promise<void> {
     if (!tabId) return;
+
+    // Prevent concurrent validation for the same tab
+    if (validationInFlight.has(tabId)) {
+        return;
+    }
 
     const tabModel = getTabModelByTabId(tabId);
     const lastValidationTime = globalStore.get(tabModel.lastValidationTimeAtom);
@@ -37,25 +45,32 @@ async function validateActiveTabBasedir(tabId: string): Promise<void> {
         return;
     }
 
-    // Update validation state to pending
+    // Mark as in-flight and record start time
+    validationInFlight.add(tabId);
     globalStore.set(tabModel.basedirValidationAtom, "pending");
     globalStore.set(tabModel.lastValidationTimeAtom, now);
 
-    // Perform validation
-    const result = await validateTabBasedir(tabId, basedir);
+    try {
+        // Perform validation
+        const result = await validateTabBasedir(tabId, basedir);
 
-    if (result.valid) {
-        // Update validation state to valid
-        globalStore.set(tabModel.basedirValidationAtom, "valid");
-    } else {
-        // Update validation state to invalid
-        globalStore.set(tabModel.basedirValidationAtom, "invalid");
+        if (result.valid) {
+            // Update validation state to valid
+            globalStore.set(tabModel.basedirValidationAtom, "valid");
+        } else {
+            // Update validation state to invalid
+            globalStore.set(tabModel.basedirValidationAtom, "invalid");
 
-        // Handle stale basedir (will clear and notify)
-        if (result.reason) {
-            const { handleStaleBasedir } = await import("./tab-basedir-validator");
-            await handleStaleBasedir(tabId, basedir, result.reason);
+            // Handle stale basedir (will clear and notify)
+            if (result.reason) {
+                const { handleStaleBasedir } = await import("./tab-basedir-validator");
+                await handleStaleBasedir(tabId, basedir, result.reason);
+            }
         }
+    } finally {
+        validationInFlight.delete(tabId);
+        // Update timestamp to AFTER completion so the debounce reflects actual elapsed time
+        globalStore.set(tabModel.lastValidationTimeAtom, Date.now());
     }
 }
 

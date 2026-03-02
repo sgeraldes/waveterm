@@ -158,68 +158,66 @@ export function handleOsc7Command(data: string, blockId: string, tabId: string, 
         return true;
     }
 
-    setTimeout(() => {
-        fireAndForget(async () => {
-            await services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", blockId), {
-                "cmd:cwd": validatedPath,
-            });
-            const rtInfoData: CommandSetRTInfoData = {
-                oref: WOS.makeORef("block", blockId),
-                data: { "shell:hascurcwd": true },
-            };
-            await RpcApi.SetRTInfoCommand(TabRpcClient, rtInfoData).catch((e) =>
-                console.log("error setting RT info", e)
-            );
-
-            if (!tabId) {
-                return;
-            }
-            const tabORef = WOS.makeORef("tab", tabId);
-            clearOsc7Debounce(tabId);
-            osc7DebounceMap.set(
-                tabId,
-                setTimeout(() => {
-                    osc7DebounceMap.delete(tabId);
-                    fireAndForget(async () => {
-                        const currentTab = WOS.getObjectValue<Tab>(tabORef);
-                        if (!currentTab) {
-                            return;
-                        }
-                        const currentVersion = currentTab.version ?? 0;
-                        const isLocked = currentTab.meta?.["tab:basedirlock"];
-                        const currentBasedir = currentTab.meta?.["tab:basedir"];
-                        if (isLocked) {
-                            dlog("OSC 7: Skipping update - tab basedir is locked");
-                            return;
-                        }
-                        if (currentBasedir && currentBasedir !== "~") {
-                            dlog("OSC 7: Skipping update - tab basedir already explicitly set:", currentBasedir);
-                            return;
-                        }
-                        try {
-                            await services.ObjectService.UpdateObjectMetaIfNotLocked(
-                                tabORef,
-                                { "tab:basedir": validatedPath },
-                                "tab:basedirlock",
-                                currentVersion
-                            );
-                            const { getTabModelByTabId } = await import("@/store/tab-model");
-                            const tabModel = getTabModelByTabId(tabId);
-                            globalStore.set(tabModel.basedirValidationAtom, "valid");
-                            globalStore.set(tabModel.lastValidationTimeAtom, Date.now());
-                        } catch (err: unknown) {
-                            const errMsg = err instanceof Error ? err.message : "";
-                            if (errMsg.includes("version mismatch") || errMsg.includes("locked")) {
-                                dlog("OSC 7: Skipped update (concurrent modification or locked)");
-                                return;
-                            }
-                            console.log("OSC 7: Error updating tab basedir:", err);
-                        }
-                    });
-                }, OSC7_DEBOUNCE_MS)
-            );
+    fireAndForget(async () => {
+        await services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", blockId), {
+            "cmd:cwd": validatedPath,
         });
-    }, 0);
+        const rtInfoData: CommandSetRTInfoData = {
+            oref: WOS.makeORef("block", blockId),
+            data: { "shell:hascurcwd": true },
+        };
+        await RpcApi.SetRTInfoCommand(TabRpcClient, rtInfoData).catch((e) =>
+            console.log("error setting RT info", e)
+        );
+
+        if (!tabId) {
+            return;
+        }
+        const tabORef = WOS.makeORef("tab", tabId);
+        clearOsc7Debounce(tabId);
+        osc7DebounceMap.set(
+            tabId,
+            setTimeout(() => {
+                osc7DebounceMap.delete(tabId);
+                fireAndForget(async () => {
+                    const currentTab = WOS.getObjectValue<Tab>(tabORef);
+                    if (!currentTab) {
+                        return;
+                    }
+                    const currentVersion = currentTab.version ?? 0;
+                    const isLocked = currentTab.meta?.["tab:basedirlock"];
+                    const currentBasedir = currentTab.meta?.["tab:basedir"];
+                    if (isLocked) {
+                        dlog("OSC 7: Skipping update - tab basedir is locked");
+                        return;
+                    }
+                    if (currentBasedir && currentBasedir !== "~") {
+                        dlog("OSC 7: Skipping update - tab basedir already explicitly set:", currentBasedir);
+                        return;
+                    }
+                    try {
+                        await services.ObjectService.UpdateObjectMetaIfNotLocked(
+                            tabORef,
+                            { "tab:basedir": validatedPath },
+                            "tab:basedirlock",
+                            currentVersion
+                        );
+                        const { getTabModelByTabId } = await import("@/store/tab-model");
+                        const tabModel = getTabModelByTabId(tabId);
+                        globalStore.set(tabModel.basedirValidationAtom, "valid");
+                        globalStore.set(tabModel.lastValidationTimeAtom, Date.now());
+                    } catch (err: unknown) {
+                        const errMsg = err instanceof Error ? err.message : "";
+                        if (errMsg.includes("version mismatch") || errMsg.includes("locked")) {
+                            dlog("OSC 7: Skipped update (concurrent modification or locked)");
+                            return;
+                        }
+                        console.log("OSC 7: Error updating tab basedir:", err);
+                    }
+                });
+            }, OSC7_DEBOUNCE_MS)
+        );
+    });
     return true;
 }
 

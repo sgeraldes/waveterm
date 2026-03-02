@@ -9,8 +9,10 @@ import { TabBar } from "@/app/tab/tabbar";
 import { TabContent } from "@/app/tab/tabcontent";
 import { Widgets } from "@/app/workspace/widgets";
 import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
-import { atoms, getApi } from "@/store/global";
+import { ObjectService } from "@/app/store/services";
+import { atoms, createBlock, getApi } from "@/store/global";
 import * as WOS from "@/store/wos";
+import { fireAndForget } from "@/util/util";
 import { useAtomValue } from "jotai";
 import React, { memo, useEffect, useMemo, useRef } from "react";
 import {
@@ -30,48 +32,110 @@ import "./workspace.scss";
  * @returns Array of path segments for breadcrumb display
  *
  * @example
- * formatPathAsSegments("/home/user/projects") // ["home", "user", "projects"]
+ * formatPathAsSegments("/home/user/projects") // ["", "home", "user", "projects"] (leading "" = root)
  * formatPathAsSegments("G:\\Code\\waveterm") // ["G:", "Code", "waveterm"]
  */
 function formatPathAsSegments(path: string): string[] {
     if (!path) return [];
+    return path.split(/[\/\\]/);
+}
 
-    // Handle Windows drive letters (e.g., "G:\Code\waveterm")
-    // and Unix paths (e.g., "/home/user/projects")
-    const segments = path.split(/[\/\\]/).filter((s) => s.length > 0);
+/**
+ * Reconstructs the path up to and including the segment at `segmentIndex`.
+ *
+ * @param fullPath - The full base directory path
+ * @param segments - The segments array from formatPathAsSegments
+ * @param segmentIndex - Index into segments to navigate to
+ */
+function getPathAtSegment(fullPath: string, segments: string[], segmentIndex: number): string {
+    if (!fullPath || segments.length === 0) return fullPath;
 
-    return segments;
+    const isUnixAbsolute = segments[0] === "" && segments.length > 1;
+    const isUncPath = fullPath.startsWith("\\\\") || fullPath.startsWith("//");
+
+    const selected = segments.slice(0, segmentIndex + 1);
+
+    if (isUncPath) {
+        // UNC: \\server\share\dir -> join non-empty with backslash, prepend \\
+        return "\\\\" + selected.filter((s) => s.length > 0).join("\\");
+    } else if (isUnixAbsolute) {
+        // Unix absolute: /home/user -> prepend /
+        return "/" + selected.filter((s) => s.length > 0).join("/");
+    } else {
+        // Windows drive: G:\Code\waveterm -> G:\Code
+        const parts = selected.filter((s) => s.length > 0);
+        const result = parts.join("\\");
+        // Drive root needs trailing backslash: "G:" -> "G:\"
+        return parts.length === 1 && /^[a-zA-Z]:$/.test(parts[0]) ? result + "\\" : result;
+    }
 }
 
 /**
  * Breadcrumb bar showing the active tab's base directory with app menu button.
  * Positioned below the tab bar and spans full window width.
- * Always renders to show the menu button, breadcrumbs only when tab:basedir is set.
+ * Clicking a segment opens a file preview at that path.
  */
 const TabBreadcrumb = memo(() => {
     const tabId = useAtomValue(atoms.staticTabId);
     const ws = useAtomValue(atoms.workspace);
     const tabAtom = useMemo(() => WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", tabId)), [tabId]);
     const tabData = useAtomValue(tabAtom);
-    const baseDir = tabData?.meta?.["tab:basedir"];
 
+    if (!tabId) return null;
+
+    const baseDir = tabData?.meta?.["tab:basedir"];
+    const isLocked = tabData?.meta?.["tab:basedirlock"] ?? false;
     const segments = baseDir ? formatPathAsSegments(baseDir) : [];
+    // Filter out empty segments for display but keep track of their indices for reconstruction
+    const displaySegments = segments.reduce<{ label: string; idx: number }[]>((acc, seg, i) => {
+        if (seg.length > 0) acc.push({ label: seg, idx: i });
+        return acc;
+    }, []);
 
     const handleMenuClick = () => {
+        if (!ws) return;
         getApi().showWorkspaceAppMenu(ws.oid);
+    };
+
+    const handleSegmentClick = (segIdx: number) => {
+        if (!baseDir) return;
+        const targetPath = getPathAtSegment(baseDir, segments, segIdx);
+        fireAndForget(() => createBlock({ meta: { view: "preview", file: targetPath } }));
+    };
+
+    const handleLockToggle = () => {
+        if (!tabId) return;
+        fireAndForget(async () => {
+            await ObjectService.UpdateObjectMeta(WOS.makeORef("tab", tabId), {
+                "tab:basedirlock": !isLocked,
+            });
+        });
     };
 
     return (
         <div className="tab-breadcrumb">
             <div className="breadcrumb-content">
-                {segments.map((seg, i) => (
-                    <React.Fragment key={i}>
-                        {i > 0 && <span className="separator">›</span>}
-                        <span className="segment">{seg}</span>
+                {displaySegments.map(({ label, idx }, displayIdx) => (
+                    <React.Fragment key={idx}>
+                        {displayIdx > 0 && <span className="separator">›</span>}
+                        <span className="segment" onClick={() => handleSegmentClick(idx)}>
+                            {label}
+                        </span>
                     </React.Fragment>
                 ))}
             </div>
             <div className="breadcrumb-actions">
+                {baseDir && (
+                    <button
+                        type="button"
+                        className="menu-button"
+                        onClick={handleLockToggle}
+                        title={isLocked ? "Unlock: allow smart directory detection" : "Lock: prevent auto directory update"}
+                        aria-label={isLocked ? "Unlock base directory" : "Lock base directory"}
+                    >
+                        <i className={isLocked ? "fa fa-lock" : "fa fa-lock-open"} />
+                    </button>
+                )}
                 <button
                     type="button"
                     className="menu-button"
