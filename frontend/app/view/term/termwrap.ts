@@ -412,7 +412,7 @@ export class TermWrap {
                 console.error("Error disposing terminal resource:", e);
             }
         });
-        this.mainFileSubject.release();
+        this.mainFileSubject?.release();
     }
 
     setShellIntegrationStatus(status: "ready" | "running-command" | null) {

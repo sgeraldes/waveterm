@@ -293,12 +293,17 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({ content, onChange, res
     const handleFinishEdit = useCallback(
         (blockId: string, newContent: string) => {
             setEditingBlockId(null);
-            const updatedBlocks = localBlocks.map((b) => (b.id === blockId ? { ...b, content: newContent } : b));
-            setLocalBlocks(updatedBlocks);
-            const newMarkdown = joinBlocksIntoMarkdown(updatedBlocks);
-            onChange(newMarkdown);
+            // Use functional update to avoid stale closure over localBlocks.
+            // When navigating quickly between blocks, the previous state update may not
+            // have committed yet, so reading localBlocks directly would produce stale data.
+            setLocalBlocks((prevBlocks) => {
+                const updatedBlocks = prevBlocks.map((b) => (b.id === blockId ? { ...b, content: newContent } : b));
+                const newMarkdown = joinBlocksIntoMarkdown(updatedBlocks);
+                onChange(newMarkdown);
+                return updatedBlocks;
+            });
         },
-        [localBlocks, onChange]
+        [onChange]
     );
 
     const handleNavigateUp = useCallback(
@@ -325,7 +330,7 @@ export const BlockEditor: React.FC<BlockEditorProps> = ({ content, onChange, res
 
     if (localBlocks.length === 0) {
         return (
-            <div className="block-editor-empty" onClick={() => onChange("Start writing...")}>
+            <div className="block-editor-empty" onClick={() => onChange("")}>
                 Click to start writing...
             </div>
         );

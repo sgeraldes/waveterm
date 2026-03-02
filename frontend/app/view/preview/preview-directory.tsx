@@ -607,6 +607,8 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
                         status: "Cannot Read Directory",
                         text: `${e}`,
                     });
+                    // Don't wipe the existing displayed data on a failed refresh
+                    return;
                 }
                 setUnfilteredData(entries);
             }),

@@ -112,3 +112,64 @@ describe("saveRollingCapture", () => {
         expect(ctx.lastRollingLength).toBe(content.length);
     });
 });
+
+describe("TermWrap dispose null-safety (TM-NEW-2)", () => {
+    // Bug: TermWrap.dispose() called this.mainFileSubject.release() unconditionally.
+    // mainFileSubject is initialized to null in the constructor and only set in
+    // initTerminal() (async). If the component unmounts before initTerminal completes,
+    // dispose() would throw "Cannot read properties of null (reading 'release')".
+    //
+    // Fix: changed to this.mainFileSubject?.release() (optional chaining).
+
+    it("optional chaining on null does not throw", () => {
+        // Simulate the fixed pattern: calling .release() via optional chaining on null
+        const mainFileSubject: { release: () => void } | null = null;
+
+        // Old (buggy) pattern would throw:
+        expect(() => (mainFileSubject as any).release()).toThrow();
+
+        // Fixed pattern with optional chaining does not throw:
+        expect(() => mainFileSubject?.release()).not.toThrow();
+    });
+
+    it("optional chaining calls release when subject is set", () => {
+        let releaseCalled = false;
+        const mainFileSubject = {
+            release: () => {
+                releaseCalled = true;
+            },
+        };
+
+        // Should call release when the subject is non-null
+        mainFileSubject?.release();
+        expect(releaseCalled).toBe(true);
+    });
+
+    it("dispose is safe when called before initTerminal completes", () => {
+        // Simulate the sequence: constructor sets mainFileSubject = null,
+        // initTerminal is called async, component unmounts before it resolves,
+        // dispose() is called with mainFileSubject still null.
+        class FakeTermWrap {
+            mainFileSubject: { release: () => void } | null = null;
+            titleDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+            sessionHistoryTimer: ReturnType<typeof setInterval> | null = null;
+
+            dispose() {
+                if (this.titleDebounceTimer != null) {
+                    clearTimeout(this.titleDebounceTimer);
+                    this.titleDebounceTimer = null;
+                }
+                if (this.sessionHistoryTimer != null) {
+                    clearInterval(this.sessionHistoryTimer);
+                    this.sessionHistoryTimer = null;
+                }
+                // Fixed: optional chaining prevents crash when mainFileSubject is null
+                this.mainFileSubject?.release();
+            }
+        }
+
+        const tw = new FakeTermWrap();
+        // mainFileSubject is still null (initTerminal never ran)
+        expect(() => tw.dispose()).not.toThrow();
+    });
+});

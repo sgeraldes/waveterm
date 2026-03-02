@@ -533,10 +533,6 @@ export class PreviewModel implements ViewModel {
         if (isStreamingType(mimeType)) {
             return { specializedView: "streaming" };
         }
-        if (!fileInfo) {
-            const fileNameStr = fileName ? " " + JSON.stringify(fileName) : "";
-            return { errorStr: "File Not Found" + fileNameStr };
-        }
 
         // Get configurable size limits from settings (convert MB to bytes)
         const maxFileSizeMB = (globalStore.get(getSettingsKeyAtom("preview:maxfilesize")) as number) ?? 10;
