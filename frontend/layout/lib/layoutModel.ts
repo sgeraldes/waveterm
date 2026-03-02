@@ -1117,6 +1117,7 @@ export class LayoutModel {
             this.nodeModels.set(nodeid, {
                 additionalProps: addlPropsAtom,
                 innerRect: atom((get) => {
+                    if (get(this.isMaximizeModeAtom)) return null;
                     const addlProps = get(addlPropsAtom);
                     const numLeafs = get(this.numLeafs);
                     const gapSizePx = get(this.gapSizePx);

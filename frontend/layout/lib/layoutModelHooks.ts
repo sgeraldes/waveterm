@@ -77,6 +77,7 @@ export function useDebouncedNodeInnerRect(nodeModel: NodeModel): CSSProperties {
     const nodeInnerRect = useAtomValue(nodeModel.innerRect);
     const animationTimeS = useAtomValue(nodeModel.animationTimeS);
     const isMagnified = useAtomValue(nodeModel.isMagnified);
+    const isMaximizeMode = useAtomValue(nodeModel.isMaximizeMode);
     const isResizing = useAtomValue(nodeModel.isResizing);
     const prefersReducedMotion = useAtomValue(atoms.prefersReducedMotionAtom);
     const [innerRect, setInnerRect] = useState<CSSProperties>();
@@ -101,7 +102,7 @@ export function useDebouncedNodeInnerRect(nodeModel: NodeModel): CSSProperties {
     }, [innerRectDebounceTimeout]);
 
     useEffect(() => {
-        if (prefersReducedMotion || isMagnified || isResizing) {
+        if (prefersReducedMotion || isMagnified || isMaximizeMode || isResizing) {
             clearInnerRectDebounce();
             setInnerRect(nodeInnerRect);
         } else {

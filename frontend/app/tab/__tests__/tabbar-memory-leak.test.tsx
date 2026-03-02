@@ -1,6 +1,49 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
+// Mock heavy transitive dependencies so the module graph doesn't time out
+// under parallel test runs. tabbar imports @/layout/index which now includes
+// MaximizeTabBar → @/app/block/blockutil (a heavy chain).
+vi.mock("@/layout/index", () => ({
+    deleteLayoutModelForTab: vi.fn(),
+    getLayoutModelForStaticTab: vi.fn(),
+    LayoutModel: class {},
+    TileLayout: () => null,
+    newLayoutNode: vi.fn(),
+    DropDirection: {},
+    LayoutTreeActionType: {},
+    NavigateDirection: {},
+    useDebouncedNodeInnerRect: vi.fn(),
+}));
+vi.mock("@/app/store/modalmodel", () => ({ modalsModel: { hasOpenModals: vi.fn() } }));
+vi.mock("@/app/store/recently-closed", () => ({ addRecentlyClosed: vi.fn() }));
+vi.mock("@/app/view/term/termwrap", () => ({ cleanupOsc7DebounceForTab: vi.fn() }));
+vi.mock("@/app/workspace/workspace-layout-model", () => ({ WorkspaceLayoutModel: { getInstance: vi.fn() } }));
+vi.mock("@/store/global", () => ({
+    atoms: {},
+    createTab: vi.fn(),
+    getApi: vi.fn(() => ({})),
+    globalStore: { get: vi.fn(), set: vi.fn() },
+    setActiveTab: vi.fn(),
+    WOS: { useWaveObjectValue: vi.fn(() => [null, false]) },
+}));
+vi.mock("@/store/wos", () => ({ useWaveObjectValue: vi.fn(() => [null, false]), makeORef: vi.fn() }));
+vi.mock("@/util/platformutil", () => ({ isMacOS: vi.fn(() => false), isWindows: vi.fn(() => false) }));
+vi.mock("@/util/util", () => ({ makeIconClass: vi.fn(), useAtomValueSafe: vi.fn(), cn: vi.fn() }));
+vi.mock("@/app/element/button", () => ({ Button: () => null }));
+vi.mock("@/element/iconbutton", () => ({ IconButton: () => null }));
+vi.mock("@/app/tab/config-error", () => ({ ConfigErrorIcon: () => null }));
+vi.mock("@/app/tab/tab", () => ({ Tab: () => null }));
+vi.mock("@/app/tab/tab-management-panel", () => ({
+    TabManagementPanel: () => null,
+    tabManagementPanelOpenAtom: {},
+}));
+vi.mock("@/app/tab/updatebanner", () => ({ UpdateStatusBanner: () => null }));
+vi.mock("@/app/tab/use-tab-drag", () => ({ strArrayIsEqual: vi.fn(), useTabDrag: vi.fn(() => [[], vi.fn()]) }));
+vi.mock("@/app/tab/wave-ai-button", () => ({ WaveAIButton: () => null }));
+vi.mock("overlayscrollbars", () => ({ OverlayScrollbars: vi.fn() }));
+vi.mock("jotai", () => ({ useAtomValue: vi.fn(), atom: vi.fn() }));
+
 // Track addEventListener and removeEventListener calls
 let addedListeners = new Map<string, number>();
 let removedListeners = new Map<string, number>();
