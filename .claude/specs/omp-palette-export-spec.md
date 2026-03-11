@@ -1,5 +1,7 @@
 # Oh-My-Posh ANSI Color Palette Export Feature - Implementation Specification
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Overview
 This specification outlines the implementation of an ANSI color palette export feature that generates Oh-My-Posh (OMP) compatible palette configurations from the current terminal theme.
 

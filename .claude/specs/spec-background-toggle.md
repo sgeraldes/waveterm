@@ -1,5 +1,7 @@
 # Spec 012: Theme Preview with Background Toggle
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Overview
 Add a toggle to theme selectors (OMP and Terminal) that allows users to preview how themes look on both light and dark backgrounds.
 

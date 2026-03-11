@@ -1,5 +1,7 @@
 # Oh-My-Posh Theme Selector - Architecture Blueprint
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Date:** 2026-01-25
 **Status:** Ready for Implementation
 **Component:** `OmpThemeControl` - Visual Oh-My-Posh Theme Selector

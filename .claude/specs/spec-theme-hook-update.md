@@ -1,5 +1,7 @@
 # Spec 003: Theme Hook Update (usetheme.ts)
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Date:** 2026-01-26
 **Status:** Ready for Implementation
 **File:** `frontend/app/hook/usetheme.ts`

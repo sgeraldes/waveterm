@@ -1,5 +1,7 @@
 # Spec 008: Styling and Polish
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Apply consistent styling, animations, and polish to create a professional VS Code-like settings experience.
 

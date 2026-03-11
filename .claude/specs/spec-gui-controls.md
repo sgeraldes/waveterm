@@ -1,5 +1,7 @@
 # Spec 002: GUI Control Components
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Create reusable React components for each setting control type that can be dynamically rendered based on the settings metadata.
 

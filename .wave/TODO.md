@@ -1,6 +1,8 @@
 - [ ] posibility to add more terminals as tabs in the same wave space...
 - [ ] posibility to add more documents in the same document preview space
-- [ ] posibility to edit tasks, I can only click to done/undone
+- [x] posibility to edit tasks, I can only click to done/undone
 - [ ] tasks evolution into kanban board (trello like)
 - [ ] poder hacer click en archivos/links que no son URL y abrir documentos, por ejemplo, en wsh (widgets).
 - [ ] Double click and exe to run it, not open in viewer. same with other files. And I need right mouse click menu, hopefully explorer like
+- [ ] New Widget pop-out and standalone window feature (specs created)
+- [ ] Workspaces can be simultaneously open. workspaces do not switch between them, instead of closing the former and opening the new one when selecting a new workspace or switching to an existing, a new electron window opens with a new instance of wave containing the workspace in question. The other workspace remains valid.

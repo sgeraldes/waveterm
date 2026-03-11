@@ -1,5 +1,7 @@
 # Spec 005: Settings Persistence Layer
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Create a robust persistence layer that handles saving individual settings, batched saves, and proper error handling.
 

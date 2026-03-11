@@ -1,5 +1,7 @@
 # Spec 013: High Contrast Compatible Mode
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Overview
 Implement a mode that automatically adds contrasting backgrounds to OMP segments that use transparent backgrounds, ensuring readability across all terminal backgrounds.
 

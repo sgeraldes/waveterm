@@ -1,5 +1,7 @@
 # Prompt Color Contrast Warning System - Implementation Specification
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Feature ID**: spec-prompt-contrast-warning
 **Created**: 2026-01-25
 **Status**: Planning

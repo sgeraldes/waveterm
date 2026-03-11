@@ -1,5 +1,7 @@
 # Spec 002: CSS Variable Restructuring (theme.scss + tailwindsetup.css)
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 
 Restructure the CSS variable system to separate **mode** (dark/light) from **accent** (green/warm/blue/purple/teal). Currently, theme.scss conflates structural colors with accent colors across four monolithic theme blocks. After this change:

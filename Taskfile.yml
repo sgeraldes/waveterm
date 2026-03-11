@@ -112,9 +112,15 @@ tasks:
     package:
         desc: Package the application for the current platform.
         cmds:
+            - task: clean
+            - task: package:build
+
+    package:build:
+        desc: Build and package the application (internal, called after clean).
+        internal: true
+        cmds:
             - npm run build:prod && npm exec electron-builder -- -c electron-builder.config.cjs -p never {{.CLI_ARGS}}
         deps:
-            - clean
             - npm:install
             - build:backend
 

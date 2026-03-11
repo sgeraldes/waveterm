@@ -70,6 +70,23 @@
     }
 }
 
+.treeview-refresh-btn {
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 2px 4px;
+    color: var(--secondary-text-color);
+    font-size: 11px;
+    line-height: 1;
+    border-radius: 3px;
+
+    &:hover {
+        color: var(--main-text-color);
+        background: var(--panel-bg-color, rgba(255, 255, 255, 0.05));
+    }
+}
+
 .treeview-search-results {
     display: flex;
     flex-direction: column;

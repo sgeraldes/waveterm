@@ -76,8 +76,8 @@ func (fw *FileWatcher) start() {
 }
 
 func (fw *FileWatcher) handleEvent(event fsnotify.Event) {
-	// Only care about write and remove events
-	if event.Op&fsnotify.Write != fsnotify.Write && event.Op&fsnotify.Remove != fsnotify.Remove {
+	// Handle write, create, remove, and rename events (needed for directory watching)
+	if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Rename) == 0 {
 		return
 	}
 

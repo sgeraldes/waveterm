@@ -1,5 +1,7 @@
 # Spec 009: Settings Registry Updates (hideFromSettings)
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Task:** 9 of UI Theme System Redesign (Phase 3)
 **Status:** Ready for Implementation
 **Dependencies:** Task 1 (adds `hideFromSettings` to `SettingMetadata` type), Tasks 7-8 (provide the Appearance panel that replaces these settings in General)

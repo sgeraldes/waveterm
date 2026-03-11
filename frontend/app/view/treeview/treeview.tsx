@@ -2,7 +2,7 @@ import { LoadingSpinner } from "@/element/spinner";
 import { makeIconClass } from "@/util/util";
 import { useAtomValue } from "jotai";
 import * as React from "react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { TreeViewModel } from "./treeview-model";
 import { renderNodes, searchNodes, SearchResultRow } from "./treeview-nodes";
 import "./treeview.scss";
@@ -30,6 +30,15 @@ export function TreeViewComponent({
     useEffect(() => {
         model.loadRoot();
     }, [rootPath]);
+
+    useEffect(() => {
+        model.startWatching();
+        return () => model.stopWatching();
+    }, [model, rootPath]);
+
+    const handleRefresh = useCallback(() => {
+        model.loadRoot();
+    }, [model]);
 
     const handleToggle = (node: Parameters<typeof model.toggleExpand>[0]) => {
         model.toggleExpand(node);
@@ -98,6 +107,9 @@ export function TreeViewComponent({
                         <i className={makeIconClass("xmark", false)} />
                     </button>
                 )}
+                <button className="treeview-refresh-btn" onClick={handleRefresh} tabIndex={-1} title="Refresh">
+                    <i className={makeIconClass("arrows-rotate", false)} />
+                </button>
             </div>
             {searchResults ? (
                 <div className="treeview-search-results">

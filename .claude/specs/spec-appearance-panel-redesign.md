@@ -1,5 +1,7 @@
 # Spec 007: Appearance Panel Redesign
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Task:** 7 of UI Theme System Redesign (Phase 3)
 **Status:** Ready for Implementation
 **Dependencies:** Tasks 4 (ModeSelector), 5 (AccentSelector), 6 (ThemePalettePreview)

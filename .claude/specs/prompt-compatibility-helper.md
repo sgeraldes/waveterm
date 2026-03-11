@@ -1,5 +1,7 @@
 # Prompt Compatibility Helper - Implementation Specification
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Overview
 
 Design and implement a Prompt Compatibility help section and shell profile helper for Wave Terminal settings. This feature will help users configure their shell prompts (Oh-My-Posh, Starship, Powerlevel10k) to work correctly with Wave Terminal's theme system.

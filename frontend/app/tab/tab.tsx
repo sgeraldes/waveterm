@@ -458,6 +458,9 @@ const Tab = memo(
 
             const statusClassName = getStatusClassName();
 
+            // Build tooltip: show tab name, append error if present
+            const tooltipText = error ? `${tabData?.name}\n\n${error}` : tabData?.name || "";
+
             return (
                 <div
                     ref={tabRef}
@@ -480,7 +483,7 @@ const Tab = memo(
                     }}
                     onContextMenu={handleContextMenu}
                     data-tab-id={id}
-                    title={error || undefined}
+                    title={tooltipText}
                 >
                     {/* Top stripe for manual color only (VS Code style) */}
                     {tabColor && <div className="tab-color-stripe" style={{ backgroundColor: tabColor }} />}

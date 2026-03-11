@@ -1,5 +1,7 @@
 # Spec 003: Settings View Component (Main UI)
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Create the main settings view component that renders settings in a VS Code-like layout with category sidebar, search, and scrollable settings list.
 

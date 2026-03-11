@@ -1,5 +1,7 @@
 # Spec 007: Integration with Existing WaveConfig
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Integrate the new GUI settings view with the existing WaveConfig infrastructure, maintaining the ability to edit raw JSON while adding the visual interface.
 

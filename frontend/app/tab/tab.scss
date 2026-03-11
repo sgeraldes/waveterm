@@ -83,6 +83,22 @@
             inset 1px 0 0 rgb(255 255 255 / 0.06),
             inset -1px 0 0 rgb(255 255 255 / 0.06);
 
+        // Add curved bottom edge to integrate with content area
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+        // Extend background to cover the rounded corner area
+        &::before {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 4px;
+            background: inherit;
+            border-radius: inherit;
+            z-index: -1;
+        }
+
         .tab-inner {
             border-color: transparent;
             border-radius: 0;
@@ -119,6 +135,8 @@
         align-items: center;
         gap: 2px;
         z-index: var(--zindex-tab-name);
+        // Prevent overflow from breaking ellipsis
+        min-width: 0;
     }
 
     .name {
@@ -128,15 +146,20 @@
         text-shadow: 0px 0px 4px rgb(from var(--main-bg-color) r g b / 0.25);
         overflow: hidden;
         text-overflow: ellipsis;
+        white-space: nowrap; // Required for ellipsis to work
         text-align: center;
         // Inactive tabs have more muted text
         opacity: 0.7;
+        // Constrain width to parent so ellipsis works
+        max-width: 100%;
+        width: 100%;
 
         &.focused {
             outline: none;
             border: 1px solid rgb(from var(--main-text-color) r g b / 0.179);
             padding: 2px 6px;
             border-radius: 2px;
+            white-space: normal; // Allow wrapping when editing
         }
     }
 

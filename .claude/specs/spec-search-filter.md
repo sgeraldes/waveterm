@@ -1,5 +1,7 @@
 # Spec 006: Search and Filter System
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Implement comprehensive search and filtering for settings, similar to VS Code's settings search.
 

@@ -1,5 +1,7 @@
 # Spec: Go Backend - New `app:accent` Setting
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Task:** 1 of UI Theme System Redesign
 **Status:** Ready for Implementation
 **Dependencies:** None (foundation task)

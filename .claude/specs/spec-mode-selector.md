@@ -1,5 +1,7 @@
 # Spec 004: Mode Selector Component
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Date:** 2026-01-26
 **Status:** Ready for Implementation
 **Dependencies:** Spec 003 (Theme Hook Update) -- requires `ThemeSetting` type export

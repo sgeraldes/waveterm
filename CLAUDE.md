@@ -98,6 +98,7 @@ task generate
 ```
 
 **Always run `task generate` after modifying:**
+
 - Go RPC types in `pkg/wshrpc/`
 - Service definitions in `pkg/service/`
 - Wave object types in `pkg/waveobj/`
@@ -107,16 +108,19 @@ task generate
 ### Frontend Architecture
 
 **Entry Point:** `frontend/wave.ts`
+
 - Initializes the Wave Terminal application
 - Sets up Jotai store, WPS (WebSocket Pub/Sub), and Monaco editor
 - Root React component: `frontend/app/app.tsx`
 
 **State Management:** Jotai (atom-based state)
+
 - Global atoms defined in `frontend/app/store/global.ts`
 - Store instance: `globalStore` (exported from `frontend/app/store/jotaiStore.ts`)
 - Key models: `GlobalModel`, `TabModel`, `ConnectionsModel`
 
 **Key Frontend Directories:**
+
 - `frontend/app/block/` - Terminal blocks and renderers
 - `frontend/app/view/` - Different view types (terminal, preview, web, etc.)
 - `frontend/app/workspace/` - Workspace and tab layout management
@@ -126,23 +130,27 @@ task generate
 - `frontend/app/monaco/` - Monaco editor integration
 
 **Hot Module Reloading:**
+
 - Vite enables HMR for most changes
 - State changes (Jotai atoms, layout) may require hard reload: `Cmd+Shift+R` / `Ctrl+Shift+R`
 
 ### Electron Main Process (emain)
 
 **Entry Point:** `emain/emain.ts`
+
 - Manages Electron app lifecycle and window creation
 - Spawns and manages the `wavesrv` backend process
 - Handles native menus, context menus, and OS integration
 
 **IPC Communication:**
+
 - Functions exposed from emain to frontend are defined in two places:
   1. `emain/preload.ts` - Electron preload script
   2. `frontend/types/custom.d.ts` - TypeScript declarations
 - Frontend calls: `getApi().<function>()`
 
 **Key emain Files:**
+
 - `emain/emain.ts` - Main entry point
 - `emain/emain-window.ts` - Window management
 - `emain/emain-menu.ts` - Menu bar and context menus
@@ -155,6 +163,7 @@ task generate
 **Entry Point:** `cmd/server/main-server.go`
 
 **Core Packages:**
+
 - `pkg/wstore/` - Database operations and Wave object persistence
 - `pkg/waveobj/` - Wave object type definitions (Client, Window, Tab, Block, etc.)
 - `pkg/service/` - HTTP service endpoints
@@ -166,11 +175,13 @@ task generate
 - `pkg/filestore/` - File storage and management
 
 **Database:**
+
 - SQLite databases in `db/migrations-wstore/` and `db/migrations-filestore/`
 - Wave objects: `Client`, `Window`, `Workspace`, `Tab`, `Block`, `LayoutState`
 - All Wave object types registered in `pkg/waveobj/waveobj.go`
 
 **RPC Communication:**
+
 - Uses custom `wshrpc` protocol over WebSocket
 - RPC types defined in `pkg/wshrpc/wshrpctypes.go`
 - Commands implemented in `pkg/wshrpc/wshserver/` and `pkg/wshrpc/wshremote/`
@@ -180,10 +191,12 @@ task generate
 **Entry Point:** `cmd/wsh/main-wsh.go`
 
 **Dual Purpose:**
+
 1. CLI tool for controlling Wave from the terminal
 2. Remote server for multiplexing connections and file streaming
 
 **Communication:**
+
 - Uses `wshrpc` protocol over domain socket or WebSocket
 - Enables single-connection multiplexing for remote terminals
 
@@ -192,6 +205,7 @@ task generate
 ### Frontend Development
 
 1. **Use existing patterns:** Before adding new components, search for similar features:
+
    ```bash
    # Find similar views
    grep -r "registerView" frontend/app/view/
@@ -205,6 +219,7 @@ task generate
    - Component-local atoms using `atom()` from `jotai`
 
 3. **RPC calls:** Use the generated `RpcApi` from `frontend/app/store/wshclientapi.ts`:
+
    ```typescript
    import { RpcApi } from "@/app/store/wshclientapi";
    import { TabRpcClient } from "@/app/store/wshrpcutil";
@@ -213,6 +228,7 @@ task generate
    ```
 
 4. **Wave Objects:** Access via WOS (Wave Object Store):
+
    ```typescript
    import * as WOS from "@/store/wos";
 
@@ -234,6 +250,7 @@ task generate
    - Run `task generate`
 
 4. **Testing:** Write tests in `*_test.go` files:
+
    ```bash
    # Run Go tests
    go test ./pkg/...
@@ -255,10 +272,10 @@ task generate
 - **DevTools:** `Cmd+Option+I` (macOS) or `Ctrl+Option+I` (Windows/Linux)
 - **Console access to global state:**
   ```javascript
-  globalStore
-  globalAtoms
-  WOS
-  RpcApi
+  globalStore;
+  globalAtoms;
+  WOS;
+  RpcApi;
   ```
 
 ### Remote Debugging (Electron MCP)
@@ -266,11 +283,13 @@ task generate
 In dev mode, Electron exposes Chrome DevTools Protocol on port 9222 automatically. This enables Electron MCP tools for automated testing without manual interaction.
 
 **How it works:**
+
 - `emain/emain.ts` checks `isDev` (set when `WAVETERM_DEV=1`) and appends `--remote-debugging-port=9222`
 - `task dev` or `task electron:winquickdev` set `WAVETERM_DEV=1` automatically
 - Electron MCP tools (`get_electron_window_info`, `take_screenshot`, `send_command_to_electron`) connect via CDP
 
 **Usage with Electron MCP:**
+
 ```bash
 # Verify the app is running with debugging
 mcp__electron__get_electron_window_info
@@ -427,9 +446,9 @@ Wave Terminal supports per-tab base directories that provide a project-centric w
 
 ### Metadata Keys
 
-| Key | Type | Description |
-|-----|------|-------------|
-| `tab:basedir` | `string` | Absolute path to base directory |
+| Key               | Type      | Description                              |
+| ----------------- | --------- | ---------------------------------------- |
+| `tab:basedir`     | `string`  | Absolute path to base directory          |
 | `tab:basedirlock` | `boolean` | When true, disables smart auto-detection |
 
 ### Behavior Model
@@ -461,21 +480,21 @@ This allows the first terminal to "teach" the tab its project directory.
 
 ### Lock Semantics
 
-| State | Behavior |
-|-------|----------|
+| State              | Behavior                                          |
+| ------------------ | ------------------------------------------------- |
 | Unlocked (default) | OSC 7 can update `tab:basedir` (under conditions) |
-| Locked | Only manual setting changes `tab:basedir` |
+| Locked             | Only manual setting changes `tab:basedir`         |
 
 ### File Locations
 
-| Purpose | File |
-|---------|------|
-| Tab context menu UI | `frontend/app/tab/tab.tsx` |
-| OSC 7 handling | `frontend/app/view/term/termwrap.ts` |
-| Terminal inheritance | `frontend/app/store/keymodel.ts` |
-| Widget inheritance | `frontend/app/workspace/widgets.tsx` |
-| Go type definitions | `pkg/waveobj/wtypemeta.go` |
-| Metadata constants | `pkg/waveobj/metaconsts.go` |
+| Purpose              | File                                 |
+| -------------------- | ------------------------------------ |
+| Tab context menu UI  | `frontend/app/tab/tab.tsx`           |
+| OSC 7 handling       | `frontend/app/view/term/termwrap.ts` |
+| Terminal inheritance | `frontend/app/store/keymodel.ts`     |
+| Widget inheritance   | `frontend/app/workspace/widgets.tsx` |
+| Go type definitions  | `pkg/waveobj/wtypemeta.go`           |
+| Metadata constants   | `pkg/waveobj/metaconsts.go`          |
 
 ### Related Presets
 
@@ -484,10 +503,32 @@ Tab variable presets can include base directory configuration:
 ```json
 // File: pkg/wconfig/defaultconfig/presets/tabvars.json
 {
-    "tabvar@my-project": {
-        "display:name": "My Project",
-        "tab:basedir": "/home/user/my-project",
-        "tab:basedirlock": true
-    }
+  "tabvar@my-project": {
+    "display:name": "My Project",
+    "tab:basedir": "/home/user/my-project",
+    "tab:basedirlock": true
+  }
 }
 ```
+
+## Agent Planning & Review Rules
+
+### NO Quantitative Estimations
+
+**Agents MUST NEVER provide time or effort estimations** (e.g., "2-3 weeks", "3 months of work", "Medium effort"). Agents have no basis for quantitative estimation — they don't know the developer's skill level, familiarity with the codebase, available hours, or operational context.
+
+- **Forbidden**: "This will take 2-3 weeks", "Medium effort", "Large effort", "Ship in v1.1"
+- **Allowed**: Relative complexity comparisons ("X is more complex than Y because it touches more subsystems"), dependency ordering ("X must be built before Y")
+
+### NO Feature Cuts Based on Estimation
+
+Agents reviewing or planning features must NEVER recommend cutting functionality based on perceived effort, scope, or "MVP thinking." Features are designed to be implemented completely or not included at all. Order of implementation is determined by **dependency graph**, not by artificial phases, resource allocation, or time boundaries.
+
+- **Forbidden**: "Cut this for v1", "Defer to v1.1", "Ship a slim MVP first", "This is over-scoped"
+- **Allowed**: "X depends on Y, so Y must be implemented first", "These components are independent and can be parallelized"
+
+### Design Completeness
+
+Specs describe the full feature as designed. There are no "future phases" or "future polish." If something is in the spec, it ships. If it shouldn't ship, remove it from the spec entirely. Implementation ordering follows the dependency graph within the complete design.
+
+_Note: These rules are also enforced globally via `~/.claude/CLAUDE.md` and the `block-estimation-and-feature-cuts` hookify rule._

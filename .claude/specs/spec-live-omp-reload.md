@@ -1,5 +1,7 @@
 # Spec 011: Live OMP Theme Reload
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Overview
 Enable hot-reloading of Oh-My-Posh theme changes without requiring the user to manually restart their shell.
 

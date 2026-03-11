@@ -1,5 +1,7 @@
 # Spec 001: Settings Schema and Metadata System
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Create a comprehensive settings schema/metadata system that defines each setting's type, label, description, validation rules, and GUI control type - enabling dynamic GUI generation.
 

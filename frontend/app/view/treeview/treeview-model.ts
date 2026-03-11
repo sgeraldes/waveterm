@@ -1,6 +1,7 @@
 import type { BlockNodeModel } from "@/app/block/blocktypes";
 import { globalStore, WOS } from "@/app/store/global";
 import type { TabModel } from "@/app/store/tab-model";
+import { waveEventSubscribe } from "@/app/store/wps";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { fireAndForget, isBlank } from "@/util/util";
@@ -23,6 +24,8 @@ export type TreeNode = {
 
 export const MAX_TREE_DEPTH = 20;
 
+const REFRESH_DEBOUNCE_MS = 500;
+
 export class TreeViewModel implements ViewModel {
     blockId: string;
     nodeModel: BlockNodeModel;
@@ -39,6 +42,10 @@ export class TreeViewModel implements ViewModel {
     connection: Atom<string>;
     selectedPath: PrimitiveAtom<string | null>;
     showHiddenFiles: PrimitiveAtom<boolean>;
+
+    private watchedPaths: Set<string> = new Set();
+    private eventUnsubFn: (() => void) | null = null;
+    private refreshDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.blockId = blockId;
@@ -122,6 +129,7 @@ export class TreeViewModel implements ViewModel {
         const nodes = globalStore.get(this.rootNodes);
 
         if (node.isExpanded) {
+            this.unwatchDirectory(node.path);
             const updated = this.updateNodeInTree(nodes, node.path, (n) => ({
                 ...n,
                 isExpanded: false,
@@ -151,6 +159,7 @@ export class TreeViewModel implements ViewModel {
                 const newVisited = new Set(node.visitedAncestors);
                 newVisited.add(node.path);
                 const children = await this.loadDirectory(node.path, node.depth + 1, newVisited);
+                this.watchDirectory(node.path);
                 const expanded = this.updateNodeInTree(globalStore.get(this.rootNodes), node.path, (n) => ({
                     ...n,
                     isLoading: false,
@@ -181,6 +190,90 @@ export class TreeViewModel implements ViewModel {
             }
             return n;
         });
+    }
+
+    private isLocalConnection(): boolean {
+        const conn = globalStore.get(this.connection);
+        return isBlank(conn);
+    }
+
+    private watchDirectory(dirPath: string) {
+        if (!this.isLocalConnection() || this.watchedPaths.has(dirPath)) {
+            return;
+        }
+        this.watchedPaths.add(dirPath);
+        RpcApi.FileWatchCommand(TabRpcClient, {
+            path: dirPath,
+            watch: true,
+            blockid: this.blockId,
+        }).catch((e) => console.error("[TreeView] Failed to watch directory:", dirPath, e));
+    }
+
+    private unwatchDirectory(dirPath: string) {
+        if (!this.watchedPaths.has(dirPath)) {
+            return;
+        }
+        this.watchedPaths.delete(dirPath);
+        RpcApi.FileWatchCommand(TabRpcClient, {
+            path: dirPath,
+            watch: false,
+            blockid: this.blockId,
+        }).catch((e) => console.error("[TreeView] Failed to unwatch directory:", dirPath, e));
+    }
+
+    startWatching() {
+        if (!this.isLocalConnection()) {
+            return;
+        }
+
+        const rootPath = globalStore.get(this.rootPath);
+        if (rootPath && rootPath !== "~") {
+            this.watchDirectory(rootPath);
+        }
+
+        this.eventUnsubFn = waveEventSubscribe({
+            eventType: "file:change",
+            scope: this.blockId,
+            handler: () => this.debouncedRefresh(),
+        });
+
+        RpcApi.EventSubCommand(TabRpcClient, {
+            event: "file:change",
+            scopes: [this.blockId],
+        }).catch((e) => console.error("[TreeView] Failed to subscribe to file events:", e));
+    }
+
+    stopWatching() {
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+            this.refreshDebounceTimer = null;
+        }
+
+        if (this.eventUnsubFn) {
+            this.eventUnsubFn();
+            this.eventUnsubFn = null;
+        }
+
+        for (const dirPath of this.watchedPaths) {
+            RpcApi.FileWatchCommand(TabRpcClient, {
+                path: dirPath,
+                watch: false,
+                blockid: this.blockId,
+            }).catch(() => {});
+        }
+        this.watchedPaths.clear();
+
+        RpcApi.EventUnsubCommand(TabRpcClient, "file:change").catch(() => {});
+    }
+
+    private debouncedRefresh() {
+        if (this.refreshDebounceTimer) {
+            clearTimeout(this.refreshDebounceTimer);
+        }
+        this.refreshDebounceTimer = setTimeout(() => {
+            this.refreshDebounceTimer = null;
+            fireAndForget(() => this.loadRoot());
+        }, REFRESH_DEBOUNCE_MS);
     }
 
     getNodeContextMenu(node: TreeNode): ContextMenuItem[] {
@@ -255,6 +348,12 @@ export class TreeViewModel implements ViewModel {
     }
 
     collapseAll(): void {
+        for (const dirPath of this.watchedPaths) {
+            const rootPath = globalStore.get(this.rootPath);
+            if (dirPath !== rootPath) {
+                this.unwatchDirectory(dirPath);
+            }
+        }
         const nodes = globalStore.get(this.rootNodes);
         const collapsed = this.collapseNodes(nodes);
         globalStore.set(this.rootNodes, collapsed);

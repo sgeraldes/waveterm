@@ -1,5 +1,7 @@
 # Spec 004: Save/Cancel Workflow
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Date:** 2026-01-25
 **Status:** Draft
 **Dependencies:** Spec 001, Spec 003

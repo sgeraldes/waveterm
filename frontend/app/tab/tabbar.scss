@@ -30,6 +30,8 @@
         height: 27px;
         -webkit-app-region: no-drag;
         scroll-behavior: smooth;
+        min-width: 0; // Allow shrinking below content size in flex layout
+        overflow: hidden; // Clip overflow — OverlayScrollbars manages scrolling
     }
 
     .pinned-tab-spacer {

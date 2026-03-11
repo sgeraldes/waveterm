@@ -1,5 +1,7 @@
 # Spec 008: Move Display Settings from General to Appearance
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Task:** 8 of UI Theme System Redesign (Phase 3)
 **Status:** Ready for Implementation
 **Dependencies:** Task 7 (Appearance Panel Redesign -- consumes this component)

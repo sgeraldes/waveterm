@@ -1,5 +1,7 @@
 # Spec 001: Embedding the OMP Configurator Component
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 **Date:** 2026-01-25
 **Status:** Draft
 **Dependencies:** Discovery report complete

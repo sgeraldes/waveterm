@@ -1,5 +1,7 @@
 # Spec 004: Dynamic Options Loading
 
+> **Status: IMPLEMENTED** — This feature has been shipped. Acceptance criteria below reflect the original spec.
+
 ## Objective
 Implement dynamic loading of options for select controls that depend on runtime data (terminal themes, AI modes, font families).
 
