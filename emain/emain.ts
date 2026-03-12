@@ -58,6 +58,10 @@ if (isDev) {
     electronApp.commandLine.appendSwitch("remote-debugging-port", "9222");
 }
 
+if (unamePlatform === "linux") {
+    electronApp.commandLine.appendSwitch("disable-features", "WaylandWindowDecorations");
+}
+
 let confirmQuit = true;
 
 const waveDataDir = getWaveDataDir();

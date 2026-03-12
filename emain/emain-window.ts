@@ -173,11 +173,11 @@ export class WaveBrowserWindow extends BaseWindow {
                 winOpts.backgroundColor = "#222222";
             }
         } else if (opts.unamePlatform === "linux") {
-            winOpts.titleBarStyle = settings["window:nativetitlebar"] ? "default" : "hidden";
-            winOpts.titleBarOverlay = {
-                symbolColor: "white",
-                color: "#00000000",
-            };
+            if (settings["window:nativetitlebar"]) {
+                winOpts.titleBarStyle = "default";
+            } else {
+                winOpts.frame = false;
+            }
             winOpts.icon = path.join(getElectronAppBasePath(), "public/logos/wave-logo-dark.png");
             winOpts.autoHideMenuBar = !settings?.["window:showmenubar"];
             if (isTransparent) {
