@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://www.waveterm.dev">
+  <a href="https://github.com/sgeraldes/waveterm">
 	<picture>
 		<source media="(prefers-color-scheme: dark)" srcset="./assets/wave-dark.png">
 		<source media="(prefers-color-scheme: light)" srcset="./assets/wave-light.png">
@@ -9,208 +9,213 @@
   <br/>
 </p>
 
-# Wave Terminal (Experimental Fork)
+<h1 align="center">Wave Terminal — Experimental Fork</h1>
 
-> **This is a personal fork of [Wave Terminal](https://github.com/wavetermdev/waveterm)** with experimental features and customizations. For the official version, visit the [upstream repository](https://github.com/wavetermdev/waveterm).
+<p align="center">
+  An opinionated fork of <a href="https://github.com/wavetermdev/waveterm">Wave Terminal</a> with project-centric workflows, better terminal rendering, and zero telemetry.<br/>
+  <strong>macOS · Linux · Windows · WSL</strong>
+</p>
 
----
-
-## Fork Changes
-
-This fork includes the following modifications from upstream:
-
-### Tab Base Directory System (Major Feature)
-
-A complete project-centric workflow system for tabs:
-
-- **VS Code-Style Tab Bar** - Colored tab backgrounds based on directory context
-- **Breadcrumb Navigation** - Full path breadcrumbs below tab bar for quick navigation
-- **Smart Auto-Detection** - OSC 7 integration automatically detects working directory from terminal
-- **Directory Locking** - Lock base directory to prevent auto-detection changes
-- **Tab Presets** - Save and apply tab configurations via presets (`tabvar@project-name`)
-- **Tab Color Picker** - 8-color palette for manual tab coloring via context menu
-- **Terminal Status Indicators** - Visual status for running/finished/stopped commands
-
-**New Files:**
-- `frontend/app/store/tab-model.ts` - Tab state management
-- `frontend/app/store/tab-basedir-validator.ts` - Path validation
-- `frontend/app/store/tab-basedir-validation-hook.ts` - React hook for validation
-- `frontend/app/tab/tab-menu.ts` - Reusable preset menu builder
-- `frontend/util/pathutil.ts` - Cross-platform path utilities
-- `frontend/util/presetutil.ts` - Preset validation and sanitization
-- `docs/docs/tabs.mdx` - Full documentation
-
-### Backend Security & Validation
-
-Comprehensive metadata validation to prevent injection attacks:
-
-- **Path Validation** - Validates all path fields (traversal attacks, length limits)
-- **URL Validation** - Validates URL fields with scheme restrictions
-- **String Sanitization** - Length limits and content validation
-- **Optimistic Locking** - Version-based concurrency control for metadata updates
-- **Race Condition Fixes** - TOCTOU vulnerability prevention in OSC 7 updates
-
-**New Files:**
-- `pkg/waveobj/validators.go` - 935-line validation framework
-- `pkg/wconfig/defaultconfig/presets/tabvars.json` - Default tab presets
-- `schema/tabvarspresets.json` - JSON schema for presets
-
-### Terminal Improvements
-
-- **xterm.js 6.1.0 Upgrade** - Updated from 5.5.0 to 6.1.0-beta.106
-  - Enables DEC mode 2026 (Synchronized Output) for proper TUI animations
-  - Fixes npm progress bars, htop, and spinner animations scrolling issues
-  - Uses public `terminal.dimensions` API (no more private API hacks)
-  - New DomScrollableElement scrollbar with custom styling
-- **Font Ligatures Support** - Enable programming ligatures with `"term:ligatures": true`
-  - Works with ligature fonts like Fira Code, JetBrains Mono, Cascadia Code
-  - Uses `@xterm/addon-ligatures` for native font discovery in Electron
-  - See screenshot: `assets/ligatures-demo.png`
-- **OSC 7 Debouncing** - 300ms debounce for rapid directory changes
-- **Memory Leak Prevention** - Cleanup handlers for tab close events
-
-### Telemetry Removal
-
-- **No Telemetry Required** - Wave AI works without enabling telemetry
-- **Telemetry Disabled by Default** - All telemetry collection is disabled
-- **No Cloud Mode Restrictions** - Wave AI cloud modes accessible without telemetry opt-in
-- **Simplified Onboarding** - Removed telemetry toggle from initial setup
-
-### GUI Settings System (New Feature)
-
-A visual settings interface similar to VS Code:
-
-- **Visual Settings Panel** - Browse and modify settings with a graphical interface
-- **Category Sidebar** - Navigate settings by category with scroll-spy sync
-- **Sticky Headers** - Section headers stick to top when scrolling with visual feedback
-- **Search** - Find settings by name, description, or key
-- **Dual View** - Switch between Visual mode and Raw JSON editing
-- **Input Controls** - Toggles, sliders, dropdowns, text inputs, color pickers, font selectors
-- **Real-time Sync** - Changes persist immediately with debounced saves
-- **Modified Indicators** - Visual markers show which settings differ from defaults
-
-**New Files:**
-- `frontend/app/view/waveconfig/settings-visual.tsx` - Main visual settings component
-- `frontend/app/view/waveconfig/settings-visual.scss` - Visual settings styles
-- `frontend/app/element/settings/` - Reusable setting control components
-- `frontend/app/store/settings-*.ts` - Settings state management and persistence
-
-### PowerShell Improvements
-
-- **Profile Loading** - User's PowerShell profile (`$PROFILE`) is now sourced automatically
-  - Wave launches with `-NoProfile` for clean environment, then sources your profile
-  - Custom aliases, functions, and prompt customizations now work
-
-### Electron IPC Additions
-
-- `showOpenDialog` - Native directory picker for setting tab base directory
-- `showWorkspaceAppMenu` - Workspace menu from breadcrumb bar
-
-### Windows Build & Runtime Fixes
-
-- **PowerShell 7 Requirement** - All build commands use `pwsh -NoProfile`
-- **Shell Launch Fix** - Runtime shells use `-NoProfile` flag
-- **Build Prerequisites** - Updated BUILD.md with PowerShell 7 requirement
-
-### Syncing with Upstream
-
-This fork is periodically rebased on upstream main:
-
-```bash
-git fetch upstream
-git checkout sawka-main
-git rebase upstream/main
-git push origin sawka-main --force-with-lease
-```
+<p align="center">
+  <a href="https://github.com/sgeraldes/waveterm/releases">Releases</a> ·
+  <a href="#whats-different">What's Different</a> ·
+  <a href="#features">Features</a> ·
+  <a href="#building-from-source">Build</a>
+</p>
 
 ---
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fwavetermdev%2Fwaveterm.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fwavetermdev%2Fwaveterm?ref=badge_shield)
+## What's Different
 
-Wave is an open-source terminal that combines traditional terminal features with graphical capabilities like file previews, web browsing, and AI assistance. It runs on MacOS, Linux, and Windows.
+This fork takes Wave Terminal and pushes it toward a **project-centric, privacy-respecting** developer experience. The main changes:
 
-Modern development involves constantly switching between terminals and browsers - checking documentation, previewing files, monitoring systems, and using AI tools. Wave brings these graphical tools directly into the terminal, letting you control them from the command line. This means you can stay in your terminal workflow while still having access to the visual interfaces you need.
+- **Tabs are project-aware** — each tab knows its working directory, colors itself accordingly, and passes context to every block inside it.
+- **Terminal rendering is fixed** — xterm.js 6.1.0 with Synchronized Output means htop, npm progress bars, and TUI spinners actually work.
+- **No telemetry, period** — all telemetry collection is removed. Wave AI works without it.
+- **WSL is a first-class citizen** — WSL distributions appear as local shell profiles, not remote connections.
+- **Visual settings** — a VS Code-style settings panel instead of editing JSON by hand.
+- **Maximize mode** — expand any block to full screen with a keyboard shortcut, navigate between maximized blocks with a chip bar.
+
+274 commits ahead of upstream. Based on Wave Terminal v0.14.x with upstream's durable sessions merged.
 
 ![WaveTerm Screenshot](./assets/wave-screenshot.webp)
 
-## Key Features
+---
 
-- Flexible drag & drop interface to organize terminal blocks, editors, web browsers, and AI assistants
-- Built-in editor for seamlessly editing remote files with syntax highlighting and modern editor features
-- Rich file preview system for remote files (markdown, images, video, PDFs, CSVs, directories)
-- Quick full-screen toggle for any block - expand terminals, editors, and previews for better visibility, then instantly return to multi-block view
-- Wave AI - Context-aware terminal assistant that reads your terminal output, analyzes widgets, and performs file operations
-- AI chat widget with support for multiple models (OpenAI, Claude, Azure, Perplexity, Ollama)
-- Command Blocks for isolating and monitoring individual commands with auto-close options
-- One-click remote connections with full terminal and file system access
-- Secure secret storage using native system backends - store API keys and credentials locally, access them across SSH sessions
-- Rich customization including tab themes, terminal styles, and background images
-- Powerful `wsh` command system for managing your workspace from the CLI and sharing data between terminal sessions
-- Connected file management with `wsh file` - seamlessly copy and sync files between local, remote SSH hosts, Wave filesystem, and S3
+## Features
 
-## Wave AI
+### Project-Centric Tabs
 
-Wave AI is your context-aware terminal assistant with access to your workspace:
+Every tab can be bound to a project directory. All terminals and widgets in that tab inherit the context.
 
-- **Terminal Context**: Reads terminal output and scrollback for debugging and analysis
-- **File Operations**: Read, write, and edit files with automatic backups and user approval
-- **CLI Integration**: Use `wsh ai` to pipe output or attach files directly from the command line
-- **Free Beta**: Included AI credits while we refine the experience
-- **Coming Soon**: Command execution (with approval), local model support, and alternate AI providers (BYOK)
+- **Colored tab backgrounds** based on directory — instantly see which project you're in
+- **Breadcrumb navigation** below the tab bar for quick path traversal
+- **Smart auto-detection** — OSC 7 integration picks up the working directory from your first terminal
+- **Directory locking** — pin a tab's directory so it doesn't change when you `cd`
+- **Tab presets** — save and restore tab configurations (`tabvar@my-project`)
+- **Color picker** — 8-color palette for manual tab coloring via right-click
 
-Learn more in our [Wave AI documentation](https://docs.waveterm.dev/waveai).
+### Maximize Mode
+
+Expand any block to fill the entire workspace. Useful for deep terminal work or reading long files.
+
+- **One-click maximize** from the block header, or use keyboard shortcuts
+- **Chip bar** along the top to switch between all blocks while maximized
+- **Instant toggle** back to tiled layout — your arrangement is preserved
+
+### Block Editor
+
+A Notion-style rich text editor block for notes and documentation right inside your terminal workspace.
+
+- **Rich text editing** with headings, lists, code blocks, and inline formatting
+- **Image paste** — paste screenshots directly from clipboard
+- **Markdown preview** — editor, split, and preview modes
+- **Live preview** — see rendered markdown as you type
+
+### Theme System
+
+Two-dimensional theming: **Mode** (Dark / Light / System) and **Accent** (Green / Warm / Blue / Purple / Teal).
+
+- **Accent selector** with live palette preview
+- **Custom accents** — create your own color schemes with a visual editor
+- **Theme overrides** — fine-tune individual CSS variables
+- **Consistent theming** across AI panel, settings, terminal, and all widgets
+
+### Shell Profiles & WSL
+
+Shells and connections are separated. Local shells (including WSL) get their own profile system.
+
+- **Shell selector** in the terminal header — switch between bash, zsh, fish, PowerShell, WSL distros
+- **WSL as local shells** — WSL distributions discovered via `wsl.exe -l`, launched natively
+- **PowerShell profile loading** — your `$PROFILE` aliases and prompt work out of the box
+- **Per-profile settings** — different shell, different font, different theme
+
+### Visual Settings
+
+A VS Code-style settings panel for people who don't want to edit JSON.
+
+- **Category sidebar** with scroll-spy synchronization
+- **Search** across all settings by name, description, or key
+- **Rich controls** — toggles, sliders, dropdowns, color pickers, font selectors
+- **Modified indicators** — see which settings differ from defaults
+- **Dual view** — switch between visual mode and raw JSON anytime
+- **Real-time sync** — changes persist immediately with debounced saves
+
+### Terminal Upgrades
+
+- **xterm.js 6.1.0** — DEC mode 2026 (Synchronized Output) for proper TUI rendering
+- **Font ligatures** — enable with `"term:ligatures": true` for Fira Code, JetBrains Mono, etc.
+- **Focus reporting control** — disable DEC mode 1004 if it conflicts with your tools
+- **Terminal status indicators** — visual feedback for running, finished, and stopped commands
+
+### Built-in Widgets
+
+Extra widget types beyond what upstream offers:
+
+| Widget        | Description                                                          |
+| ------------- | -------------------------------------------------------------------- |
+| **Tree View** | File tree with search, context menu, and auto-refresh                |
+| **Notes**     | Markdown notes with live preview and image paste                     |
+| **Todo**      | Inline-editable task lists with drag reordering and markdown support |
+
+### Oh-My-Posh Configurator
+
+A visual editor for Oh-My-Posh themes, directly inside the Appearance settings.
+
+- Discovers your OMP config files automatically
+- Renders block and segment previews
+- Edit properties, colors, and segment order visually
+- High contrast mode analysis for readability
+
+### Privacy
+
+- **All telemetry removed** — no usage data, no analytics, no cloud pings
+- **Wave AI works without telemetry** — cloud AI modes don't gate on telemetry opt-in
+- **S3 and WaveFile transfers removed** — no cloud file sync
+- **Simplified onboarding** — no telemetry toggle in setup
+
+### Backend Security
+
+Comprehensive metadata validation added on top of upstream:
+
+- Path traversal prevention on all path fields
+- URL validation with scheme restrictions
+- Optimistic locking for concurrent metadata updates
+- TOCTOU race condition fixes in OSC 7 updates
+
+---
+
+## Everything from Wave Terminal
+
+This fork includes all upstream Wave Terminal features:
+
+- Drag & drop tiled layout for terminals, editors, web browsers, and AI assistants
+- Built-in Monaco editor for local and remote files
+- Rich file previews — markdown, images, video, PDFs, CSVs, directories
+- Wave AI with terminal context, file operations, and multi-provider support (OpenAI, Claude, Azure, Ollama, etc.)
+- Command Blocks for isolating individual commands
+- One-click SSH remote connections with full filesystem access
+- Secure secret storage using native system backends
+- `wsh` CLI for workspace automation and cross-session data sharing
+
+---
 
 ## Installation
 
-Wave Terminal works on macOS, Linux, and Windows.
+### From Releases
 
-Platform-specific installation instructions can be found [here](https://docs.waveterm.dev/gettingstarted).
+Download the latest build from [GitHub Releases](https://github.com/sgeraldes/waveterm/releases).
 
-You can also install Wave Terminal directly from: [www.waveterm.dev/download](https://www.waveterm.dev/download).
+| Platform      | File                        |
+| ------------- | --------------------------- |
+| macOS (arm64) | `.dmg`                      |
+| macOS (x64)   | `.dmg`                      |
+| Windows (x64) | `.exe` installer            |
+| Linux (x64)   | `.deb`, `.rpm`, `.AppImage` |
+| Linux (arm64) | `.deb`, `.rpm`, `.AppImage` |
 
-### Minimum requirements
-
-Wave Terminal runs on the following platforms:
+### Minimum Requirements
 
 - macOS 11 or later (arm64, x64)
 - Windows 10 1809 or later (x64)
-- Linux based on glibc-2.28 or later (Debian 10, RHEL 8, Ubuntu 20.04, etc.) (arm64, x64)
+- Linux with glibc 2.28+ (Debian 10, RHEL 8, Ubuntu 20.04, etc.)
 
-The WSH helper runs on the following platforms:
-
-- macOS 11 or later (arm64, x64)
-- Windows 10 or later (arm64, x64)
-- Linux Kernel 2.6.32 or later (x64), Linux Kernel 3.1 or later (arm64)
-
-## Roadmap
-
-Wave is constantly improving! Our roadmap will be continuously updated with our goals for each release. You can find it [here](./ROADMAP.md).
-
-Want to provide input to our future releases? Connect with us on [Discord](https://discord.gg/XfvZ334gwU) or open a [Feature Request](https://github.com/wavetermdev/waveterm/issues/new/choose)!
-
-## Links
-
-- Homepage &mdash; https://www.waveterm.dev
-- Download Page &mdash; https://www.waveterm.dev/download
-- Documentation &mdash; https://docs.waveterm.dev
-- Legacy Documentation &mdash; https://legacydocs.waveterm.dev
-- Blog &mdash; https://blog.waveterm.dev
-- X &mdash; https://x.com/wavetermdev
-- Discord Community &mdash; https://discord.gg/XfvZ334gwU
+---
 
 ## Building from Source
 
-See [Building Wave Terminal](BUILD.md).
+Requires **Node.js 22+**, **Go 1.24+**, and [Task](https://taskfile.dev/) (modern Make alternative).
 
-## Contributing
+```bash
+# Clone and install dependencies
+git clone https://github.com/sgeraldes/waveterm.git
+cd waveterm
+task init
 
-Wave uses GitHub Issues for issue tracking.
+# Development with hot reload
+task dev
 
-Find more information in our [Contributions Guide](CONTRIBUTING.md), which includes:
+# Production build
+task package
+```
 
-- [Ways to contribute](CONTRIBUTING.md#contributing-to-wave-terminal)
-- [Contribution guidelines](CONTRIBUTING.md#before-you-start)
+**Windows note:** Requires PowerShell 7+ (`pwsh`) and Zig for CGO static linking. See [BUILD.md](BUILD.md) for full details.
+
+---
+
+## Relationship with Upstream
+
+This fork is periodically synced with [wavetermdev/waveterm](https://github.com/wavetermdev/waveterm). Upstream's push remote is disabled to prevent accidental pushes.
+
+```
+origin    https://github.com/sgeraldes/waveterm.git
+upstream  https://github.com/wavetermdev/waveterm.git (fetch only)
+```
+
+For the official Wave Terminal experience, visit the [upstream repository](https://github.com/wavetermdev/waveterm).
+
+---
 
 ## License
 
-Wave Terminal is licensed under the Apache-2.0 License. For more information on our dependencies, see [here](./ACKNOWLEDGEMENTS.md).
+Wave Terminal is licensed under the [Apache-2.0 License](LICENSE). For dependency information, see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
