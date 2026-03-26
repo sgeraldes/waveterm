@@ -1,3 +1,4 @@
+import ClaudeColorSvg from "@/app/asset/claude-color.svg";
 import { Search, useSearch } from "@/app/element/search";
 import { ContextMenuModel } from "@/app/store/contextmenu";
 import { useTabModel } from "@/app/store/tab-model";
@@ -22,6 +23,16 @@ interface TerminalViewProps {
     blockId: string;
     model: TermViewModel;
 }
+
+const TermClaudeIcon = React.memo(() => {
+    return (
+        <div className="[&_svg]:w-[15px] [&_svg]:h-[15px]" aria-hidden="true">
+            <ClaudeColorSvg />
+        </div>
+    );
+});
+
+TermClaudeIcon.displayName = "TermClaudeIcon";
 
 const TermResyncHandler = React.memo(({ model }: TerminalViewProps) => {
     const connStatus = jotai.useAtomValue(model.connStatus);
@@ -561,4 +572,4 @@ const TerminalView = ({ blockId, model }: ViewComponentProps<TermViewModel>) => 
     );
 };
 
-export { TerminalView };
+export { TermClaudeIcon, TerminalView };

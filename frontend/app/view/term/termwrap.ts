@@ -43,6 +43,7 @@ import {
     handleOsc16162Command,
     handleOsc52Command,
     handleOsc7Command,
+    isClaudeCodeCommand,
 } from "./termwrap-osc";
 
 export { cleanupOsc7DebounceForTab };
@@ -96,6 +97,7 @@ export class TermWrap {
     promptMarkers: TermTypes.IMarker[] = [];
     shellIntegrationStatusAtom: jotai.PrimitiveAtom<"ready" | "running-command" | null>;
     lastCommandAtom: jotai.PrimitiveAtom<string | null>;
+    claudeCodeActiveAtom: jotai.PrimitiveAtom<boolean>;
     nodeModel: BlockNodeModel;
     onShellIntegrationStatusChange?: () => void;
     pendingTermSize: TermSize | null = null;
@@ -134,6 +136,7 @@ export class TermWrap {
         this.promptMarkers = [];
         this.shellIntegrationStatusAtom = jotai.atom(null) as jotai.PrimitiveAtom<"ready" | "running-command" | null>;
         this.lastCommandAtom = jotai.atom(null) as jotai.PrimitiveAtom<string | null>;
+        this.claudeCodeActiveAtom = jotai.atom(false);
         this.terminal = new Terminal(options);
         this.fitAddon = new FitAddon();
         this.fitAddon.noScrollbar = PLATFORM === PlatformMacOS;
@@ -197,10 +200,20 @@ export class TermWrap {
             return result;
         });
         this.terminal.parser.registerOscHandler(52, (data: string) => {
-            return handleOsc52Command(data, this.blockId, this.loaded, this);
+            try {
+                return handleOsc52Command(data, this.blockId, this.loaded, this);
+            } catch (e) {
+                console.error("[termwrap] osc 52 handler error", this.blockId, e);
+                return false;
+            }
         });
         this.terminal.parser.registerOscHandler(16162, (data: string) => {
-            return handleOsc16162Command(data, this.blockId, this.loaded, this);
+            try {
+                return handleOsc16162Command(data, this.blockId, this.loaded, this);
+            } catch (e) {
+                console.error("[termwrap] osc 16162 handler error", this.blockId, e);
+                return false;
+            }
         });
         let lastTitle: string | null = null;
         this.terminal.onTitleChange((title: string) => {
@@ -413,16 +426,19 @@ export class TermWrap {
             const rtInfo = await RpcApi.GetRTInfoCommand(TabRpcClient, {
                 oref: WOS.makeORef("block", this.blockId),
             });
+            let shellState: ShellIntegrationStatus = null;
 
             if (rtInfo && rtInfo["shell:integration"]) {
-                const shellState = rtInfo["shell:state"] as ShellIntegrationStatus;
+                shellState = rtInfo["shell:state"] as ShellIntegrationStatus;
                 this.setShellIntegrationStatus(shellState || null);
             } else {
                 this.setShellIntegrationStatus(null);
             }
 
             const lastCmd = rtInfo ? rtInfo["shell:lastcmd"] : null;
+            const isCC = shellState === "running-command" && isClaudeCodeCommand(lastCmd);
             globalStore.set(this.lastCommandAtom, lastCmd || null);
+            globalStore.set(this.claudeCodeActiveAtom, isCC);
         } catch (e) {
             console.log("Error loading runtime info:", e);
         }
