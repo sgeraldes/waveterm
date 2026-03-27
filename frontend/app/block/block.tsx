@@ -1,16 +1,15 @@
 import {
     BlockComponentModel2,
-    BlockNodeModel,
     BlockProps,
     FullBlockProps,
     FullSubBlockProps,
     SubBlockProps,
 } from "@/app/block/blocktypes";
-import type { TabModel } from "@/app/store/tab-model";
 import { useTabModel } from "@/app/store/tab-model";
 import { AiFileDiffViewModel } from "@/app/view/aifilediff/aifilediff";
 import { LauncherViewModel } from "@/app/view/launcher/launcher";
 import { PreviewModel } from "@/app/view/preview/preview-model";
+import { ProcessViewerViewModel } from "@/app/view/processviewer/processviewer";
 import { TreeViewModel } from "@/app/view/treeview/treeview-model";
 import { NotesViewModel } from "@/app/view/notes/notes-model";
 import { TodoViewModel } from "@/app/view/todo/todo-model";
@@ -33,10 +32,8 @@ import { TermHistoryViewModel } from "@/view/term/termhistory-model";
 import { WaveAiModel } from "@/view/waveai/waveai";
 import { WebViewModel } from "@/view/webview/webview";
 import clsx from "clsx";
-import { atom, useAtomValue } from "jotai";
+import { useAtomValue } from "jotai";
 import { memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { QuickTipsViewModel } from "../view/quicktipsview/quicktipsview";
-import { WaveConfigViewModel } from "../view/waveconfig/waveconfig-model";
 import "./block.scss";
 import { BlockFrame } from "./blockframe";
 import { blockViewToIcon, blockViewToName } from "./blockutil";
@@ -57,6 +54,7 @@ BlockRegistry.set("treeview", TreeViewModel);
 BlockRegistry.set("notes", NotesViewModel);
 BlockRegistry.set("todo", TodoViewModel);
 BlockRegistry.set("termhistory", TermHistoryViewModel);
+BlockRegistry.set("processviewer", ProcessViewerViewModel);
 
 function makeViewModel(blockId: string, blockView: string, nodeModel: BlockNodeModel, tabModel: TabModel): ViewModel {
     const ctor = BlockRegistry.get(blockView);

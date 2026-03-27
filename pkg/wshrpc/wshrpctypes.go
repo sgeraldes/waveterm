@@ -105,6 +105,9 @@ type WshRpcInterface interface {
 	RemoteReconnectToJobManagerCommand(ctx context.Context, data CommandRemoteReconnectToJobManagerData) (*CommandRemoteReconnectToJobManagerRtnData, error)
 	RemoteDisconnectFromJobManagerCommand(ctx context.Context, data CommandRemoteDisconnectFromJobManagerData) error
 	RemoteTerminateJobManagerCommand(ctx context.Context, data CommandRemoteTerminateJobManagerData) error
+	BadgeWatchPidCommand(ctx context.Context, data CommandBadgeWatchPidData) error
+	RemoteProcessListCommand(ctx context.Context, data CommandRemoteProcessListData) (*ProcessListResponse, error)
+	RemoteProcessSignalCommand(ctx context.Context, data CommandRemoteProcessSignalData) error
 
 	WebSelectorCommand(ctx context.Context, data CommandWebSelectorData) ([]string, error)
 	NotifyCommand(ctx context.Context, notificationOptions WaveNotificationOptions) error
@@ -1081,4 +1084,53 @@ type CommandFileWatchData struct {
 	Path   string `json:"path"`
 	Watch  bool   `json:"watch"`  // true to start watching, false to stop
 	BlockId string `json:"blockid,omitempty"`
+}
+
+type ProcessInfo struct {
+	Pid        int32    `json:"pid"`
+	Ppid       int32    `json:"ppid,omitempty"`
+	Command    string   `json:"command,omitempty"`
+	Status     string   `json:"status,omitempty"`
+	User       string   `json:"user,omitempty"`
+	Mem        uint64   `json:"mem,omitempty"`
+	MemPct     float64  `json:"mempct,omitempty"`
+	Cpu        *float64 `json:"cpu,omitempty"`
+	NumThreads int32    `json:"numthreads,omitempty"`
+}
+
+type ProcessSummary struct {
+	Total    int     `json:"total"`
+	Load1    float64 `json:"load1,omitempty"`
+	Load5    float64 `json:"load5,omitempty"`
+	Load15   float64 `json:"load15,omitempty"`
+	MemTotal uint64  `json:"memtotal,omitempty"`
+	MemUsed  uint64  `json:"memused,omitempty"`
+	MemFree  uint64  `json:"memfree,omitempty"`
+	NumCPU   int     `json:"numcpu,omitempty"`
+	CpuSum   float64 `json:"cpusum,omitempty"`
+}
+
+type ProcessListResponse struct {
+	Processes     []ProcessInfo  `json:"processes"`
+	Summary       ProcessSummary `json:"summary"`
+	Ts            int64          `json:"ts"`
+	HasCPU        bool           `json:"hascpu,omitempty"`
+	Platform      string         `json:"platform,omitempty"`
+	TotalCount    int            `json:"totalcount,omitempty"`
+	FilteredCount int            `json:"filteredcount,omitempty"`
+}
+
+type CommandRemoteProcessListData struct {
+	SortBy     string `json:"sortby,omitempty"`
+	SortDesc   bool   `json:"sortdesc,omitempty"`
+	Start      int    `json:"start,omitempty"`
+	Limit      int    `json:"limit,omitempty"`
+	TextSearch string `json:"textsearch,omitempty"`
+	// Pids overrides all other fields; when set, returns only the specified pids (no sort/limit/start/textsearch).
+	Pids []int32 `json:"pids,omitempty"`
+}
+
+type CommandRemoteProcessSignalData struct {
+	Pid    int32  `json:"pid"`
+	Signal string `json:"signal"`
 }
