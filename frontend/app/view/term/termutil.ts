@@ -1,6 +1,8 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import * as TermTypes from "@xterm/xterm";
+
 export const DefaultTermTheme = "default-dark";
 export const DefaultLightTermTheme = "light-default";
 import { getResolvedTheme } from "@/app/hook/usetheme";
@@ -141,9 +143,8 @@ export async function extractClipboardData(item: ClipboardItem): Promise<GenClip
         if (!html) {
             return null;
         }
-        const tempDiv = document.createElement("div");
-        tempDiv.innerHTML = html;
-        const text = tempDiv.textContent || "";
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const text = doc.body.textContent || "";
         return text ? { text } : null;
     }
 
@@ -269,9 +270,8 @@ export async function extractDataTransferItems(items: DataTransferItemList): Pro
                     resolve([]);
                     return;
                 }
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = html;
-                const text = tempDiv.textContent || "";
+                const doc = new DOMParser().parseFromString(html, "text/html");
+                const text = doc.body.textContent || "";
                 resolve(text ? [{ text }] : []);
             });
         });
@@ -326,4 +326,71 @@ export async function extractAllClipboardData(e?: ClipboardEvent): Promise<Array
         }
         return results;
     }
+}
+
+
+/**
+ * Converts terminal buffer lines to text, properly handling wrapped lines.
+ * Wrapped lines (long lines split across multiple buffer rows) are concatenated
+ * without adding newlines between them, while preserving actual line breaks.
+ *
+ * @param buffer - The xterm.js buffer to extract lines from
+ * @param startIndex - Starting buffer index (inclusive, 0-based)
+ * @param endIndex - Ending buffer index (exclusive, 0-based)
+ * @returns Array of logical lines (with wrapped lines concatenated)
+ */
+export function bufferLinesToText(buffer: TermTypes.IBuffer, startIndex: number, endIndex: number): string[] {
+    const lines: string[] = [];
+    let currentLine = "";
+    let isFirstLine = true;
+
+    // Clamp indices to valid buffer range to avoid out-of-bounds access on the
+    // underlying circular buffer, which could return stale/wrong data.
+    const clampedStart = Math.max(0, Math.min(startIndex, buffer.length));
+    const clampedEnd = Math.max(0, Math.min(endIndex, buffer.length));
+
+    for (let i = clampedStart; i < clampedEnd; i++) {
+        const line = buffer.getLine(i);
+        if (line) {
+            const lineText = line.translateToString(true);
+            // If this line is wrapped (continuation of previous line), concatenate without newline
+            if (line.isWrapped && !isFirstLine) {
+                currentLine += lineText;
+            } else {
+                // This is a new logical line
+                if (!isFirstLine) {
+                    lines.push(currentLine);
+                }
+                currentLine = lineText;
+                isFirstLine = false;
+            }
+        }
+    }
+
+    // Don't forget the last line
+    if (!isFirstLine) {
+        lines.push(currentLine);
+    }
+
+    // Trim trailing blank lines only when the requested range extends to the
+    // actual end of the buffer.  A terminal allocates a fixed number of rows
+    // (e.g. 80) but only the first few may contain real content; the rest are
+    // empty placeholder rows.  We strip those so callers don't receive a wall
+    // of empty strings.
+    //
+    // Crucially, if the caller requested a specific sub-range (e.g. lines
+    // 100-150) and lines 140-150 happen to be blank, those blanks are
+    // intentional and must NOT be removed.  We only trim when the range
+    // reaches the very end of the buffer.
+    if (clampedEnd >= buffer.length) {
+        while (lines.length > 0 && lines[lines.length - 1] === "") {
+            lines.pop();
+        }
+    }
+
+    return lines;
+}
+
+export function quoteForPosixShell(filePath: string): string {
+    return "'" + filePath.replace(/'/g, "'\\''") + "'";
 }

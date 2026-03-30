@@ -4,6 +4,7 @@ import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import {
     atoms,
+    getApi,
     getOverrideConfigAtom,
     getSettingsKeyAtom,
     globalStore,
@@ -28,7 +29,7 @@ import { FitAddon } from "./fitaddon";
 import { ROLLING_INTERVAL_MS } from "./sessionhistory-capture";
 import { ObjectService } from "@/app/store/services";
 import { windowsToWslPath } from "@/util/pathutil";
-import { createTempFileFromBlob, extractAllClipboardData } from "./termutil";
+import { createTempFileFromBlob, extractAllClipboardData, quoteForPosixShell } from "./termutil";
 import {
     loadInitialTerminalData,
     runProcessIdleTimeout,
@@ -269,6 +270,38 @@ export class TermWrap {
             const ligaturesAddon = new LigaturesAddon();
             this.terminal.loadAddon(ligaturesAddon);
         }
+
+        const dragoverHandler = (e: DragEvent) => {
+            e.preventDefault();
+            if (e.dataTransfer) {
+                e.dataTransfer.dropEffect = "copy";
+            }
+        };
+        const dropHandler = (e: DragEvent) => {
+            e.preventDefault();
+            if (!e.dataTransfer || e.dataTransfer.files.length === 0) {
+                return;
+            }
+            const paths: string[] = [];
+            for (let i = 0; i < e.dataTransfer.files.length; i++) {
+                const file = e.dataTransfer.files[i];
+                const filePath = getApi().getPathForFile(file);
+                if (filePath) {
+                    paths.push(quoteForPosixShell(filePath));
+                }
+            }
+            if (paths.length > 0) {
+                this.terminal.paste(paths.join(" ") + " ");
+            }
+        };
+        this.connectElem.addEventListener("dragover", dragoverHandler);
+        this.connectElem.addEventListener("drop", dropHandler);
+        this.toDispose.push({
+            dispose: () => {
+                this.connectElem.removeEventListener("dragover", dragoverHandler);
+                this.connectElem.removeEventListener("drop", dropHandler);
+            },
+        });
         this.handleResize();
         const pasteHandler = this.pasteHandler.bind(this);
         this.connectElem.addEventListener("paste", pasteHandler, true);
