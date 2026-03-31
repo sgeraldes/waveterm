@@ -56,6 +56,8 @@ const (
 	ConfigKey_TermBellIndicator              = "term:bellindicator"
 	ConfigKey_TermDurable                    = "term:durable"
 	ConfigKey_TermReportFocus                = "term:reportfocus"
+	ConfigKey_TermFileLinks                  = "term:filelinks"
+	ConfigKey_TermExternalEditor             = "term:externaleditor"
 
 	ConfigKey_EditorMinimapEnabled           = "editor:minimapenabled"
 	ConfigKey_EditorStickyScrollEnabled      = "editor:stickyscrollenabled"
@@ -85,6 +87,9 @@ const (
 
 	ConfigKey_WidgetClear                    = "widget:*"
 	ConfigKey_WidgetShowHelp                 = "widget:showhelp"
+	ConfigKey_WidgetPopTabHoverMs            = "widget:poptabhoverms"
+	ConfigKey_WidgetPopoutEnabled            = "widget:popoutenabled"
+	ConfigKey_WidgetPopoutAlwaysOnTop        = "widget:popoutalwaysontop"
 
 	ConfigKey_WindowClear                    = "window:*"
 	ConfigKey_WindowFullscreenOnLaunch       = "window:fullscreenonlaunch"
@@ -106,6 +111,10 @@ const (
 	ConfigKey_WindowSaveLastWindow           = "window:savelastwindow"
 	ConfigKey_WindowDimensions               = "window:dimensions"
 	ConfigKey_WindowZoom                     = "window:zoom"
+
+	ConfigKey_TabConfirmClose                = "tab:confirmclose"
+
+	ConfigKey_BlockConfirmClose              = "block:confirmclose"
 
 	ConfigKey_TelemetryClear                 = "telemetry:*"
 	ConfigKey_TelemetryEnabled               = "telemetry:enabled"

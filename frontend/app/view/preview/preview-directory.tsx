@@ -7,7 +7,7 @@ import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { checkKeyPressed, isCharacterKeyEvent } from "@/util/keyutil";
 import { PLATFORM, PlatformMacOS } from "@/util/platformutil";
-import { addOpenMenuItems } from "@/util/previewutil";
+import { addOpenMenuItems, isNativeOpenable } from "@/util/previewutil";
 import { fireAndForget, jotaiLoadableValue } from "@/util/util";
 import { formatRemoteUri } from "@/util/waveutil";
 import { offset, useDismiss, useFloating, useInteractions } from "@floating-ui/react";
@@ -31,6 +31,7 @@ import { quote as shellQuote } from "shell-quote";
 import { debounce } from "throttle-debounce";
 import "./directorypreview.scss";
 import { EntryManagerOverlay, EntryManagerOverlayProps, EntryManagerType } from "./entry-manager";
+import { FilePropertiesOverlay } from "./file-properties-overlay";
 import {
     cleanMimetype,
     getBestUnit,
@@ -90,6 +91,7 @@ interface DirectoryTableProps {
     setSelectedPath: (_: string) => void;
     setRefreshVersion: React.Dispatch<React.SetStateAction<number>>;
     entryManagerOverlayPropsAtom: PrimitiveAtom<EntryManagerOverlayProps>;
+    propertiesFileAtom: PrimitiveAtom<FileInfo | null>;
     newFile: () => void;
     newDirectory: () => void;
 }
@@ -106,6 +108,7 @@ function DirectoryTable({
     setSelectedPath,
     setRefreshVersion,
     entryManagerOverlayPropsAtom,
+    propertiesFileAtom,
     newFile,
     newDirectory,
 }: DirectoryTableProps) {
@@ -294,6 +297,7 @@ function DirectoryTable({
                 setSelectedPath={setSelectedPath}
                 setRefreshVersion={setRefreshVersion}
                 osRef={osRef.current}
+                propertiesFileAtom={propertiesFileAtom}
             />
         </OverlayScrollbarsComponent>
     );
@@ -311,6 +315,7 @@ interface TableBodyProps {
     setSelectedPath: (_: string) => void;
     setRefreshVersion: React.Dispatch<React.SetStateAction<number>>;
     osRef: OverlayScrollbarsComponentRef;
+    propertiesFileAtom: PrimitiveAtom<FileInfo | null>;
 }
 
 function TableBody({
@@ -323,6 +328,7 @@ function TableBody({
     setSearch,
     setRefreshVersion,
     osRef,
+    propertiesFileAtom,
 }: TableBodyProps) {
     const searchActive = useAtomValue(model.directorySearchActive);
     const dummyLineRef = useRef<HTMLDivElement>(null);
@@ -362,6 +368,8 @@ function TableBody({
         }
     }, [focusIndex]);
 
+    const setPropertiesFile = useSetAtom(propertiesFileAtom);
+
     const handleFileContextMenu = useCallback(
         async (e: any, finfo: FileInfo) => {
             e.preventDefault();
@@ -370,58 +378,72 @@ function TableBody({
                 return;
             }
             const fileName = finfo.path.split("/").pop();
-            const menu: ContextMenuItem[] = [
-                {
-                    label: "New File",
-                    click: () => {
-                        table.options.meta.newFile();
-                    },
+            const menu: ContextMenuItem[] = [];
+
+            // ── Open / Open With (local only) ─────────────────────────────
+            addOpenMenuItems(menu, conn, finfo);
+
+            menu.push({ type: "separator" });
+
+            // ── Rename ────────────────────────────────────────────────────
+            menu.push({
+                label: "Rename",
+                click: () => {
+                    table.options.meta.updateName(finfo.path, finfo.isdir);
                 },
-                {
-                    label: "New Folder",
-                    click: () => {
-                        table.options.meta.newDirectory();
-                    },
-                },
-                {
-                    label: "Rename",
-                    click: () => {
-                        table.options.meta.updateName(finfo.path, finfo.isdir);
-                    },
-                },
-                {
-                    type: "separator",
-                },
+            });
+
+            // ── Copy variants ─────────────────────────────────────────────
+            menu.push(
                 {
                     label: "Copy File Name",
                     click: () => fireAndForget(() => navigator.clipboard.writeText(fileName)),
                 },
                 {
-                    label: "Copy Full File Name",
+                    label: "Copy Full Path",
                     click: () => fireAndForget(() => navigator.clipboard.writeText(finfo.path)),
                 },
                 {
-                    label: "Copy File Name (Shell Quoted)",
-                    click: () => fireAndForget(() => navigator.clipboard.writeText(shellQuote([fileName]))),
-                },
-                {
-                    label: "Copy Full File Name (Shell Quoted)",
+                    label: "Copy Full Path (Shell Quoted)",
                     click: () => fireAndForget(() => navigator.clipboard.writeText(shellQuote([finfo.path]))),
-                },
-            ];
-            addOpenMenuItems(menu, conn, finfo);
-            menu.push(
-                {
-                    type: "separator",
-                },
-                {
-                    label: "Delete",
-                    click: () => handleFileDelete(model, finfo.path, false, setErrorMsg),
                 }
             );
+
+            menu.push({ type: "separator" });
+
+            // ── Delete (with confirmation) ────────────────────────────────
+            menu.push({
+                label: "Delete",
+                click: () => {
+                    setErrorMsg({
+                        status: `Delete ${fileName}?`,
+                        text: "This cannot be undone.",
+                        level: "warning",
+                        showDismiss: true,
+                        buttons: [
+                            {
+                                text: "Delete",
+                                onClick: () => handleFileDelete(model, finfo.path, false, setErrorMsg),
+                            },
+                        ],
+                        closeAction: () => setErrorMsg(null),
+                    });
+                },
+            });
+
+            menu.push({ type: "separator" });
+
+            // ── Properties ────────────────────────────────────────────────
+            menu.push({
+                label: "Properties",
+                click: () => {
+                    setPropertiesFile(finfo);
+                },
+            });
+
             ContextMenuModel.showContextMenu(menu, e);
         },
-        [setRefreshVersion, conn]
+        [setRefreshVersion, conn, model, setErrorMsg, setPropertiesFile]
     );
 
     const allRows = table.getRowModel().flatRows;
@@ -462,6 +484,7 @@ function TableBody({
                         setFocusIndex={setFocusIndex}
                         setSearch={setSearch}
                         idx={0}
+                        conn={conn}
                         handleFileContextMenu={handleFileContextMenu}
                         key="dotdot"
                     />
@@ -474,6 +497,7 @@ function TableBody({
                         setFocusIndex={setFocusIndex}
                         setSearch={setSearch}
                         idx={dotdotRow ? idx + 1 : idx}
+                        conn={conn}
                         handleFileContextMenu={handleFileContextMenu}
                         key={idx}
                     />
@@ -490,10 +514,11 @@ type TableRowProps = {
     setFocusIndex: (_: number) => void;
     setSearch: (_: string) => void;
     idx: number;
+    conn: string;
     handleFileContextMenu: (e: any, finfo: FileInfo) => Promise<void>;
 };
 
-function TableRow({ model, row, focusIndex, setFocusIndex, setSearch, idx, handleFileContextMenu }: TableRowProps) {
+function TableRow({ model, row, focusIndex, setFocusIndex, setSearch, idx, conn, handleFileContextMenu }: TableRowProps) {
     const dirPath = useAtomValue(model.statFilePath);
     const connection = useAtomValue(model.connection);
 
@@ -519,16 +544,35 @@ function TableRow({ model, row, focusIndex, setFocusIndex, setSearch, idx, handl
         [drag]
     );
 
+    const handleDoubleClick = useCallback(() => {
+        const finfo = row.original;
+        const filePath = row.getValue("path") as string;
+        if (finfo.isdir) {
+            // Always navigate into directories
+            model.goHistory(filePath);
+            setSearch("");
+            globalStore.set(model.directorySearchActive, false);
+        } else if (!conn && isNativeOpenable(finfo.mimetype)) {
+            // Non-previewable file on a local connection → open with OS default
+            fireAndForget(async () => {
+                const errMsg = await getApi().openNativePathExplicit(filePath);
+                if (errMsg) {
+                    console.error("openNativePathExplicit failed:", errMsg);
+                }
+            });
+        } else {
+            // Previewable file (or remote) → open in Wave preview
+            model.goHistory(filePath);
+            setSearch("");
+            globalStore.set(model.directorySearchActive, false);
+        }
+    }, [model, row, conn, setSearch]);
+
     return (
         <div
             className={clsx("dir-table-body-row", { focused: focusIndex === idx })}
             data-rowindex={idx}
-            onDoubleClick={() => {
-                const newFileName = row.getValue("path") as string;
-                model.goHistory(newFileName);
-                setSearch("");
-                globalStore.set(model.directorySearchActive, false);
-            }}
+            onDoubleClick={handleDoubleClick}
             onClick={() => setFocusIndex(idx)}
             onContextMenu={(e) => handleFileContextMenu(e, row.original)}
             ref={dragRef}
@@ -704,11 +748,29 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
     )[0];
     const [entryManagerProps, setEntryManagerProps] = useAtom(entryManagerPropsAtom);
 
+    const propertiesFileAtom = useState(atom<FileInfo | null>(null) as PrimitiveAtom<FileInfo | null>)[0];
+    const [propertiesFile, setPropertiesFile] = useAtom(propertiesFileAtom);
+
     const { refs, floatingStyles, context } = useFloating({
         open: !!entryManagerProps,
         onOpenChange: () => setEntryManagerProps(undefined),
         middleware: [offset(({ rects }) => -rects.reference.height / 2 - rects.floating.height / 2)],
     });
+
+    const {
+        refs: propertiesRefs,
+        floatingStyles: propertiesFloatingStyles,
+        context: propertiesContext,
+    } = useFloating({
+        open: !!propertiesFile,
+        onOpenChange: (open) => {
+            if (!open) setPropertiesFile(null);
+        },
+        middleware: [offset(({ rects }) => -rects.reference.height / 2 - rects.floating.height / 2)],
+    });
+
+    const propertiesDismiss = useDismiss(propertiesContext);
+    const { getFloatingProps: getPropertiesFloatingProps } = useInteractions([propertiesDismiss]);
 
     const handleDropCopy = useCallback(
         async (data: CommandFileCopyData, isDir: boolean) => {
@@ -877,10 +939,18 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
         [setRefreshVersion, conn, newFile, newDirectory, dirPath]
     );
 
+    const setContainerRef = useCallback(
+        (node: HTMLDivElement | null) => {
+            refs.setReference(node);
+            propertiesRefs.setReference(node);
+        },
+        [refs.setReference, propertiesRefs.setReference]
+    );
+
     return (
         <Fragment>
             <div
-                ref={refs.setReference}
+                ref={setContainerRef}
                 className="dir-table-container"
                 onChangeCapture={(e) => {
                     const event = e as React.ChangeEvent<HTMLInputElement>;
@@ -902,6 +972,7 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
                     setSelectedPath={setSelectedPath}
                     setRefreshVersion={setRefreshVersion}
                     entryManagerOverlayPropsAtom={entryManagerPropsAtom}
+                    propertiesFileAtom={propertiesFileAtom}
                     newFile={newFile}
                     newDirectory={newDirectory}
                 />
@@ -913,6 +984,15 @@ function DirectoryPreview({ model }: DirectoryPreviewProps) {
                     style={floatingStyles}
                     getReferenceProps={getFloatingProps}
                     onCancel={() => setEntryManagerProps(undefined)}
+                />
+            )}
+            {propertiesFile && (
+                <FilePropertiesOverlay
+                    finfo={propertiesFile}
+                    onClose={() => setPropertiesFile(null)}
+                    forwardRef={propertiesRefs.setFloating}
+                    style={propertiesFloatingStyles}
+                    {...getPropertiesFloatingProps()}
                 />
             )}
         </Fragment>

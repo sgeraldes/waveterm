@@ -354,26 +354,18 @@ export class WaveBrowserWindow extends BaseWindow {
     }
 
     async switchWorkspace(workspaceId: string) {
-        console.log("switchWorkspace", workspaceId, this.waveWindowId);
-        if (workspaceId == this.workspaceId) {
-            console.log("switchWorkspace already on this workspace", this.waveWindowId);
+        if (workspaceId === this.workspaceId) {
+            return; // already on this workspace
+        }
+        const workspaceList = await WorkspaceService.ListWorkspaces();
+        const existingEntry = workspaceList?.find((wse) => wse.workspaceid === workspaceId);
+        if (existingEntry?.windowid) {
+            // Workspace already open in another window — focus that window
+            await this._queueActionInternal({ op: "switchworkspace", workspaceId });
             return;
         }
-
-        // If the workspace is already owned by a window, then we can just call SwitchWorkspace without first prompting the user, since it'll just focus to the other window.
-        const workspaceList = await WorkspaceService.ListWorkspaces();
-        if (!workspaceList?.find((wse) => wse.workspaceid === workspaceId)?.windowid) {
-            const curWorkspace = await WorkspaceService.GetWorkspace(this.workspaceId);
-
-            if (curWorkspace && isNonEmptyUnsavedWorkspace(curWorkspace)) {
-                console.log(
-                    `existing unsaved workspace ${this.workspaceId} has content, opening workspace ${workspaceId} in new window`
-                );
-                await createWindowForWorkspace(workspaceId);
-                return;
-            }
-        }
-        await this._queueActionInternal({ op: "switchworkspace", workspaceId });
+        // Workspace is unowned — open in a brand-new window
+        await createWindowForWorkspace(workspaceId);
     }
 
     async setActiveTab(tabId: string, setInBackend: boolean, primaryStartupTab = false) {
@@ -569,17 +561,13 @@ export class WaveBrowserWindow extends BaseWindow {
                         tabId = rtn.newactivetabid;
                         break;
                     case "switchworkspace":
-                        const newWs = await WindowService.SwitchWorkspace(this.waveWindowId, entry.workspaceId);
-                        if (!newWs) {
+                        const focusResult = await WindowService.SwitchWorkspace(this.waveWindowId, entry.workspaceId);
+                        // focusResult is null when focus was dispatched to an existing window
+                        if (!focusResult) {
                             return;
                         }
-                        console.log("processActionQueue switchworkspace newWs", newWs);
-                        this.removeAllChildViews();
-                        console.log("destroyed all tabs", this.waveWindowId);
-                        this.workspaceId = entry.workspaceId;
-                        this.allLoadedTabViews = new Map();
-                        tabId = newWs.activetabid;
-                        break;
+                        // Should not reach here in the new flow
+                        return;
                 }
                 if (tabId == null) {
                     return;
@@ -856,11 +844,7 @@ ipcMain.on("switch-workspace", (event, workspaceId) => {
 export async function createWorkspace(window: WaveBrowserWindow) {
     const newWsId = await WorkspaceService.CreateWorkspace("", "", "", true);
     if (newWsId) {
-        if (window) {
-            await window.switchWorkspace(newWsId);
-        } else {
-            await createWindowForWorkspace(newWsId);
-        }
+        await createWindowForWorkspace(newWsId);
     }
 }
 

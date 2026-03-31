@@ -215,6 +215,30 @@ const allSettings: SettingMetadata[] = [
         tags: ["keyboard", "meta", "option", "macos"],
     },
     {
+        key: "term:filelinks",
+        label: "Clickable File Paths",
+        description:
+            "Detect and underline file paths in terminal output. Click opens in Wave preview, Ctrl+Click opens in external editor.",
+        category: "Terminal",
+        subcategory: "Behavior",
+        controlType: "toggle",
+        defaultValue: true,
+        type: "boolean",
+        tags: ["file", "links", "path", "clickable", "terminal"],
+    },
+    {
+        key: "term:externaleditor",
+        label: "External Editor",
+        description:
+            "Executable path for the external editor used when Ctrl+clicking file links. Leave empty to use OS default handler. Examples: code, notepad++, vim",
+        category: "Terminal",
+        subcategory: "Behavior",
+        controlType: "text",
+        defaultValue: "",
+        type: "string",
+        tags: ["editor", "external", "file", "links", "vscode"],
+    },
+    {
         key: "term:omptheme",
         label: "Oh-My-Posh Theme",
         description:
@@ -455,7 +479,7 @@ const allSettings: SettingMetadata[] = [
         category: "Window",
         subcategory: "Behavior",
         controlType: "toggle",
-        defaultValue: false,
+        defaultValue: true,
         type: "boolean",
         tags: ["close", "confirm", "warning"],
     },
@@ -1084,6 +1108,40 @@ const allSettings: SettingMetadata[] = [
         type: "boolean",
         tags: ["help", "tooltip", "launcher"],
     },
+    {
+        key: "widget:popoutenabled",
+        label: "Enable Pop-Out",
+        description: "Allow blocks to be popped out into standalone windows via the title bar button.",
+        category: "Widget",
+        subcategory: "Pop-Out",
+        controlType: "toggle",
+        defaultValue: true,
+        type: "boolean",
+        tags: ["popout", "window", "detach", "float"],
+    },
+    {
+        key: "widget:popoutalwaysontop",
+        label: "Pop-Out Always on Top",
+        description: "Keep popped-out block windows always on top of other windows.",
+        category: "Widget",
+        subcategory: "Pop-Out",
+        controlType: "toggle",
+        defaultValue: true,
+        type: "boolean",
+        tags: ["popout", "window", "ontop", "float"],
+    },
+    {
+        key: "widget:poptabhoverms",
+        label: "Tab Hover Switch Delay (ms)",
+        description: "Milliseconds to hover over a tab during drag-to-pop-in before switching to that tab.",
+        category: "Widget",
+        subcategory: "Pop-Out",
+        controlType: "number",
+        defaultValue: 800,
+        type: "number",
+        validation: { min: 200, max: 5000 },
+        tags: ["popout", "drag", "tab", "hover", "delay"],
+    },
 
     // ===================
     // BLOCK HEADER SETTINGS
@@ -1113,6 +1171,30 @@ const allSettings: SettingMetadata[] = [
         type: "string",
         validation: { options: [] }, // Populated dynamically
         tags: ["tab", "preset"],
+    },
+    {
+        key: "tab:confirmclose",
+        label: "Confirm Tab Close",
+        description:
+            "Ask for confirmation before closing a tab. Helps prevent accidental tab loss from middle-click, close button, or keyboard shortcut.",
+        category: "Window",
+        subcategory: "Behavior",
+        controlType: "toggle",
+        defaultValue: true,
+        type: "boolean",
+        tags: ["tab", "close", "confirm", "warning", "middle-click"],
+    },
+    {
+        key: "block:confirmclose",
+        label: "Confirm Terminal Close",
+        description:
+            "Ask for confirmation before closing a terminal block, even when no process is running. Terminal blocks with a running process always prompt regardless of this setting.",
+        category: "Window",
+        subcategory: "Behavior",
+        controlType: "toggle",
+        defaultValue: false,
+        type: "boolean",
+        tags: ["block", "terminal", "close", "confirm", "warning"],
     },
 
     // ===================

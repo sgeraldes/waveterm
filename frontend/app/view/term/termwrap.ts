@@ -23,6 +23,7 @@ import { Terminal } from "@xterm/xterm";
 import debug from "debug";
 import * as jotai from "jotai";
 import { debounce } from "throttle-debounce";
+import { createFileLinkProvider } from "./termlinks";
 import { FitAddon } from "./fitaddon";
 import { ROLLING_INTERVAL_MS } from "./sessionhistory-capture";
 import { ObjectService } from "@/app/store/services";
@@ -111,6 +112,7 @@ export class TermWrap {
     sessionHistoryTimer: ReturnType<typeof setInterval> | null = null;
     lastSnapshotTime: number = 0;
     lastRollingLength: number = 0;
+    restoredMode: boolean = false;
 
     constructor(
         tabId: string,
@@ -156,6 +158,24 @@ export class TermWrap {
                 }
             })
         );
+        // Register file path link provider for clickable file paths
+        const fileLinksEnabled =
+            globalStore.get(getOverrideConfigAtom(waveOptions.nodeModel?.blockId, "term:filelinks")) ?? true;
+        if (fileLinksEnabled) {
+            const fileLinkProvider = createFileLinkProvider(
+                this.terminal,
+                this.blockId,
+                () => {
+                    const blockData = WOS.getObjectValue<Block>(WOS.makeORef("block", this.blockId));
+                    return blockData?.meta?.connection ?? null;
+                },
+                () => {
+                    const blockData = WOS.getObjectValue<Block>(WOS.makeORef("block", this.blockId));
+                    return blockData?.meta?.["cmd:cwd"] ?? null;
+                }
+            );
+            this.terminal.registerLinkProvider(fileLinkProvider);
+        }
         if (WebGLSupported && waveOptions.useWebGl) {
             const webglAddon = new WebglAddon();
             this.toDispose.push(
@@ -170,7 +190,10 @@ export class TermWrap {
             }
         }
         this.terminal.parser.registerOscHandler(7, (data: string) => {
-            return handleOsc7Command(data, this.blockId, this.tabId, this.loaded);
+            const result = handleOsc7Command(data, this.blockId, this.tabId, this.loaded);
+            // CWD changed — update rolling capture immediately
+            this.onShellEvent("cwd-change");
+            return result;
         });
         this.terminal.parser.registerOscHandler(52, (data: string) => {
             return handleOsc52Command(data, this.blockId, this.loaded, this);
@@ -187,6 +210,8 @@ export class TermWrap {
                 ObjectService.UpdateObjectMeta(WOS.makeORef("block", this.blockId), {
                     "term:title": title,
                 });
+                // Title changed — update rolling capture immediately so session history has the latest title
+                this.onShellEvent?.("title-change");
             }, 500);
         });
 
@@ -444,6 +469,10 @@ export class TermWrap {
             return;
         }
 
+        if (this.restoredMode) {
+            return;
+        }
+
         if (this.isComposing) {
             dlog("Blocked data during composition:", data);
             return;
@@ -479,11 +508,28 @@ export class TermWrap {
         }
     }
 
+    /**
+     * Called by OSC handlers when a shell event occurs (prompt return, title change, etc.).
+     * Triggers an immediate rolling capture (overwrite, not snapshot) so session history
+     * metadata stays fresh. Snapshots are only created on clear/close — not on every event.
+     */
+    onShellEvent(event: "prompt-return" | "title-change" | "cwd-change" | "alt-buffer-exit"): void {
+        if (!this.loaded) return;
+        if (this.restoredMode) return;
+        // Skip rolling capture if in alternate buffer (TUI app like vim/htop)
+        if (event !== "alt-buffer-exit" && this.terminal.buffer.active.type === "alternate") return;
+        // Trigger immediate rolling capture (overwrites the single rolling.ansi file)
+        saveRollingCapture(this);
+    }
+
     addFocusListener(focusFn: () => void) {
         this.terminal.textarea.addEventListener("focus", focusFn);
     }
 
     handleNewFileSubjectData(msg: WSFileEventData) {
+        if (this.restoredMode) {
+            return;
+        }
         if (msg.fileop == "truncate") {
             saveSessionSnapshot(this, "clear");
             this.terminal.clear();
@@ -529,7 +575,7 @@ export class TermWrap {
                 rtopts: rtOpts,
             });
         } catch (e) {
-            console.log(`error controller resync (${reason})`, this.blockId, e);
+            console.log("error controller resync (%s) %s", reason, this.blockId, e);
         }
     }
 

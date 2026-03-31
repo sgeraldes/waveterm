@@ -101,6 +101,7 @@ const (
 
 	MetaKey_TabBaseDir                       = "tab:basedir"
 	MetaKey_TabBaseDirLock                   = "tab:basedirlock"
+	MetaKey_TabSkipCloseConfirm              = "tab:skipcloseconfirm"
 	MetaKey_TabWslDistro                     = "tab:wsldistro"
 	MetaKey_TabColor                         = "tab:color"
 	MetaKey_TabTermStatus                    = "tab:termstatus"
@@ -133,8 +134,22 @@ const (
 	MetaKey_TermDurable                      = "term:durable"
 	MetaKey_TermReportFocus                  = "term:reportfocus"
 	MetaKey_TermTitle                        = "term:title"
+	MetaKey_TermActiveTabId                  = "term:activetabid"
+
+	MetaKey_TermRestoreFrom                  = "term:restorefrom"
+	MetaKey_TermTabName                      = "term:tabname"
 
 	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
+
+	MetaKey_BlockPoppedOut                   = "block:poppedout"
+	MetaKey_BlockOriginTab                   = "block:origintab"
+	MetaKey_BlockOriginTabName               = "block:origintabname"
+	MetaKey_BlockOriginBaseDir               = "block:originbasedir"
+	MetaKey_BlockLayoutNodeId                = "block:layoutnodeid"
+
+	MetaKey_PreviewLine                      = "preview:line"
+	MetaKey_PreviewCol                       = "preview:col"
+	MetaKey_PreviewActiveDocTab              = "preview:activedoctab"
 
 	MetaKey_WebZoom                          = "web:zoom"
 	MetaKey_WebHideNav                       = "web:hidenav"
@@ -146,6 +161,8 @@ const (
 
 	MetaKey_OnboardingGithubStar             = "onboarding:githubstar"
 	MetaKey_OnboardingLastVersion            = "onboarding:lastversion"
+
+	MetaKey_KanbanEnabled                    = "kanban:enabled"
 
 	MetaKey_Count                            = "count"
 )

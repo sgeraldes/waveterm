@@ -29,7 +29,7 @@ vi.mock("@/store/global", () => ({
 }));
 vi.mock("@/store/wos", () => ({ useWaveObjectValue: vi.fn(() => [null, false]), makeORef: vi.fn() }));
 vi.mock("@/util/platformutil", () => ({ isMacOS: vi.fn(() => false), isWindows: vi.fn(() => false) }));
-vi.mock("@/util/util", () => ({ makeIconClass: vi.fn(), useAtomValueSafe: vi.fn(), cn: vi.fn() }));
+vi.mock("@/util/util", () => ({ makeIconClass: vi.fn(), useAtomValueSafe: vi.fn(), cn: vi.fn(), lazy: (fn: () => any) => fn() }));
 vi.mock("@/app/element/button", () => ({ Button: () => null }));
 vi.mock("@/element/iconbutton", () => ({ IconButton: () => null }));
 vi.mock("@/app/tab/config-error", () => ({ ConfigErrorIcon: () => null }));
@@ -42,7 +42,7 @@ vi.mock("@/app/tab/updatebanner", () => ({ UpdateStatusBanner: () => null }));
 vi.mock("@/app/tab/use-tab-drag", () => ({ strArrayIsEqual: vi.fn(), useTabDrag: vi.fn(() => [[], vi.fn()]) }));
 vi.mock("@/app/tab/wave-ai-button", () => ({ WaveAIButton: () => null }));
 vi.mock("overlayscrollbars", () => ({ OverlayScrollbars: vi.fn() }));
-vi.mock("jotai", () => ({ useAtomValue: vi.fn(), atom: vi.fn() }));
+vi.mock("jotai", () => ({ useAtomValue: vi.fn(), atom: vi.fn(), createStore: vi.fn(() => ({ get: vi.fn(), set: vi.fn(), sub: vi.fn() })) }));
 
 // Track addEventListener and removeEventListener calls
 let addedListeners = new Map<string, number>();

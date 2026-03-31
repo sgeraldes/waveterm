@@ -65,7 +65,7 @@ func parseEtcShells() []DetectedShell {
 		}
 
 		shellType := GetShellTypeFromShellPath(line)
-		if shellType == ShellType_unknown {
+		if shellType == "" {
 			continue
 		}
 
@@ -174,10 +174,10 @@ func detectAdditionalShells() []DetectedShell {
 		// These are all treated as unknown type since we don't have
 		// special integration for them
 		shell := DetectedShell{
-			ID:        GenerateShellID(ShellType_unknown, shellPath),
+			ID:        GenerateShellID("", shellPath),
 			Name:      strings.Title(displayName),
 			ShellPath: shellPath,
-			ShellType: ShellType_unknown,
+			ShellType: "",
 			Source:    ShellSource_Path,
 			Icon:      ShellIcon_Terminal,
 		}

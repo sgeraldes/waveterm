@@ -1,8 +1,8 @@
 import type { BlockNodeModel } from "@/app/block/blocktypes";
 import { globalStore, pushNotification, WOS } from "@/app/store/global";
-import type { TabModel } from "@/app/store/tab-model";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
+import type { TabModel } from "@/app/store/tab-model";
 import { handleImagePaste } from "@/app/util/image-paste";
 import { formatRemoteUri } from "@/util/waveutil";
 import { atom, Atom, PrimitiveAtom } from "jotai";
@@ -29,6 +29,7 @@ export class TodoViewModel implements ViewModel {
     saveStatus: PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
     newTaskText: PrimitiveAtom<string>;
 
+    kanbanEnabled: Atom<boolean>;
     connection: Atom<string>;
     // TODO file path
     todoPath: Atom<string>;
@@ -51,6 +52,11 @@ export class TodoViewModel implements ViewModel {
         this.saveStatus = atom(null) as PrimitiveAtom<"saved" | "saving" | "unsaved" | null>;
         this.newTaskText = atom("") as PrimitiveAtom<string>;
 
+        this.kanbanEnabled = atom((get) => {
+            const blockData = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));
+            return blockData?.meta?.["kanban:enabled"] === true;
+        });
+
         this.connection = atom((get) => {
             const blockData = get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));
             return blockData?.meta?.connection ?? "";
@@ -65,16 +71,37 @@ export class TodoViewModel implements ViewModel {
 
         this.endIconButtons = atom((get) => {
             const currentMode = get(this.mode);
-            return [
-                {
+            const kanban = get(this.kanbanEnabled);
+            const buttons: IconButtonDecl[] = [];
+
+            // Kanban / List toggle
+            buttons.push({
+                elemtype: "iconbutton" as const,
+                icon: kanban ? "list-check" : "table-columns",
+                title: kanban ? "Switch to List view" : "Switch to Kanban view",
+                click: () => {
+                    const blockData = globalStore.get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", this.blockId)));
+                    const currentMeta = blockData?.meta ?? {};
+                    RpcApi.SetMetaCommand(TabRpcClient, {
+                        oref: WOS.makeORef("block", this.blockId),
+                        meta: { ...currentMeta, "kanban:enabled": !kanban },
+                    });
+                },
+            });
+
+            // Edit / view toggle (only in list mode)
+            if (!kanban) {
+                buttons.push({
                     elemtype: "iconbutton" as const,
                     icon: currentMode === "view" ? "pen-to-square" : "list-check",
                     title: currentMode === "view" ? "Edit markdown" : "View checklist",
                     click: () => {
                         globalStore.set(this.mode, currentMode === "view" ? "edit" : "view");
                     },
-                },
-            ];
+                });
+            }
+
+            return buttons;
         });
     }
 

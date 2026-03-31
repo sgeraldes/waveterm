@@ -20,7 +20,7 @@ import (
 
 func SwitchWorkspace(ctx context.Context, windowId string, workspaceId string) (*waveobj.Workspace, error) {
 	log.Printf("SwitchWorkspace %s %s\n", windowId, workspaceId)
-	ws, err := GetWorkspace(ctx, workspaceId)
+	_, err := GetWorkspace(ctx, workspaceId)
 	if err != nil {
 		return nil, fmt.Errorf("error getting new workspace: %w", err)
 	}
@@ -46,27 +46,8 @@ func SwitchWorkspace(ctx context.Context, windowId string, workspaceId string) (
 			return nil, err
 		}
 	}
-	window.WorkspaceId = workspaceId
-	err = wstore.DBUpdate(ctx, window)
-	if err != nil {
-		return nil, fmt.Errorf("error updating window: %w", err)
-	}
-
-	deleted, _, err := DeleteWorkspace(ctx, curWsId, false)
-	if err != nil && deleted {
-		print(err.Error()) // @jalileh isolated the error for now, curwId/workspace was deleted when this occurs.
-	} else if err != nil {
-		return nil, fmt.Errorf("error deleting workspace: %w", err)
-	}
-
-	if !deleted {
-		log.Printf("current workspace %s was not deleted\n", curWsId)
-	} else {
-		log.Printf("deleted current workspace %s\n", curWsId)
-	}
-
-	log.Printf("switching window %s to workspace %s\n", windowId, workspaceId)
-	return ws, nil
+	log.Printf("WARNING: SwitchWorkspace called for unowned workspace %s - this path should no longer be reachable from the frontend", workspaceId)
+	return nil, fmt.Errorf("SwitchWorkspace: unowned workspace path is deprecated")
 }
 
 func GetWindow(ctx context.Context, windowId string) (*waveobj.Window, error) {

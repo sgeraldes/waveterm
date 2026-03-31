@@ -36,11 +36,11 @@ func NewSessionHistoryService(storageRoot string) *SessionHistoryService {
 func (s *SessionHistoryService) SaveRollingSegment_Meta() tsgenmeta.MethodMeta {
 	return tsgenmeta.MethodMeta{
 		Desc:     "save rolling (overwrite) terminal capture segment",
-		ArgNames: []string{"ctx", "blockId", "content", "tabId", "tabBaseDir", "connection", "cwd"},
+		ArgNames: []string{"ctx", "blockId", "content", "tabId", "tabBaseDir", "connection", "cwd", "shellType", "title"},
 	}
 }
 
-func (s *SessionHistoryService) SaveRollingSegment(ctx context.Context, blockId string, content string, tabId string, tabBaseDir string, connection string, cwd string) error {
+func (s *SessionHistoryService) SaveRollingSegment(ctx context.Context, blockId string, content string, tabId string, tabBaseDir string, connection string, cwd string, shellType string, title string) error {
 	if len(content) > maxContentBytes {
 		return fmt.Errorf("sessionhistory: content exceeds 5MB limit (%d bytes)", len(content))
 	}
@@ -50,6 +50,8 @@ func (s *SessionHistoryService) SaveRollingSegment(ctx context.Context, blockId 
 		TabBaseDir: tabBaseDir,
 		Connection: connection,
 		Cwd:        cwd,
+		ShellType:  shellType,
+		Title:      title,
 	}
 	return s.store.SaveRollingSegment(blockId, []byte(content), meta)
 }
@@ -58,11 +60,11 @@ func (s *SessionHistoryService) SaveRollingSegment(ctx context.Context, blockId 
 func (s *SessionHistoryService) SaveSnapshotSegment_Meta() tsgenmeta.MethodMeta {
 	return tsgenmeta.MethodMeta{
 		Desc:     "save immutable snapshot terminal segment (on clear/close)",
-		ArgNames: []string{"ctx", "blockId", "content", "tabId", "tabBaseDir", "connection", "cwd", "reason"},
+		ArgNames: []string{"ctx", "blockId", "content", "tabId", "tabBaseDir", "connection", "cwd", "reason", "shellType", "title"},
 	}
 }
 
-func (s *SessionHistoryService) SaveSnapshotSegment(ctx context.Context, blockId string, content string, tabId string, tabBaseDir string, connection string, cwd string, reason string) error {
+func (s *SessionHistoryService) SaveSnapshotSegment(ctx context.Context, blockId string, content string, tabId string, tabBaseDir string, connection string, cwd string, reason string, shellType string, title string) error {
 	if len(content) > maxContentBytes {
 		return fmt.Errorf("sessionhistory: content exceeds 5MB limit (%d bytes)", len(content))
 	}
@@ -72,6 +74,8 @@ func (s *SessionHistoryService) SaveSnapshotSegment(ctx context.Context, blockId
 		TabBaseDir: tabBaseDir,
 		Connection: connection,
 		Cwd:        cwd,
+		ShellType:  shellType,
+		Title:      title,
 	}
 	return s.store.SaveSnapshotSegment(blockId, []byte(content), meta, reason)
 }

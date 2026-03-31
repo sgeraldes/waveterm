@@ -1,0 +1,126 @@
+// Copyright 2025, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.preview-doctab-bar {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    height: 28px;
+    min-height: 28px;
+    background: color-mix(in srgb, var(--main-bg-color) 85%, black);
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+    overflow-y: hidden;
+    user-select: none;
+    flex-shrink: 0;
+
+    // Hide scrollbar visually but keep scroll functionality
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+        display: none;
+    }
+
+    .doctab-list {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .doctab-item {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        padding: 0 8px;
+        min-width: 60px;
+        max-width: 180px;
+        cursor: pointer;
+        position: relative;
+        border-right: 1px solid var(--border-color);
+        color: var(--secondary-text-color);
+        font-size: 12px;
+        flex-shrink: 0;
+        white-space: nowrap;
+
+        &:hover {
+            background: color-mix(in srgb, var(--main-bg-color) 60%, white 10%);
+            color: var(--main-text-color);
+
+            .doctab-close {
+                opacity: 1;
+            }
+        }
+
+        &.active {
+            background: var(--main-bg-color);
+            color: var(--main-text-color);
+            font-weight: 500;
+
+            // Accent bottom border for active tab
+            &::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: var(--accent-color, #3b82f6);
+            }
+        }
+
+        .doctab-icon {
+            font-size: 11px;
+            flex-shrink: 0;
+            color: var(--secondary-text-color);
+        }
+
+        .doctab-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            min-width: 0;
+        }
+
+        .doctab-close {
+            opacity: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            color: var(--secondary-text-color);
+            font-size: 10px;
+            transition: opacity 0.1s ease, background 0.1s ease;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: var(--main-text-color);
+            }
+        }
+    }
+
+    .doctab-add-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        min-width: 28px;
+        height: 100%;
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        font-size: 13px;
+        flex-shrink: 0;
+        margin-left: auto;
+        border-left: 1px solid var(--border-color);
+
+        &:hover {
+            background: color-mix(in srgb, var(--main-bg-color) 60%, white 10%);
+            color: var(--main-text-color);
+        }
+    }
+}

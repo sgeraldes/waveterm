@@ -1,13 +1,10 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { Button } from "@/app/element/button";
-import { modalsModel } from "@/app/store/modalmodel";
 import { addRecentlyClosed } from "@/app/store/recently-closed";
 import { cleanupOsc7DebounceForTab } from "@/app/view/term/termwrap";
-import { WorkspaceLayoutModel } from "@/app/workspace/workspace-layout-model";
 import { deleteLayoutModelForTab } from "@/layout/index";
-import { atoms, createTab, getApi, globalStore, setActiveTab } from "@/store/global";
+import { atoms, createTab, getApi, globalStore } from "@/store/global";
 import * as WOS from "@/store/wos";
 import { isMacOS, isWindows } from "@/util/platformutil";
 import { makeIconClass } from "@/util/util";
@@ -20,6 +17,8 @@ import { ConfigErrorIcon } from "./config-error";
 import { Tab } from "./tab";
 import { TabManagementPanel, tabManagementPanelOpenAtom } from "./tab-management-panel";
 import "./tabbar.scss";
+import { tabHasRunningProcess } from "@/app/block/blockclose-confirm";
+import { isTabCloseConfirmEnabledForTab, showTabCloseConfirm } from "./tabclose-confirm";
 import { UpdateStatusBanner } from "./updatebanner";
 import { strArrayIsEqual, useTabDrag } from "./use-tab-drag";
 import { WaveAIButton } from "./wave-ai-button";
@@ -270,8 +269,7 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         setNewTabIdDebounced(null);
     };
 
-    const handleCloseTab = (event: React.MouseEvent<HTMLButtonElement, MouseEvent> | null, tabId: string) => {
-        event?.stopPropagation();
+    const executeCloseTab = (tabId: string) => {
         const tabData = WOS.getObjectValue<Tab>(WOS.makeORef("tab", tabId));
         if (tabData) {
             addRecentlyClosed(tabData);
@@ -281,6 +279,18 @@ const TabBar = memo(({ workspace }: TabBarProps) => {
         getApi().closeTab(ws.oid, tabId);
         tabsWrapperRef.current.style.setProperty("--tabs-wrapper-transition", "width 0.3s ease");
         deleteLayoutModelForTab(tabId);
+    };
+
+    const handleCloseTab = (event: React.MouseEvent<HTMLButtonElement, MouseEvent> | null, tabId: string) => {
+        event?.stopPropagation();
+        if (isTabCloseConfirmEnabledForTab(tabId)) {
+            const tabData = WOS.getObjectValue<Tab>(WOS.makeORef("tab", tabId));
+            const tabName = tabData?.name || "";
+            const hasRunningProcess = tabHasRunningProcess(tabId);
+            showTabCloseConfirm(tabName, hasRunningProcess, () => executeCloseTab(tabId));
+            return;
+        }
+        executeCloseTab(tabId);
     };
 
     const handleCloseTabFromPanel = useCallback(

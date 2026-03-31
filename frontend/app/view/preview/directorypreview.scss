@@ -168,6 +168,84 @@
     }
 }
 
+.file-properties-overlay {
+    display: flex;
+    flex-direction: column;
+    min-width: 320px;
+    max-width: 480px;
+    max-height: fit-content;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: #212121;
+    box-shadow: 0px 8px 24px 0px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+
+    .file-properties-header {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+        .file-properties-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--main-text-color);
+        }
+
+        .file-properties-close {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--secondary-text-color);
+            padding: 2px 4px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+                background: var(--highlight-bg-color);
+                color: var(--main-text-color);
+            }
+        }
+    }
+
+    .file-properties-body {
+        display: flex;
+        flex-direction: column;
+        padding: 8px 0;
+    }
+
+    .file-properties-row {
+        display: flex;
+        flex-direction: row;
+        padding: 4px 12px;
+        gap: 8px;
+        font-size: 0.8125rem;
+
+        &:nth-child(odd) {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .file-properties-label {
+            flex: 0 0 90px;
+            color: var(--secondary-text-color);
+            font-weight: 500;
+        }
+
+        .file-properties-value {
+            flex: 1 1 auto;
+            color: var(--main-text-color);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            word-break: break-all;
+        }
+    }
+}
+
 .entry-manager-overlay {
     display: flex;
     flex-direction: column;

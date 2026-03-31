@@ -80,5 +80,16 @@
                 "view": "todo"
             }
         }
+    },
+    "defwidget@kanban": {
+        "display:order": 4,
+        "icon": "table-columns",
+        "label": "kanban",
+        "blockdef": {
+            "meta": {
+                "view": "todo",
+                "kanban:enabled": true
+            }
+        }
     }
 }

@@ -690,6 +690,77 @@ export function initIpcHandlers() {
     });
 
     /**
+     * Opens a file or directory in the system's default application.
+     * Same as open-native-path but WITHOUT the home-directory restriction.
+     * Security: Blocks UNC paths and validates existence, but allows any accessible path.
+     * @param event - IPC event object (unused)
+     * @param filePath - Path to open (can start with ~, will be resolved)
+     * @returns Promise<string> - Empty string on success, error message on failure
+     */
+    electron.ipcMain.handle("open-native-path-explicit", async (event, filePath: string) => {
+        console.log("open-native-path-explicit", filePath);
+
+        // SECURITY: Properly expand tilde to home directory
+        if (filePath.startsWith("~")) {
+            filePath = path.join(electronApp.getPath("home"), filePath.slice(1));
+        }
+
+        // SECURITY: Resolve to absolute path (prevents path traversal)
+        const resolvedPath = path.resolve(filePath);
+
+        // SECURITY: Block UNC paths on Windows to prevent network attacks
+        if (process.platform === "win32" && /^[\\/]{2}[^\\/]/.test(resolvedPath)) {
+            console.warn("open-native-path-explicit: blocked UNC path:", resolvedPath);
+            return "UNC paths not allowed";
+        }
+
+        // SECURITY: Validate path exists and is accessible
+        try {
+            await fs.promises.access(resolvedPath, fs.constants.R_OK);
+        } catch {
+            console.warn("open-native-path-explicit: path does not exist or is not accessible:", resolvedPath);
+            return "Path does not exist or is not accessible";
+        }
+
+        let excuse = "";
+        await callWithOriginalXdgCurrentDesktopAsync(async () => {
+            excuse = await electron.shell.openPath(resolvedPath);
+            if (excuse) console.error(`Failed to open ${resolvedPath} in native application: ${excuse}`);
+        });
+        return excuse;
+    });
+
+    electron.ipcMain.handle("open-external-editor", async (_event, editorPath: string, filePath: string) => {
+        // Security: validate inputs
+        if (!editorPath || typeof editorPath !== "string") {
+            return "Invalid editor path";
+        }
+        if (!filePath || typeof filePath !== "string") {
+            return "Invalid file path";
+        }
+        // Resolve and validate the file path (prevent traversal)
+        const resolvedPath = path.resolve(filePath);
+        // Check file exists
+        try {
+            await fs.promises.access(resolvedPath);
+        } catch {
+            return "File not found: " + resolvedPath;
+        }
+        // Launch external editor using execFile (NOT exec — prevents command injection)
+        try {
+            const { execFile } = require("child_process") as typeof import("child_process");
+            execFile(editorPath, [resolvedPath], (error) => {
+                if (error) {
+                    console.log("external editor error:", error.message);
+                }
+            });
+            return "";
+        } catch (error) {
+            return "Failed to launch editor: " + String(error);
+        }
+    });
+
+    /**
      * Sets the initialization status of a tab view.
      * "ready" - Tab DOM is loaded, ready to receive wave-init
      * "wave-ready" - Tab has completed wave initialization and is fully ready

@@ -125,12 +125,12 @@ class SessionHistoryServiceType {
     }
 
     // save rolling (overwrite) terminal capture segment
-    SaveRollingSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string): Promise<void> {
+    SaveRollingSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string, shellType: string, title: string): Promise<void> {
         return WOS.callBackendService("sessionhistory", "SaveRollingSegment", Array.from(arguments))
     }
 
     // save immutable snapshot terminal segment (on clear/close)
-    SaveSnapshotSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string, reason: string): Promise<void> {
+    SaveSnapshotSegment(blockId: string, content: string, tabId: string, tabBaseDir: string, connection: string, cwd: string, reason: string, shellType: string, title: string): Promise<void> {
         return WOS.callBackendService("sessionhistory", "SaveSnapshotSegment", Array.from(arguments))
     }
     StartCleanupScheduler(): Promise<void> {

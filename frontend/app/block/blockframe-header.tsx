@@ -10,7 +10,7 @@ import {
 import { ConnectionButton } from "@/app/block/connectionbutton";
 import { DurableSessionFlyover } from "@/app/block/durable-session-flyover";
 import { ContextMenuModel } from "@/app/store/contextmenu";
-import { recordTEvent, WOS } from "@/app/store/global";
+import { getApi, recordTEvent, WOS } from "@/app/store/global";
 import { globalStore } from "@/app/store/jotaiStore";
 import { uxCloseBlock } from "@/app/store/keymodel";
 import { RpcApi } from "@/app/store/wshclientapi";
@@ -127,12 +127,14 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
 
     const endIconsElem: React.ReactElement[] = [];
 
+    const isPoppedOut = globalStore.get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", blockId)))?.meta?.["block:poppedout"] === true;
+
     if (endIconButtons && endIconButtons.length > 0) {
         endIconsElem.push(...endIconButtons.map((button, idx) => <IconButton key={idx} decl={button} />));
     }
     if (isTerminalBlock) {
         const vm = viewModel as ViewModel & { tabModel?: { tabId?: string } };
-        endIconsElem.push(<SessionHistoryFlyover key="session-history" blockId={blockId} tabId={vm.tabModel?.tabId} />);
+        endIconsElem.push(<SessionHistoryFlyover key="session-history" blockId={blockId} tabId={vm.tabModel?.tabId} termModel={viewModel as any} />);
     }
     const settingsDecl: IconButtonDecl = {
         elemtype: "iconbutton",
@@ -141,6 +143,20 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
         click: (e) => handleHeaderContextMenu(e, blockId, viewModel, nodeModel),
     };
     endIconsElem.push(<IconButton key="settings" decl={settingsDecl} className="block-frame-settings" />);
+    if (!ephemeral && !isPoppedOut) {
+        const popOutDecl: IconButtonDecl = {
+            elemtype: "iconbutton",
+            icon: "arrow-up-right-from-square",
+            title: "Pop Out Block",
+            click: () => {
+                // Stub: full implementation in emain-widget.ts phase
+                if ((getApi() as any).requestPopOut) {
+                    (getApi() as any).requestPopOut(blockId, null);
+                }
+            },
+        };
+        endIconsElem.push(<IconButton key="popout" decl={popOutDecl} />);
+    }
     if (ephemeral) {
         const addToLayoutDecl: IconButtonDecl = {
             elemtype: "iconbutton",

@@ -95,6 +95,7 @@ type MetaTSType struct {
 	BgText              string  `json:"bg:text,omitempty"`
 	TabBaseDir          string  `json:"tab:basedir,omitempty"`
 	TabBaseDirLock      bool    `json:"tab:basedirlock,omitempty"`
+	TabSkipCloseConfirm *bool   `json:"tab:skipcloseconfirm,omitempty"`
 	TabWslDistro        string  `json:"tab:wsldistro,omitempty"`
 	TabColor            string  `json:"tab:color,omitempty"`
 	TabTermStatus       string  `json:"tab:termstatus,omitempty"`
@@ -127,8 +128,21 @@ type MetaTSType struct {
 	TermDurable             *bool    `json:"term:durable,omitempty"`
 	TermReportFocus         *bool    `json:"term:reportfocus,omitempty"`
 	TermTitle               string   `json:"term:title,omitempty"`
+	TermActiveTabId         string   `json:"term:activetabid,omitempty"`
+	TermTabName             string   `json:"term:tabname,omitempty"`
+	TermRestoreFrom         string   `json:"term:restorefrom,omitempty"`
 
 	TermHistoryBlockId string `json:"termhistory:blockid,omitempty"`
+
+	BlockPoppedOut     *bool  `json:"block:poppedout,omitempty"`
+	BlockOriginTab     string `json:"block:origintab,omitempty"`
+	BlockOriginTabName string `json:"block:origintabname,omitempty"`
+	BlockOriginBaseDir string `json:"block:originbasedir,omitempty"`
+	BlockLayoutNodeId  string `json:"block:layoutnodeid,omitempty"`
+
+	PreviewLine         *int64 `json:"preview:line,omitempty"`
+	PreviewCol          *int64 `json:"preview:col,omitempty"`
+	PreviewActiveDocTab string `json:"preview:activedoctab,omitempty"`
 
 	WebZoom          float64 `json:"web:zoom,omitempty"`
 	WebHideNav       *bool   `json:"web:hidenav,omitempty"`
@@ -140,6 +154,8 @@ type MetaTSType struct {
 
 	OnboardingGithubStar  bool   `json:"onboarding:githubstar,omitempty"`
 	OnboardingLastVersion string `json:"onboarding:lastversion,omitempty"`
+
+	KanbanEnabled bool `json:"kanban:enabled,omitempty"`
 
 	Count int `json:"count,omitempty"`
 }

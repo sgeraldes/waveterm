@@ -149,6 +149,12 @@
         "term:reportfocus": {
           "type": "boolean"
         },
+        "term:filelinks": {
+          "type": "boolean"
+        },
+        "term:externaleditor": {
+          "type": "string"
+        },
         "editor:minimapenabled": {
           "type": "boolean"
         },
@@ -215,6 +221,15 @@
         "widget:showhelp": {
           "type": "boolean"
         },
+        "widget:poptabhoverms": {
+          "type": "integer"
+        },
+        "widget:popoutenabled": {
+          "type": "boolean"
+        },
+        "widget:popoutalwaysontop": {
+          "type": "boolean"
+        },
         "window:*": {
           "type": "boolean"
         },
@@ -274,6 +289,12 @@
         },
         "window:zoom": {
           "type": "number"
+        },
+        "tab:confirmclose": {
+          "type": "boolean"
+        },
+        "block:confirmclose": {
+          "type": "boolean"
         },
         "telemetry:*": {
           "type": "boolean"

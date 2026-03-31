@@ -1,7 +1,6 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
 import { FocusManager } from "@/app/store/focusManager";
 import {
@@ -31,7 +30,9 @@ import { CHORD_TIMEOUT } from "@/util/sharedconst";
 import { fireAndForget } from "@/util/util";
 import debug from "debug";
 import * as jotai from "jotai";
+import { blockHasRunningProcess, isBlockCloseConfirmEnabled, showBlockCloseConfirm, tabHasRunningProcess } from "@/app/block/blockclose-confirm";
 import { modalsModel } from "./modalmodel";
+import { isTabCloseConfirmEnabled, isTabCloseConfirmEnabledForTab, showTabCloseConfirm } from "@/app/tab/tabclose-confirm";
 
 const dlog = debug("wave:keymodel");
 
@@ -128,12 +129,43 @@ function getStaticTabBlockCount(): number {
     return tabData?.blockids?.length ?? 0;
 }
 
-function simpleCloseStaticTab() {
+function executeCloseStaticTab() {
     const ws = globalStore.get(atoms.workspace);
     const tabId = globalStore.get(atoms.staticTabId);
     cleanupOsc7DebounceForTab(tabId);
     getApi().closeTab(ws.oid, tabId);
     deleteLayoutModelForTab(tabId);
+}
+
+function simpleCloseStaticTab() {
+    const tabId = globalStore.get(atoms.staticTabId);
+    if (isTabCloseConfirmEnabledForTab(tabId)) {
+        const tabAtom = WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", tabId));
+        const tabData = globalStore.get(tabAtom);
+        const hasRunningProcess = tabHasRunningProcess(tabId);
+        showTabCloseConfirm(tabData?.name || "", hasRunningProcess, () => executeCloseStaticTab());
+        return;
+    }
+    executeCloseStaticTab();
+}
+
+function executeUxCloseBlock(blockId: string) {
+    const workspaceLayoutModel = WorkspaceLayoutModel.getInstance();
+    const isAIPanelOpen = workspaceLayoutModel.getAIPanelVisible();
+
+    const blockAtom = WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", blockId));
+    const blockData = globalStore.get(blockAtom);
+    const isAIFileDiff = blockData?.meta?.view === "aifilediff";
+
+    const layoutModel = getLayoutModelForStaticTab();
+    const node = layoutModel.getNodeByBlockId(blockId);
+    if (node) {
+        fireAndForget(() => layoutModel.closeNode(node.id));
+
+        if (isAIFileDiff && isAIPanelOpen) {
+            setTimeout(() => WaveAIModel.getInstance().focusInput(), 50);
+        }
+    }
 }
 
 function uxCloseBlock(blockId: string) {
@@ -151,17 +183,21 @@ function uxCloseBlock(blockId: string) {
 
     const blockAtom = WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", blockId));
     const blockData = globalStore.get(blockAtom);
-    const isAIFileDiff = blockData?.meta?.view === "aifilediff";
+    const isTermBlock = blockData?.meta?.view === "term";
 
-    const layoutModel = getLayoutModelForStaticTab();
-    const node = layoutModel.getNodeByBlockId(blockId);
-    if (node) {
-        fireAndForget(() => layoutModel.closeNode(node.id));
-
-        if (isAIFileDiff && isAIPanelOpen) {
-            setTimeout(() => WaveAIModel.getInstance().focusInput(), 50);
-        }
+    if (isTermBlock && blockHasRunningProcess(blockId)) {
+        const blockName = blockData?.meta?.["display:name"] || "Terminal";
+        showBlockCloseConfirm(blockId, blockName, () => executeUxCloseBlock(blockId));
+        return;
     }
+
+    if (isTermBlock && isBlockCloseConfirmEnabled()) {
+        const blockName = blockData?.meta?.["display:name"] || "Terminal";
+        showBlockCloseConfirm(blockId, blockName, () => executeUxCloseBlock(blockId));
+        return;
+    }
+
+    executeUxCloseBlock(blockId);
 }
 
 function genericClose() {
@@ -198,12 +234,28 @@ function genericClose() {
     const blockAtom = blockId ? WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", blockId)) : null;
     const blockData = blockAtom ? globalStore.get(blockAtom) : null;
     const isAIFileDiff = blockData?.meta?.view === "aifilediff";
+    const isTermBlock = blockData?.meta?.view === "term";
 
-    fireAndForget(layoutModel.closeFocusedNode.bind(layoutModel));
+    const doClose = () => {
+        fireAndForget(layoutModel.closeFocusedNode.bind(layoutModel));
+        if (isAIFileDiff && isAIPanelOpen) {
+            setTimeout(() => WaveAIModel.getInstance().focusInput(), 50);
+        }
+    };
 
-    if (isAIFileDiff && isAIPanelOpen) {
-        setTimeout(() => WaveAIModel.getInstance().focusInput(), 50);
+    if (blockId && isTermBlock && blockHasRunningProcess(blockId)) {
+        const blockName = blockData?.meta?.["display:name"] || "Terminal";
+        showBlockCloseConfirm(blockId, blockName, doClose);
+        return;
     }
+
+    if (blockId && isTermBlock && isBlockCloseConfirmEnabled()) {
+        const blockName = blockData?.meta?.["display:name"] || "Terminal";
+        showBlockCloseConfirm(blockId, blockName, doClose);
+        return;
+    }
+
+    doClose();
 }
 
 function switchBlockByBlockNum(index: number) {

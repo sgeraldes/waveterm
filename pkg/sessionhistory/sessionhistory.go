@@ -21,6 +21,8 @@ type SessionMeta struct {
 	TabBaseDir    string `json:"tabBaseDir"`
 	Connection    string `json:"connection,omitempty"`
 	Cwd           string `json:"cwd,omitempty"`
+	ShellType     string `json:"shelltype,omitempty"`
+	Title         string `json:"title,omitempty"`
 	CreatedAt     int64  `json:"createdAt"`
 	LastUpdatedAt int64  `json:"lastUpdatedAt"`
 }
@@ -38,6 +40,8 @@ type SessionInfo struct {
 	TabBaseDir    string        `json:"tabBaseDir"`
 	Connection    string        `json:"connection,omitempty"`
 	Cwd           string        `json:"cwd,omitempty"`
+	ShellType     string        `json:"shelltype,omitempty"`
+	Title         string        `json:"title,omitempty"`
 	CreatedAt     int64         `json:"createdAt"`
 	LastUpdatedAt int64         `json:"lastUpdatedAt"`
 	TotalBytes    int64         `json:"totalBytes"`
@@ -101,6 +105,9 @@ func (s *Store) writeMeta(blockId string, meta SessionMeta) error {
 		existing.Cwd = meta.Cwd
 		existing.TabBaseDir = meta.TabBaseDir
 		existing.Connection = meta.Connection
+		if meta.ShellType != "" {
+			existing.ShellType = meta.ShellType
+		}
 		return s.flushMeta(metaPath, existing)
 	}
 	now := time.Now().UnixMilli()

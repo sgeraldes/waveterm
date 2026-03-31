@@ -1,4 +1,3 @@
-
 package sessionhistory
 
 import (
@@ -76,13 +75,18 @@ func (s *Store) ListSessions(filter SessionFilter) ([]SessionInfo, error) {
 		return nil, fmt.Errorf("sessionhistory: list root: %w", err)
 	}
 
+	hasBlockFilter := filter.BlockId != ""
+	hasDirFilter := filter.TabBaseDir != ""
+	hasBothFilters := hasBlockFilter && hasDirFilter
+
 	var results []SessionInfo
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			continue
 		}
 		blockId := entry.Name()
-		if filter.BlockId != "" && blockId != filter.BlockId {
+
+		if hasBlockFilter && !hasDirFilter && blockId != filter.BlockId {
 			continue
 		}
 
@@ -94,7 +98,11 @@ func (s *Store) ListSessions(filter SessionFilter) ([]SessionInfo, error) {
 			continue
 		}
 
-		if filter.TabBaseDir != "" && info.TabBaseDir != filter.TabBaseDir {
+		if hasBothFilters {
+			if blockId != filter.BlockId && info.TabBaseDir != filter.TabBaseDir {
+				continue
+			}
+		} else if hasDirFilter && info.TabBaseDir != filter.TabBaseDir {
 			continue
 		}
 		results = append(results, info)
@@ -138,6 +146,8 @@ func (s *Store) buildSessionInfo(blockId string) (SessionInfo, error) {
 		TabBaseDir:    meta.TabBaseDir,
 		Connection:    meta.Connection,
 		Cwd:           meta.Cwd,
+		ShellType:     meta.ShellType,
+		Title:         meta.Title,
 		CreatedAt:     meta.CreatedAt,
 		LastUpdatedAt: meta.LastUpdatedAt,
 		TotalBytes:    totalBytes,

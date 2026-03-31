@@ -40,6 +40,34 @@ export interface SessionHistoryCtx {
 
 export async function loadInitialTerminalData(ctx: TermDataCtx): Promise<void> {
     const startTs = Date.now();
+
+    // Check if this block should restore scrollback from another block's session history
+    const blockData = globalStore.get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", ctx.blockId)));
+    const restoreFromBlockId = blockData?.meta?.["term:restorefrom"] as string;
+    if (restoreFromBlockId) {
+        try {
+            const base64Data = await services.SessionHistoryService.ReadLatestSegments(restoreFromBlockId, 5 * 1024 * 1024);
+            if (base64Data) {
+                const binaryStr = atob(base64Data);
+                const bytes = new Uint8Array(binaryStr.length);
+                for (let i = 0; i < binaryStr.length; i++) {
+                    bytes[i] = binaryStr.charCodeAt(i);
+                }
+                const content = new TextDecoder().decode(bytes);
+                if (content) {
+                    await ctx.doTerminalWrite(content, 0);
+                    dlog("restored %d bytes from session history of block %s in %dms", content.length, restoreFromBlockId, Date.now() - startTs);
+                }
+            }
+        } catch (e) {
+            console.error("[session-restore] failed to load from source block %s:", restoreFromBlockId, e);
+        }
+        // Clear the restore flag so it doesn't reload on reconnect
+        fireAndForget(() =>
+            services.ObjectService.UpdateObjectMeta(WOS.makeORef("block", ctx.blockId), { "term:restorefrom": null })
+        );
+    }
+
     const { data: cacheData, fileInfo: cacheFile } = await fetchWaveFile(ctx.blockId, TermCacheFileName);
     let ptyOffset = 0;
     if (cacheFile != null) {
@@ -64,7 +92,10 @@ export async function loadInitialTerminalData(ctx: TermDataCtx): Promise<void> {
     }
     const { data: mainData, fileInfo: mainFile } = await fetchWaveFile(ctx.blockId, TermFileName, ptyOffset);
     dlog(
-        `terminal loaded cachefile:${cacheData?.byteLength ?? 0} main:${mainData?.byteLength ?? 0} bytes, ${Date.now() - startTs}ms`
+        "terminal loaded cachefile:%d main:%d bytes, %dms",
+        cacheData?.byteLength ?? 0,
+        mainData?.byteLength ?? 0,
+        Date.now() - startTs
     );
     if (mainFile != null) {
         await ctx.doTerminalWrite(mainData);
@@ -93,13 +124,25 @@ export function runProcessIdleTimeout(ctx: TermDataCtx): void {
     }, 5000);
 }
 
-function getSessionMeta(ctx: SessionHistoryCtx): { tabBaseDir: string; connection: string; cwd: string } {
+function getSessionMeta(ctx: SessionHistoryCtx): { tabBaseDir: string; connection: string; cwd: string; shellType: string; title: string } {
     const tabData = globalStore.get(WOS.getWaveObjectAtom<Tab>(WOS.makeORef("tab", ctx.tabId)));
     const blockData = globalStore.get(WOS.getWaveObjectAtom<Block>(WOS.makeORef("block", ctx.blockId)));
+    // Build terminal title the same way term-model.ts viewName does
+    const termTitle = (blockData?.meta?.["term:title"] as string) ?? "";
+    const shellProfile = (blockData?.meta?.["shell:profile"] as string) ?? "";
+    let title = termTitle;
+    if (!title && shellProfile) {
+        const lower = shellProfile.toLowerCase();
+        if (lower === "pwsh" || lower === "powershell") title = "PowerShell";
+        else if (lower.startsWith("wsl:")) title = shellProfile.substring(4);
+        else title = shellProfile;
+    }
     return {
         tabBaseDir: (tabData?.meta?.["tab:basedir"] as string) ?? "",
         connection: (blockData?.meta?.connection as string) ?? "",
         cwd: (blockData?.meta?.["cmd:cwd"] as string) ?? "",
+        shellType: (blockData?.meta?.["term:shelltype"] as string) ?? "",
+        title: title,
     };
 }
 
@@ -128,7 +171,9 @@ export function saveSessionSnapshot(ctx: SessionHistoryCtx, reason: string): voi
             meta.tabBaseDir,
             meta.connection,
             meta.cwd,
-            reason
+            reason,
+            meta.shellType,
+            meta.title
         )
     );
 }
@@ -157,7 +202,9 @@ export function saveRollingCapture(ctx: SessionHistoryCtx): void {
             ctx.tabId,
             meta.tabBaseDir,
             meta.connection,
-            meta.cwd
+            meta.cwd,
+            meta.shellType,
+            meta.title
         )
     );
 }

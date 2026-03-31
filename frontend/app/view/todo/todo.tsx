@@ -8,6 +8,8 @@ import { useAtomValue, useSetAtom } from "jotai";
 import type * as MonacoTypes from "monaco-editor";
 import * as React from "react";
 import { useEffect, useRef, useState } from "react";
+import { KanbanBoard } from "./kanban";
+import { DEFAULT_COLUMNS, migrateFromTodoItems, parseKanbanFile, serializeKanbanFile, type KanbanData } from "./kanban-util";
 import { renderInlineMarkdown } from "./todo-markdown";
 import type { TodoViewModel } from "./todo-model";
 import { isDefaultTodoPath, parseTodoItems, type TodoItem } from "./todo-util";
@@ -224,12 +226,41 @@ function TodoEditMode({ blockId, model }: { blockId: string; model: TodoViewMode
     );
 }
 
+function KanbanComponent({ model }: { model: TodoViewModel }) {
+    const fileContent = useAtomValue(model.fileContent);
+
+    // Parse or migrate kanban data from file content
+    const { data: parsedData, body } = React.useMemo(() => {
+        const result = parseKanbanFile(fileContent);
+        // If no columns yet (fresh file or legacy flat list), migrate
+        if (result.data.columns.length === 0) {
+            const migrated = migrateFromTodoItems(result.body);
+            // Only use migrated data if the body had todo items; otherwise use defaults
+            const hasItems = migrated.cards.length > 0;
+            const columns = hasItems ? migrated.columns : DEFAULT_COLUMNS;
+            const cards = hasItems ? migrated.cards : [];
+            return { data: { columns, cards }, body: result.body.replace(/^- \[[ x]\] .+\n?/gm, "") };
+        }
+        return result;
+    }, [fileContent]);
+
+    const handleChange = (newData: KanbanData) => {
+        // Strip any existing todo-list lines from body since data is now in kanban format
+        const cleanBody = body.replace(/^- \[[ x]\] .+\n?/gm, "");
+        const newContent = serializeKanbanFile(newData, cleanBody);
+        model.scheduleAutoSave(newContent);
+    };
+
+    return <KanbanBoard data={parsedData} onChange={handleChange} />;
+}
+
 export function TodoComponent({ blockId, model }: TodoComponentProps) {
     const isLoading = useAtomValue(model.isLoading);
     const error = useAtomValue(model.error);
     const mode = useAtomValue(model.mode);
     const saveStatus = useAtomValue(model.saveStatus);
     const todoPath = useAtomValue(model.todoPath);
+    const kanbanEnabled = useAtomValue(model.kanbanEnabled);
 
     useEffect(() => {
         model.loadContent();
@@ -278,7 +309,13 @@ export function TodoComponent({ blockId, model }: TodoComponentProps) {
                 </div>
             )}
             <div className="todo-content">
-                {mode === "view" ? <TodoViewMode model={model} /> : <TodoEditMode blockId={blockId} model={model} />}
+                {kanbanEnabled ? (
+                    <KanbanComponent model={model} />
+                ) : mode === "view" ? (
+                    <TodoViewMode model={model} />
+                ) : (
+                    <TodoEditMode blockId={blockId} model={model} />
+                )}
             </div>
         </div>
     );

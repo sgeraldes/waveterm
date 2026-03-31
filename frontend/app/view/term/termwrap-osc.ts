@@ -34,6 +34,8 @@ export interface OscHandlerContext {
     promptMarkers: TermTypes.IMarker[];
     lastCommandAtom: jotai.PrimitiveAtom<string | null>;
     setShellIntegrationStatus(status: "ready" | "running-command" | null): void;
+    /** Called when a shell event occurs that should trigger a session history snapshot */
+    onShellEvent?(event: "prompt-return" | "title-change" | "cwd-change" | "alt-buffer-exit"): void;
 }
 
 export type ShellIntegrationStatus = "ready" | "running-command";
@@ -263,6 +265,8 @@ export function handleOsc16162Command(data: string, blockId: string, loaded: boo
                     }
                 });
             }
+            // Trigger session history snapshot on prompt return
+            ctx.onShellEvent?.("prompt-return");
             break;
         }
         case "C":
@@ -321,6 +325,8 @@ export function handleOsc16162Command(data: string, blockId: string, loaded: boo
             ctx.setShellIntegrationStatus(null);
             if (terminal.buffer.active.type === "alternate") {
                 terminal.write("\x1b[?1049l");
+                // Trigger snapshot on alt buffer exit (left TUI app)
+                ctx.onShellEvent?.("alt-buffer-exit");
             }
             break;
     }

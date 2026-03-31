@@ -1,4 +1,3 @@
-
 package sessionhistory
 
 import (
@@ -144,6 +143,28 @@ func TestListSessions_FilterByTabBaseDir(t *testing.T) {
 	}
 	if len(sessions) != 2 {
 		t.Errorf("expected 2 sessions for /proj/shared, got %d", len(sessions))
+	}
+}
+
+func TestListSessions_CombinedFilter_ORSemantics(t *testing.T) {
+	s, _ := newTestStore(t)
+	s.SaveRollingSegment("block-x", []byte("x"), SessionMeta{BlockId: "block-x", TabId: "tab-1", TabBaseDir: "/proj/mine", Cwd: "/proj/mine"})
+	s.SaveRollingSegment("block-y", []byte("y"), SessionMeta{BlockId: "block-y", TabId: "tab-1", TabBaseDir: "/proj/mine", Cwd: "/proj/mine"})
+	s.SaveRollingSegment("block-z", []byte("z"), SessionMeta{BlockId: "block-z", TabId: "tab-2", TabBaseDir: "/proj/other", Cwd: "/proj/other"})
+
+	sessions, err := s.ListSessions(SessionFilter{BlockId: "block-x", TabBaseDir: "/proj/mine"})
+	if err != nil {
+		t.Fatalf("ListSessions failed: %v", err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("expected 2 sessions (block-x by id + block-y by dir), got %d", len(sessions))
+	}
+	ids := map[string]bool{}
+	for _, s := range sessions {
+		ids[s.BlockId] = true
+	}
+	if !ids["block-x"] || !ids["block-y"] {
+		t.Errorf("expected block-x and block-y, got %v", ids)
 	}
 }
 

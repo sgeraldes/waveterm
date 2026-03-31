@@ -1,4 +1,3 @@
-
 package wconfig
 
 import (
@@ -52,12 +51,12 @@ type AiSettingsType struct {
 }
 
 type SettingsType struct {
-	AppClear                      bool   `json:"app:*,omitempty"`
-	AppGlobalHotkey               string `json:"app:globalhotkey,omitempty"`
-	AppDismissArchitectureWarning bool   `json:"app:dismissarchitecturewarning,omitempty"`
-	AppDefaultNewBlock            string `json:"app:defaultnewblock,omitempty"`
-	AppShowOverlayBlockNums       *bool  `json:"app:showoverlayblocknums,omitempty"`
-	AppCtrlVPaste                 *bool  `json:"app:ctrlvpaste,omitempty"`
+	AppClear                      bool                   `json:"app:*,omitempty"`
+	AppGlobalHotkey               string                 `json:"app:globalhotkey,omitempty"`
+	AppDismissArchitectureWarning bool                   `json:"app:dismissarchitecturewarning,omitempty"`
+	AppDefaultNewBlock            string                 `json:"app:defaultnewblock,omitempty"`
+	AppShowOverlayBlockNums       *bool                  `json:"app:showoverlayblocknums,omitempty"`
+	AppCtrlVPaste                 *bool                  `json:"app:ctrlvpaste,omitempty"`
 	AppTheme                      string                 `json:"app:theme,omitempty"`
 	AppAccent                     string                 `json:"app:accent,omitempty"`
 	AppThemeOverrides             map[string]interface{} `json:"app:themeoverrides,omitempty"`
@@ -102,6 +101,8 @@ type SettingsType struct {
 	TermBellIndicator       *bool    `json:"term:bellindicator,omitempty"`
 	TermDurable             *bool    `json:"term:durable,omitempty"`
 	TermReportFocus         *bool    `json:"term:reportfocus,omitempty"`
+	TermFileLinks           *bool    `json:"term:filelinks,omitempty"`
+	TermExternalEditor      string   `json:"term:externaleditor,omitempty"`
 
 	EditorMinimapEnabled      bool    `json:"editor:minimapenabled,omitempty"`
 	EditorStickyScrollEnabled bool    `json:"editor:stickyscrollenabled,omitempty"`
@@ -129,8 +130,11 @@ type SettingsType struct {
 
 	TabPreset string `json:"tab:preset,omitempty"`
 
-	WidgetClear    bool  `json:"widget:*,omitempty"`
-	WidgetShowHelp *bool `json:"widget:showhelp,omitempty"`
+	WidgetClear           bool   `json:"widget:*,omitempty"`
+	WidgetShowHelp        *bool  `json:"widget:showhelp,omitempty"`
+	WidgetPopTabHoverMs   *int64 `json:"widget:poptabhoverms,omitempty"`
+	WidgetPopoutEnabled   *bool  `json:"widget:popoutenabled,omitempty"`
+	WidgetPopoutAlwaysOnTop *bool `json:"widget:popoutalwaysontop,omitempty"`
 
 	WindowClear                         bool     `json:"window:*,omitempty"`
 	WindowFullscreenOnLaunch            bool     `json:"window:fullscreenonlaunch,omitempty"`
@@ -148,10 +152,13 @@ type SettingsType struct {
 	WindowMagnifiedBlockSize            *float64 `json:"window:magnifiedblocksize,omitempty"`
 	WindowMagnifiedBlockBlurPrimaryPx   *int64   `json:"window:magnifiedblockblurprimarypx,omitempty"`
 	WindowMagnifiedBlockBlurSecondaryPx *int64   `json:"window:magnifiedblockblursecondarypx,omitempty"`
-	WindowConfirmClose                  bool     `json:"window:confirmclose,omitempty"`
+	WindowConfirmClose                  *bool    `json:"window:confirmclose,omitempty"`
 	WindowSaveLastWindow                bool     `json:"window:savelastwindow,omitempty"`
 	WindowDimensions                    string   `json:"window:dimensions,omitempty"`
 	WindowZoom                          *float64 `json:"window:zoom,omitempty"`
+
+	TabConfirmClose  *bool `json:"tab:confirmclose,omitempty"`
+	BlockConfirmClose *bool `json:"block:confirmclose,omitempty"`
 
 	TelemetryClear   bool `json:"telemetry:*,omitempty"`
 	TelemetryEnabled bool `json:"telemetry:enabled,omitempty"`
@@ -161,9 +168,9 @@ type SettingsType struct {
 	ConnWshEnabled           bool    `json:"conn:wshenabled,omitempty"`
 	ConnLocalHostnameDisplay *string `json:"conn:localhostdisplayname,omitempty"`
 
-	ShellClear    bool                         `json:"shell:*,omitempty"`
-	ShellDefault  string                       `json:"shell:default,omitempty"`
-	ShellProfiles map[string]ShellProfileType  `json:"shell:profiles,omitempty"`
+	ShellClear    bool                        `json:"shell:*,omitempty"`
+	ShellDefault  string                      `json:"shell:default,omitempty"`
+	ShellProfiles map[string]ShellProfileType `json:"shell:profiles,omitempty"`
 
 	DebugClear               bool `json:"debug:*,omitempty"`
 	DebugPprofPort           *int `json:"debug:pprofport,omitempty"`
@@ -259,18 +266,18 @@ type ConfigError struct {
 }
 
 type ShellProfileType struct {
-	DisplayName    string   `json:"display:name,omitempty"`
-	DisplayIcon    string   `json:"display:icon,omitempty"`
-	DisplayOrder   float64  `json:"display:order,omitempty"`
-	ShellPath      string   `json:"shell:path,omitempty"`
-	ShellOpts      []string `json:"shell:opts,omitempty"`
-	ShellType      string   `json:"shell:type,omitempty"`
-	IsWsl          bool     `json:"shell:iswsl,omitempty"`
-	WslDistro      string   `json:"shell:wsldistro,omitempty"`
-	Autodetected   bool     `json:"autodetected,omitempty"`
-	Hidden         bool     `json:"hidden,omitempty"`
-	Source         string   `json:"source,omitempty"`
-	UserModified   bool     `json:"usermodified,omitempty"`
+	DisplayName  string   `json:"display:name,omitempty"`
+	DisplayIcon  string   `json:"display:icon,omitempty"`
+	DisplayOrder float64  `json:"display:order,omitempty"`
+	ShellPath    string   `json:"shell:path,omitempty"`
+	ShellOpts    []string `json:"shell:opts,omitempty"`
+	ShellType    string   `json:"shell:type,omitempty"`
+	IsWsl        bool     `json:"shell:iswsl,omitempty"`
+	WslDistro    string   `json:"shell:wsldistro,omitempty"`
+	Autodetected bool     `json:"autodetected,omitempty"`
+	Hidden       bool     `json:"hidden,omitempty"`
+	Source       string   `json:"source,omitempty"`
+	UserModified bool     `json:"usermodified,omitempty"`
 }
 
 type WebBookmark struct {

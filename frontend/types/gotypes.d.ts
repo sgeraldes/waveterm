@@ -1044,6 +1044,7 @@ declare global {
         "bg:text"?: string;
         "tab:basedir"?: string;
         "tab:basedirlock"?: boolean;
+        "tab:skipcloseconfirm"?: boolean;
         "tab:wsldistro"?: string;
         "tab:color"?: string;
         "tab:termstatus"?: string;
@@ -1074,7 +1075,18 @@ declare global {
         "term:durable"?: boolean;
         "term:reportfocus"?: boolean;
         "term:title"?: string;
+        "term:activetabid"?: string;
+        "term:tabname"?: string;
+        "term:restorefrom"?: string;
         "termhistory:blockid"?: string;
+        "block:poppedout"?: boolean;
+        "block:origintab"?: string;
+        "block:origintabname"?: string;
+        "block:originbasedir"?: string;
+        "block:layoutnodeid"?: string;
+        "preview:line"?: number;
+        "preview:col"?: number;
+        "preview:activedoctab"?: string;
         "web:zoom"?: number;
         "web:hidenav"?: boolean;
         "web:partition"?: string;
@@ -1083,6 +1095,7 @@ declare global {
         "markdown:fixedfontsize"?: number;
         "onboarding:githubstar"?: boolean;
         "onboarding:lastversion"?: string;
+        "kanban:enabled"?: boolean;
         count?: number;
     };
 
@@ -1296,6 +1309,8 @@ declare global {
         tabBaseDir: string;
         connection?: string;
         cwd?: string;
+        shelltype?: string;
+        title?: string;
         createdAt: number;
         lastUpdatedAt: number;
         totalBytes: number;
@@ -1358,6 +1373,8 @@ declare global {
         "term:bellindicator"?: boolean;
         "term:durable"?: boolean;
         "term:reportfocus"?: boolean;
+        "term:filelinks"?: boolean;
+        "term:externaleditor"?: string;
         "editor:minimapenabled"?: boolean;
         "editor:stickyscrollenabled"?: boolean;
         "editor:wordwrap"?: boolean;
@@ -1380,6 +1397,9 @@ declare global {
         "tab:preset"?: string;
         "widget:*"?: boolean;
         "widget:showhelp"?: boolean;
+        "widget:poptabhoverms"?: number;
+        "widget:popoutenabled"?: boolean;
+        "widget:popoutalwaysontop"?: boolean;
         "window:*"?: boolean;
         "window:fullscreenonlaunch"?: boolean;
         "window:transparent"?: boolean;
@@ -1400,6 +1420,8 @@ declare global {
         "window:savelastwindow"?: boolean;
         "window:dimensions"?: string;
         "window:zoom"?: number;
+        "tab:confirmclose"?: boolean;
+        "block:confirmclose"?: boolean;
         "telemetry:*"?: boolean;
         "telemetry:enabled"?: boolean;
         "conn:*"?: boolean;

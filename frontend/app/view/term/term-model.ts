@@ -38,8 +38,15 @@ import { boundNumber, fireAndForget, isLocalConnName, stringToBase64 } from "@/u
 import * as jotai from "jotai";
 import * as React from "react";
 import { getBlockingCommand } from "./shellblocking";
+import { FILE_PATH_REGEX, openFileExternal, openFilePath } from "./termlinks";
 import { computeTheme, DefaultTermTheme } from "./termutil";
 import { TermWrap } from "./termwrap";
+
+export interface RestoredSessionState {
+    blockId: string;
+    sessionTime: number; // timestamp of the session being viewed
+    sessionTitle: string;
+}
 
 export class TermViewModel implements ViewModel {
     viewType: string;
@@ -79,6 +86,13 @@ export class TermViewModel implements ViewModel {
     termConfigedDurable: jotai.Atom<null | boolean>;
     searchAtoms?: SearchAtoms;
 
+    // Multi-session state
+    subBlockIdsAtom: jotai.Atom<string[]>;
+    activeTabIdAtom: jotai.Atom<string | null>;
+
+    // Restored session state (historical buffer viewing)
+    restoredModeAtom: jotai.PrimitiveAtom<RestoredSessionState | null>;
+
     // Reconnection state
     reconnectionState: jotai.PrimitiveAtom<"idle" | "pending" | "attempting" | "failed">;
     reconnectAttempts: jotai.PrimitiveAtom<number>;
@@ -100,6 +114,19 @@ export class TermViewModel implements ViewModel {
             return blockData?.meta?.["term:mode"] ?? "term";
         });
         this.isRestarting = jotai.atom(false);
+
+        // Multi-session atoms derived from block data
+        this.subBlockIdsAtom = jotai.atom<string[]>((get) => {
+            const blockData = get(this.blockAtom);
+            return blockData?.subblockids ?? [];
+        });
+        this.activeTabIdAtom = jotai.atom<string | null>((get) => {
+            const blockData = get(this.blockAtom);
+            return (blockData?.meta?.["term:activetabid"] as string) ?? null;
+        });
+
+        this.restoredModeAtom = jotai.atom(null) as jotai.PrimitiveAtom<RestoredSessionState | null>;
+
         this.reconnectionState = jotai.atom("idle");
         this.reconnectAttempts = jotai.atom(0);
         this.reconnectTimer = jotai.atom(0);
@@ -124,10 +151,6 @@ export class TermViewModel implements ViewModel {
             const blockData = get(this.blockAtom);
             if (blockData?.meta?.controller == "cmd") {
                 return "";
-            }
-            const termTitle = blockData?.meta?.["term:title"] as string;
-            if (termTitle) {
-                return termTitle;
             }
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
@@ -199,6 +222,17 @@ export class TermViewModel implements ViewModel {
                             });
                         }
                     }
+                }
+            }
+            // Terminal title (set by shell via escape sequences) in the middle of the header line
+            if (!isCmd) {
+                const blockData = get(this.blockAtom);
+                const termTitle = blockData?.meta?.["term:title"] as string;
+                if (termTitle) {
+                    rtn.push({
+                        elemtype: "text",
+                        text: termTitle,
+                    });
                 }
             }
             const isMI = get(this.tabModel.isTermMultiInput);
@@ -494,7 +528,7 @@ export class TermViewModel implements ViewModel {
                 // Exit code 0 is usually a clean exit, non-zero might be a drop
                 // However, SSH drops often show as exit code 255 or 130 (interrupted)
                 if (exitCode !== 0) {
-                    console.log(`[reconnect] Detected potential connection drop for ${fullStatus.shellprocconnname}, exit code: ${exitCode}`);
+                    console.log("[reconnect] Detected potential connection drop for %s, exit code: %d", fullStatus.shellprocconnname, exitCode);
                     this.handleConnectionDrop(fullStatus.shellprocconnname);
                 }
             }
@@ -588,7 +622,7 @@ export class TermViewModel implements ViewModel {
     }
 
     handleConnectionDrop(connName: string) {
-        console.log(`[reconnect] Connection dropped for ${connName}`);
+        console.log("[reconnect] Connection dropped for %s", connName);
         this.lastDisconnectTime = Date.now();
         globalStore.set(this.reconnectAttempts, 0);
         globalStore.set(this.reconnectionState, "pending");
@@ -624,13 +658,13 @@ export class TermViewModel implements ViewModel {
     async attemptReconnect(attemptNum: number) {
         const maxAttempts = 3;
         if (attemptNum >= maxAttempts) {
-            console.log(`[reconnect] Max reconnection attempts (${maxAttempts}) reached`);
+            console.log("[reconnect] Max reconnection attempts (%d) reached", maxAttempts);
             globalStore.set(this.reconnectionState, "failed");
             globalStore.set(this.showReconnectPrompt, true);
             return;
         }
 
-        console.log(`[reconnect] Attempting reconnection (attempt ${attemptNum + 1}/${maxAttempts})`);
+        console.log("[reconnect] Attempting reconnection (attempt %d/%d)", attemptNum + 1, maxAttempts);
         globalStore.set(this.reconnectAttempts, attemptNum + 1);
         globalStore.set(this.reconnectionState, "attempting");
 
@@ -638,13 +672,13 @@ export class TermViewModel implements ViewModel {
             await this.forceRestartController();
             // Success will be detected by updateShellProcStatus
         } catch (error) {
-            console.error(`[reconnect] Reconnection attempt ${attemptNum + 1} failed:`, error);
+            console.error("[reconnect] Reconnection attempt %d failed:", attemptNum + 1, error);
 
             // Schedule next attempt with exponential backoff
             const nextAttempt = attemptNum + 1;
             if (nextAttempt < maxAttempts) {
                 const backoffDelay = 5000 * Math.pow(2, nextAttempt); // 10s, 20s
-                console.log(`[reconnect] Scheduling retry ${nextAttempt + 1} in ${backoffDelay}ms`);
+                console.log("[reconnect] Scheduling retry %d in %dms", nextAttempt + 1, backoffDelay);
                 this.scheduleReconnect(backoffDelay, nextAttempt);
             } else {
                 globalStore.set(this.reconnectionState, "failed");
@@ -754,6 +788,47 @@ export class TermViewModel implements ViewModel {
         if (keyutil.checkKeyPressed(waveEvent, "Escape")) {
             if (this.termRef.current?.isComposing) {
                 this.termRef.current.resetCompositionState();
+            }
+        }
+
+        // Multi-session keyboard shortcuts (only when sub-sessions exist)
+        const subBlockIds = globalStore.get(this.subBlockIdsAtom);
+        if (subBlockIds.length > 0) {
+            if (keyutil.checkKeyPressed(waveEvent, "Ctrl:Shift:t")) {
+                event.preventDefault();
+                event.stopPropagation();
+                fireAndForget(() => this.addTerminalTab());
+                return false;
+            }
+            if (keyutil.checkKeyPressed(waveEvent, "Ctrl:Shift:q")) {
+                event.preventDefault();
+                event.stopPropagation();
+                const activeTabId = globalStore.get(this.activeTabIdAtom);
+                if (activeTabId !== null) {
+                    fireAndForget(() => this.closeTerminalTab(activeTabId));
+                }
+                return false;
+            }
+            if (keyutil.checkKeyPressed(waveEvent, "Ctrl:Tab")) {
+                event.preventDefault();
+                event.stopPropagation();
+                const activeTabId = globalStore.get(this.activeTabIdAtom);
+                // allTabs: null (primary) + subBlockIds
+                const allTabIds: (string | null)[] = [null, ...subBlockIds];
+                const curIdx = allTabIds.indexOf(activeTabId);
+                const nextIdx = (curIdx + 1) % allTabIds.length;
+                fireAndForget(() => this.switchToTab(allTabIds[nextIdx]));
+                return false;
+            }
+            if (keyutil.checkKeyPressed(waveEvent, "Ctrl:Shift:Tab")) {
+                event.preventDefault();
+                event.stopPropagation();
+                const activeTabId = globalStore.get(this.activeTabIdAtom);
+                const allTabIds: (string | null)[] = [null, ...subBlockIds];
+                const curIdx = allTabIds.indexOf(activeTabId);
+                const prevIdx = (curIdx - 1 + allTabIds.length) % allTabIds.length;
+                fireAndForget(() => this.switchToTab(allTabIds[prevIdx]));
+                return false;
             }
         }
 
@@ -937,6 +1012,41 @@ export class TermViewModel implements ViewModel {
                     },
                 });
             }
+
+            // File path detection in selection (only when no URL was detected)
+            if (!selectionURL && selection) {
+                const trimmedSel = selection.trim();
+                FILE_PATH_REGEX.lastIndex = 0;
+                const pathMatch = FILE_PATH_REGEX.exec(trimmedSel);
+                FILE_PATH_REGEX.lastIndex = 0;
+                if (pathMatch) {
+                    const matchedPath = pathMatch[1];
+                    const lineNum = pathMatch[2] != null ? parseInt(pathMatch[2], 10) : null;
+                    const colNum = pathMatch[3] != null ? parseInt(pathMatch[3], 10) : null;
+                    if (matchedPath) {
+                        const blockData = globalStore.get(this.blockAtom);
+                        const conn = blockData?.meta?.connection ?? null;
+                        const cwd = blockData?.meta?.["cmd:cwd"] ?? "";
+                        const isAbsolute = matchedPath.startsWith("/") || /^[A-Za-z]:/.test(matchedPath);
+                        const resolvedPath = isAbsolute ? matchedPath : cwd ? cwd + "/" + matchedPath : matchedPath;
+                        menu.push({ type: "separator" });
+                        menu.push({
+                            label: "Open File in Preview",
+                            click: () => {
+                                openFilePath(resolvedPath, lineNum, colNum, conn);
+                            },
+                        });
+                        if (!conn) {
+                            menu.push({
+                                label: "Open in External Editor",
+                                click: () => {
+                                    openFileExternal(resolvedPath, conn);
+                                },
+                            });
+                        }
+                    }
+                }
+            }
             menu.push({ type: "separator" });
         }
 
@@ -946,6 +1056,22 @@ export class TermViewModel implements ViewModel {
                 getApi().nativePaste();
             },
         });
+
+        menu.push({ type: "separator" });
+
+        menu.push({
+            label: "New Terminal Tab",
+            click: () => fireAndForget(() => this.addTerminalTab()),
+        });
+
+        const subBlockIds = globalStore.get(this.subBlockIdsAtom);
+        const activeTabId = globalStore.get(this.activeTabIdAtom);
+        if (subBlockIds.length > 0 && activeTabId !== null) {
+            menu.push({
+                label: "Close Terminal Tab",
+                click: () => fireAndForget(() => this.closeTerminalTab(activeTabId)),
+            });
+        }
 
         menu.push({ type: "separator" });
 
@@ -963,6 +1089,145 @@ export class TermViewModel implements ViewModel {
         menu.push(...settingsItems);
 
         return menu;
+    }
+
+    async addTerminalTab(): Promise<void> {
+        const blockData = globalStore.get(this.blockAtom);
+        const blockDef: BlockDef = {
+            meta: {
+                view: "term",
+                controller: "shell",
+                // Inherit connection and shell profile from parent
+                ...(blockData?.meta?.connection ? { connection: blockData.meta.connection } : {}),
+                ...(blockData?.meta?.["shell:profile"] ? { "shell:profile": blockData.meta["shell:profile"] } : {}),
+            },
+        };
+        const newBlockId = await RpcApi.CreateSubBlockCommand(TabRpcClient, {
+            parentblockid: this.blockId,
+            blockdef: blockDef,
+        });
+        if (newBlockId) {
+            // Switch to the new tab
+            await this.switchToTab(newBlockId);
+            // Start the controller for the new sub-block
+            await RpcApi.ControllerResyncCommand(TabRpcClient, {
+                tabid: globalStore.get(atoms.staticTabId),
+                blockid: newBlockId,
+                forcerestart: false,
+            });
+        }
+    }
+
+    async closeTerminalTab(subBlockId: string): Promise<void> {
+        const subBlockIds = globalStore.get(this.subBlockIdsAtom);
+        const activeTabId = globalStore.get(this.activeTabIdAtom);
+
+        // Find the adjacent tab to switch to
+        if (activeTabId === subBlockId) {
+            // Need to switch to adjacent tab before closing
+            const idx = subBlockIds.indexOf(subBlockId);
+            if (idx >= 0) {
+                // Try to switch to next tab, or prev, or primary
+                const nextId = subBlockIds[idx + 1] ?? subBlockIds[idx - 1] ?? null;
+                await this.switchToTab(nextId);
+            } else {
+                // Active tab is primary — switch to first sub-block if available
+                const nextId = subBlockIds[0] ?? null;
+                await this.switchToTab(nextId);
+            }
+        }
+
+        await RpcApi.DeleteSubBlockCommand(TabRpcClient, { blockid: subBlockId });
+    }
+
+    async switchToTab(blockIdOrNull: string | null): Promise<void> {
+        await RpcApi.SetMetaCommand(TabRpcClient, {
+            oref: WOS.makeORef("block", this.blockId),
+            meta: { "term:activetabid": blockIdOrNull ?? null },
+        });
+    }
+
+    /**
+     * Load a historical session's scrollback into the current terminal buffer.
+     * Sets restoredMode so input is paused and rolling capture stops.
+     */
+    async loadSessionIntoBuffer(session: { blockId: string; lastUpdatedAt: number; title?: string }): Promise<void> {
+        const termWrap = this.termRef.current;
+        if (!termWrap) {
+            console.warn("[session-restore] no termWrap available");
+            return;
+        }
+
+        try {
+            // Read the session's latest segments (up to 5MB)
+            const base64Data = await services.SessionHistoryService.ReadLatestSegments(session.blockId, 5 * 1024 * 1024);
+            if (!base64Data) {
+                console.warn("[session-restore] no data returned for block %s", session.blockId);
+                return;
+            }
+
+            // Decode base64 to string
+            const binaryStr = atob(base64Data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const content = new TextDecoder().decode(bytes);
+            if (!content) {
+                console.warn("[session-restore] decoded content is empty for block %s", session.blockId);
+                return;
+            }
+
+            console.log("[session-restore] loading %d bytes into buffer for block %s", content.length, session.blockId);
+
+            // Set restored mode BEFORE resetting — this pauses rolling capture and blocks input
+            termWrap.restoredMode = true;
+            globalStore.set(this.restoredModeAtom, {
+                blockId: session.blockId,
+                sessionTime: session.lastUpdatedAt,
+                sessionTitle: session.title || "",
+            });
+
+            // Reset terminal and write historical data
+            termWrap.terminal.reset();
+            termWrap.terminal.write(content);
+        } catch (e) {
+            console.error("[session-restore] failed to load session:", e);
+        }
+    }
+
+    /**
+     * Return from historical session view to the live terminal buffer.
+     * Reloads the current rolling segment data and clears restoredMode.
+     */
+    async returnToLive(): Promise<void> {
+        const termWrap = this.termRef.current;
+        if (!termWrap) return;
+
+        // Clear restored mode — re-enables input and rolling capture
+        termWrap.restoredMode = false;
+        globalStore.set(this.restoredModeAtom, null);
+
+        // Read current live rolling data
+        const base64Data = await services.SessionHistoryService.ReadLatestSegments(this.blockId, 5 * 1024 * 1024);
+
+        // Reset and restore live buffer
+        termWrap.terminal.reset();
+
+        if (base64Data) {
+            const binaryStr = atob(base64Data);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) {
+                bytes[i] = binaryStr.charCodeAt(i);
+            }
+            const content = new TextDecoder().decode(bytes);
+            if (content) {
+                termWrap.terminal.write(content);
+            }
+        }
+
+        // Re-sync with the live controller to resume receiving data
+        termWrap.resyncController("return to live");
     }
 
     getSettingsMenuItems(): ContextMenuItem[] {

@@ -23,10 +23,15 @@
     "window:magnifiedblockblursecondarypx": 2,
     "window:confirmclose": true,
     "window:savelastwindow": true,
+    "tab:confirmclose": true,
+    "block:confirmclose": false,
     "term:bellsound": false,
     "term:bellindicator": true,
     "term:copyonselect": true,
     "term:durable": false,
     "waveai:showcloudmodes": true,
-    "waveai:defaultmode": "waveai@balanced"
+    "waveai:defaultmode": "waveai@balanced",
+    "widget:poptabhoverms": 800,
+    "widget:popoutenabled": true,
+    "widget:popoutalwaysontop": true
 }

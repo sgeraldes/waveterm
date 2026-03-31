@@ -114,6 +114,8 @@ declare global {
         sendLog: (log: string) => void;
         onQuicklook: (filePath: string) => void;
         openNativePath(filePath: string): Promise<string>;
+        openNativePathExplicit(filePath: string): Promise<string>;
+        openExternalEditor(editorPath: string, filePath: string): Promise<string>;
         captureScreenshot(rect: Electron.Rectangle): Promise<string>;
         setKeyboardChordMode: () => void;
         clearWebviewStorage: (webContentsId: number) => Promise<void>;

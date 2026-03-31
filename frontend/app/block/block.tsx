@@ -144,7 +144,7 @@ const BlockFull = memo(({ nodeModel, viewModel }: FullBlockProps) => {
     const focusElemRef = useRef<HTMLInputElement>(null);
     const blockRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
-    const [blockClicked, setBlockClicked] = useState(false);
+    const blockClickedRef = useRef(false);
     const [blockData] = useWaveObjectValue<Block>(makeORef("block", nodeModel.blockId));
     const isFocused = useAtomValue(nodeModel.isFocused);
     const disablePointerEvents = useAtomValue(nodeModel.disablePointerEvents);
@@ -152,14 +152,18 @@ const BlockFull = memo(({ nodeModel, viewModel }: FullBlockProps) => {
     const noPadding = useAtomValueSafe(viewModel.noPadding);
 
     useLayoutEffect(() => {
-        setBlockClicked(isFocused);
+        if (isFocused && !blockClickedRef.current) {
+            blockClickedRef.current = true;
+            const focusWithin = focusedBlockId() == nodeModel.blockId;
+            if (!focusWithin) {
+                setFocusTarget();
+            }
+        }
+        blockClickedRef.current = false;
     }, [isFocused]);
 
-    useLayoutEffect(() => {
-        if (!blockClicked) {
-            return;
-        }
-        setBlockClicked(false);
+    const setBlockClickedTrue = useCallback(() => {
+        blockClickedRef.current = true;
         const focusWithin = focusedBlockId() == nodeModel.blockId;
         if (!focusWithin) {
             setFocusTarget();
@@ -167,11 +171,7 @@ const BlockFull = memo(({ nodeModel, viewModel }: FullBlockProps) => {
         if (!isFocused) {
             nodeModel.focusNode();
         }
-    }, [blockClicked, isFocused]);
-
-    const setBlockClickedTrue = useCallback(() => {
-        setBlockClicked(true);
-    }, []);
+    }, [isFocused]);
 
     const [blockContentOffset, setBlockContentOffset] = useState<Dimensions>();
 

@@ -9,6 +9,7 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { memo, useEffect } from "react";
 import { useDrop } from "react-dnd";
 import { CSVView } from "./csvview";
+import { PreviewDocTabBar } from "./preview-doctab-bar";
 import { DirectoryPreview } from "./preview-directory";
 import { CodeEditPreview } from "./preview-edit";
 import { ErrorOverlay } from "./preview-error-overlay";
@@ -125,6 +126,9 @@ function PreviewView({
     const loadableSpecializedView = useAtomValue(model.loadableSpecializedView);
     const currentView =
         loadableSpecializedView.state === "hasData" ? loadableSpecializedView.data.specializedView : null;
+    const subBlockIds = useAtomValue(model.subBlockIds);
+    const activeDocTabId = useAtomValue(model.activeDocTabId);
+    const isMultiDocMode = useAtomValue(model.isMultiDocMode);
 
     const [{ isOver, canDrop }, dropRef] = useDrop(
         () => ({
@@ -139,14 +143,19 @@ function PreviewView({
                 // Extract path from URI: "wsh://local/path/to/file" -> "/path/to/file"
                 const url = new URL(draggedFile.uri);
                 const filePath = url.pathname;
-                model.goHistory(filePath);
+                if (isMultiDocMode) {
+                    // In multi-doc mode, open the dropped file as a new document tab
+                    model.addDocTab(filePath);
+                } else {
+                    model.goHistory(filePath);
+                }
             },
             collect: (monitor) => ({
                 isOver: monitor.isOver(),
                 canDrop: monitor.canDrop(),
             }),
         }),
-        [connection, currentView, model]
+        [connection, currentView, model, isMultiDocMode]
     );
 
     useEffect(() => {
@@ -216,6 +225,16 @@ function PreviewView({
         <>
             <div key="fullpreview" className="flex flex-col w-full overflow-hidden scrollbar-hide-until-hover">
                 {errorMsg && <ErrorOverlay errorMsg={errorMsg} resetOverlay={() => setErrorMsg(null)} />}
+                {isMultiDocMode && (
+                    <PreviewDocTabBar
+                        containerBlockId={model.blockId}
+                        subBlockIds={subBlockIds}
+                        activeTabId={activeDocTabId}
+                        onSelectTab={(id) => model.switchDocTab(id)}
+                        onCloseTab={(id) => model.closeDocTab(id)}
+                        onNewTab={() => model.addDocTab()}
+                    />
+                )}
                 <div ref={contentRef} className="flex-grow overflow-hidden" style={{ position: "relative" }}>
                     <SpecializedView parentRef={contentRef} model={model} />
                     {isOver && canDrop && (

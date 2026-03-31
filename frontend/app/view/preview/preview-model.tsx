@@ -84,7 +84,7 @@ function isMarkdownLike(mimeType: string): boolean {
     return mimeType.startsWith("text/markdown") || mimeType.startsWith("text/mdx");
 }
 
-function iconForFile(mimeType: string): string {
+export function iconForFile(mimeType: string): string {
     if (mimeType == null) {
         mimeType = "unknown";
     }
@@ -166,6 +166,11 @@ export class PreviewModel implements ViewModel {
     codeEditKeyDownHandler: (waveEvent: WaveKeyboardEvent) => boolean;
     fileWatchEnabled: PrimitiveAtom<boolean>;
 
+    // Multi-document tab support
+    subBlockIds: Atom<string[]>;
+    activeDocTabId: Atom<string>;
+    isMultiDocMode: Atom<boolean>;
+
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.viewType = "preview";
         this.blockId = blockId;
@@ -188,6 +193,20 @@ export class PreviewModel implements ViewModel {
         this.connectionError = atom("");
         this.errorMsgAtom = atom(null) as PrimitiveAtom<ErrorMsg | null>;
         this.fileWatchEnabled = atom(false);
+
+        // Multi-document tab atoms
+        this.subBlockIds = atom<string[]>((get) => {
+            const blockData = get(this.blockAtom);
+            return blockData?.subblockids ?? [];
+        });
+        this.activeDocTabId = atom<string>((get) => {
+            const blockData = get(this.blockAtom);
+            return blockData?.meta?.["preview:activedoctab"] ?? "";
+        });
+        this.isMultiDocMode = atom<boolean>((get) => {
+            return get(this.subBlockIds).length > 0;
+        });
+
         this.viewIcon = atom((get) => {
             const blockData = get(this.blockAtom);
             if (blockData?.meta?.icon) {
@@ -221,6 +240,10 @@ export class PreviewModel implements ViewModel {
         this.viewName = atom("Preview");
         this.hideViewName = atom(true);
         this.viewText = atom((get) => {
+            // In multi-doc mode, filename display moves to the doc tab bar
+            if (get(this.isMultiDocMode)) {
+                return [] as HeaderElem[];
+            }
             let headerPath = get(this.metaFilePath);
             const connStatus = get(this.connStatus);
             if (connStatus?.status != "connected") {
@@ -840,6 +863,25 @@ export class PreviewModel implements ViewModel {
     }
 
     keyDownHandler(e: WaveKeyboardEvent): boolean {
+        // Multi-doc tab cycling (only when in multi-doc mode)
+        const isMultiDoc = globalStore.get(this.isMultiDocMode);
+        if (isMultiDoc) {
+            if (checkKeyPressed(e, "Ctrl:Tab") || checkKeyPressed(e, "Ctrl:Shift:Tab")) {
+                const subBlockIds = globalStore.get(this.subBlockIds);
+                const activeDocTabId = globalStore.get(this.activeDocTabId);
+                if (subBlockIds.length > 1) {
+                    const idx = subBlockIds.indexOf(activeDocTabId);
+                    let nextIdx: number;
+                    if (checkKeyPressed(e, "Ctrl:Shift:Tab")) {
+                        nextIdx = idx <= 0 ? subBlockIds.length - 1 : idx - 1;
+                    } else {
+                        nextIdx = idx >= subBlockIds.length - 1 ? 0 : idx + 1;
+                    }
+                    fireAndForget(() => this.switchDocTab(subBlockIds[nextIdx]));
+                    return true;
+                }
+            }
+        }
         if (checkKeyPressed(e, "Cmd:ArrowLeft")) {
             fireAndForget(this.goHistoryBack.bind(this));
             return true;
@@ -943,5 +985,68 @@ export class PreviewModel implements ViewModel {
         // Refresh the file content
         globalStore.set(this.refreshVersion, globalStore.get(this.refreshVersion) + 1);
         globalStore.set(this.fileContentSaved, null);
+    }
+
+    async addDocTab(filePath?: string): Promise<void> {
+        const blockDef: BlockDef = {
+            meta: {
+                view: "preview",
+                file: filePath ?? "",
+            },
+        };
+        try {
+            const subBlockOref = await RpcApi.CreateSubBlockCommand(TabRpcClient, {
+                parentblockid: this.blockId,
+                blockdef: blockDef,
+            });
+            // subBlockOref is an ORef string like "block:<oid>"
+            if (subBlockOref) {
+                const parts = subBlockOref.split(":");
+                const subBlockId = parts.length === 2 ? parts[1] : subBlockOref;
+                await this.switchDocTab(subBlockId);
+            }
+        } catch (e) {
+            console.error("Failed to create document tab:", e);
+        }
+    }
+
+    async closeDocTab(subBlockId: string): Promise<void> {
+        const subBlockIds = globalStore.get(this.subBlockIds);
+        const activeDocTabId = globalStore.get(this.activeDocTabId);
+
+        // Select an adjacent tab before closing
+        if (activeDocTabId === subBlockId && subBlockIds.length > 1) {
+            const idx = subBlockIds.indexOf(subBlockId);
+            const nextId = subBlockIds[idx + 1] ?? subBlockIds[idx - 1];
+            if (nextId) {
+                await this.switchDocTab(nextId);
+            }
+        }
+
+        try {
+            await RpcApi.DeleteSubBlockCommand(TabRpcClient, { blockid: subBlockId });
+        } catch (e) {
+            console.error("Failed to delete document tab:", e);
+        }
+
+        // If we just removed the last sub-block, clear activedoctab
+        const remaining = globalStore.get(this.subBlockIds);
+        if (remaining.length === 0) {
+            await RpcApi.SetMetaCommand(TabRpcClient, {
+                oref: WOS.makeORef("block", this.blockId),
+                meta: { "preview:activedoctab": null },
+            });
+        }
+    }
+
+    async switchDocTab(subBlockId: string): Promise<void> {
+        try {
+            await RpcApi.SetMetaCommand(TabRpcClient, {
+                oref: WOS.makeORef("block", this.blockId),
+                meta: { "preview:activedoctab": subBlockId },
+            });
+        } catch (e) {
+            console.error("Failed to switch document tab:", e);
+        }
     }
 }

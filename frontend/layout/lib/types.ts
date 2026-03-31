@@ -88,6 +88,8 @@ export enum LayoutTreeActionType {
     ReplaceNode = "replace",
     SplitHorizontal = "splithorizontal",
     SplitVertical = "splitvertical",
+    HideNode = "hidenode",
+    UnhideNode = "unhidenode",
 }
 
 /**
@@ -297,6 +299,23 @@ export interface LayoutTreeClearTreeAction extends LayoutTreeAction {
 }
 
 /**
+ * Action for hiding a node in the layout tree (used during pop-out).
+ * The node is retained in the tree but excluded from leaf calculations.
+ */
+export interface LayoutTreeHideNodeAction extends LayoutTreeAction {
+    type: LayoutTreeActionType.HideNode;
+    nodeId: string;
+}
+
+/**
+ * Action for unhiding a previously hidden node in the layout tree (used during pop-in).
+ */
+export interface LayoutTreeUnhideNodeAction extends LayoutTreeAction {
+    type: LayoutTreeActionType.UnhideNode;
+    nodeId: string;
+}
+
+/**
  * Represents a single node in the layout tree.
  */
 export interface LayoutNode {
@@ -305,6 +324,7 @@ export interface LayoutNode {
     children?: LayoutNode[];
     flexDirection: FlexDirection;
     size: number;
+    hidden?: boolean;
 }
 
 export type LayoutTreeStateSetter = (value: LayoutState) => void;

@@ -1,0 +1,144 @@
+// Copyright 2026, Command Line Inc.
+// SPDX-License-Identifier: Apache-2.0
+
+.term-tab-strip {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: 28px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--main-bg-color) 80%, black);
+    border-bottom: 1px solid var(--border-color);
+    overflow: hidden;
+    user-select: none;
+
+    .term-tab-strip-tabs {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex: 1;
+        min-width: 0;
+        scrollbar-width: none; // hide scrollbar in Firefox
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+    }
+
+    .term-tab {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        padding: 0 8px;
+        height: 28px;
+        min-width: 80px;
+        max-width: 160px;
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        font-size: 11px;
+        position: relative;
+        flex-shrink: 0;
+        box-sizing: border-box;
+        border-right: 1px solid var(--border-color);
+        background: transparent;
+        transition: background 0.1s ease;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--main-text-color);
+
+            .term-tab-close {
+                opacity: 1;
+            }
+        }
+
+        &.is-active {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--main-text-color);
+
+            // Accent-color bottom border for active tab
+            &::after {
+                content: "";
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: var(--accent-color);
+            }
+        }
+
+        .term-tab-icon {
+            font-size: 10px;
+            flex-shrink: 0;
+            opacity: 0.7;
+        }
+
+        .term-tab-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 11px;
+        }
+
+        .term-tab-name-input {
+            flex: 1;
+            min-width: 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--accent-color);
+            border-radius: 2px;
+            color: var(--main-text-color);
+            font-size: 11px;
+            padding: 0 2px;
+            height: 18px;
+            outline: none;
+        }
+
+        .term-tab-close {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            border: none;
+            background: transparent;
+            color: var(--secondary-text-color);
+            cursor: pointer;
+            padding: 0;
+            opacity: 0;
+            flex-shrink: 0;
+            font-size: 9px;
+            transition: opacity 0.1s ease, background 0.1s ease;
+
+            &:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: var(--main-text-color);
+            }
+        }
+    }
+
+    .term-tab-add-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+        border: none;
+        background: transparent;
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        font-size: 10px;
+        padding: 0;
+        transition: background 0.1s ease, color 0.1s ease;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--main-text-color);
+        }
+    }
+}
