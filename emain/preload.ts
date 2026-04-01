@@ -80,6 +80,9 @@ contextBridge.exposeInMainWorld("api", {
         eventType: "did-navigate" | "did-navigate-in-page" | "will-navigate",
         isMainFrame?: boolean
     ) => ipcRenderer.send("webview-navigation", { blockId, url, eventType, isMainFrame }),
+    requestPopOut: (blockId: string) => ipcRenderer.invoke("request-pop-out", blockId),
+    onPopInBlock: (callback: (blockId: string) => void) =>
+        ipcRenderer.on("pop-in-block", (_event, blockId) => callback(blockId)),
 });
 
 // Custom event for "new-window"

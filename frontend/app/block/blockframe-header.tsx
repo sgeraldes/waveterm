@@ -17,7 +17,7 @@ import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { SessionHistoryFlyover } from "@/app/view/term/session-history-dropdown";
 import { IconButton } from "@/element/iconbutton";
-import { NodeModel } from "@/layout/index";
+import { getLayoutModelForStaticTab, NodeModel } from "@/layout/index";
 import * as util from "@/util/util";
 import { cn } from "@/util/util";
 import * as jotai from "jotai";
@@ -149,10 +149,9 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
             icon: "arrow-up-right-from-square",
             title: "Pop Out Block",
             click: () => {
-                // Stub: full implementation in emain-widget.ts phase
-                if ((getApi() as any).requestPopOut) {
-                    (getApi() as any).requestPopOut(blockId, null);
-                }
+                const layoutModel = getLayoutModelForStaticTab();
+                layoutModel.hideNodeByBlockId(blockId);
+                getApi().requestPopOut(blockId);
             },
         };
         endIconsElem.push(<IconButton key="popout" decl={popOutDecl} />);

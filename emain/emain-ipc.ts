@@ -13,7 +13,7 @@ import { getWebServerEndpoint } from "../frontend/util/endpoints";
 import * as keyutil from "../frontend/util/keyutil";
 import { fireAndForget, parseDataUrl } from "../frontend/util/util";
 import { incrementTermCommandsRun } from "./emain-activity";
-import { callWithOriginalXdgCurrentDesktopAsync, unamePlatform } from "./emain-platform";
+import { callWithOriginalXdgCurrentDesktopAsync, getElectronAppBasePath, isDevVite, unamePlatform } from "./emain-platform";
 import { getWaveTabViewByWebContentsId } from "./emain-tabview";
 import { handleCtrlShiftState } from "./emain-util";
 import { getWaveVersion } from "./emain-wavesrv";
@@ -29,6 +29,17 @@ import { ElectronWshClient } from "./emain-wsh";
  */
 
 const electronApp = electron.app;
+
+/**
+ * Sanitizes a file path from IPC before passing it to path.join/path.resolve.
+ * Removes null bytes and trims whitespace to prevent injection.
+ * Actual path traversal is stopped by the home-directory and UNC checks downstream.
+ */
+function sanitizeFilePath(filePath: string): string {
+    // Remove null bytes (can be used to bypass extension checks)
+    // eslint-disable-next-line no-control-regex
+    return filePath.replace(/\x00/g, "").trim();
+}
 
 let webviewFocusId: number = null;
 let webviewKeys: string[] = [];
@@ -188,7 +199,7 @@ export function initIpcHandlers() {
             fireAndForget(() =>
                 callWithOriginalXdgCurrentDesktopAsync(() =>
                     electron.shell.openExternal(url).catch((err) => {
-                        console.error(`Failed to open URL ${url}:`, err);
+                        console.error("Failed to open URL:", url, err);
                     })
                 )
             );
@@ -602,7 +613,7 @@ export function initIpcHandlers() {
         // Note: execFile is already secure - it does not use shell
         child_process.execFile("/usr/bin/qlmanage", ["-p", filePath], (error, stdout, stderr) => {
             if (error) {
-                console.error(`quicklook: error opening Quick Look for ${filePath}:`, error);
+                console.error("quicklook: error opening Quick Look for file:", error);
             }
         });
     });
@@ -652,17 +663,19 @@ export function initIpcHandlers() {
     electron.ipcMain.handle("open-native-path", async (event, filePath: string) => {
         console.log("open-native-path", filePath);
 
-        // SECURITY: Properly expand tilde to home directory
-        if (filePath.startsWith("~")) {
-            filePath = path.join(electronApp.getPath("home"), filePath.slice(1));
-        }
+        // SECURITY: Sanitize input before any path operations
+        const sanitized = sanitizeFilePath(filePath);
 
-        // SECURITY: Resolve to absolute path (prevents path traversal)
-        const resolvedPath = path.resolve(filePath);
+        // SECURITY: Expand tilde using a known-safe base (home dir), not raw input
+        const homeDir = electronApp.getPath("home");
+        const expanded = sanitized.startsWith("~") ? path.join(homeDir, sanitized.slice(1)) : sanitized;
+
+        // SECURITY: Resolve to absolute path (prevents relative traversal)
+        const resolvedPath = path.resolve(expanded);
 
         // SECURITY: Block UNC paths on Windows to prevent network attacks
         if (process.platform === "win32" && /^[\\/]{2}[^\\/]/.test(resolvedPath)) {
-            console.warn("open-native-path: blocked UNC path:", resolvedPath);
+            console.warn("open-native-path: blocked UNC path");
             return "UNC paths not allowed";
         }
 
@@ -670,21 +683,20 @@ export function initIpcHandlers() {
         try {
             await fs.promises.access(resolvedPath, fs.constants.R_OK);
         } catch {
-            console.warn("open-native-path: path does not exist or is not accessible:", resolvedPath);
+            console.warn("open-native-path: path does not exist or is not accessible");
             return "Path does not exist or is not accessible";
         }
 
         // SECURITY: Block paths outside home directory
-        const homeDir = electronApp.getPath("home");
         if (!resolvedPath.startsWith(homeDir)) {
-            console.warn("open-native-path: blocked path outside home directory:", resolvedPath);
+            console.warn("open-native-path: blocked path outside home directory");
             return "Path outside home directory not allowed";
         }
 
         let excuse = "";
         await callWithOriginalXdgCurrentDesktopAsync(async () => {
             excuse = await electron.shell.openPath(resolvedPath);
-            if (excuse) console.error(`Failed to open ${resolvedPath} in native application: ${excuse}`);
+            if (excuse) console.error("open-native-path: failed to open in native application:", excuse);
         });
         return excuse;
     });
@@ -700,17 +712,21 @@ export function initIpcHandlers() {
     electron.ipcMain.handle("open-native-path-explicit", async (event, filePath: string) => {
         console.log("open-native-path-explicit", filePath);
 
-        // SECURITY: Properly expand tilde to home directory
-        if (filePath.startsWith("~")) {
-            filePath = path.join(electronApp.getPath("home"), filePath.slice(1));
-        }
+        // SECURITY: Sanitize input before any path operations
+        const sanitizedExplicit = sanitizeFilePath(filePath);
 
-        // SECURITY: Resolve to absolute path (prevents path traversal)
-        const resolvedPath = path.resolve(filePath);
+        // SECURITY: Expand tilde using a known-safe base (home dir), not raw input
+        const homeDir2 = electronApp.getPath("home");
+        const expandedExplicit = sanitizedExplicit.startsWith("~")
+            ? path.join(homeDir2, sanitizedExplicit.slice(1))
+            : sanitizedExplicit;
+
+        // SECURITY: Resolve to absolute path (prevents relative traversal)
+        const resolvedPath = path.resolve(expandedExplicit);
 
         // SECURITY: Block UNC paths on Windows to prevent network attacks
         if (process.platform === "win32" && /^[\\/]{2}[^\\/]/.test(resolvedPath)) {
-            console.warn("open-native-path-explicit: blocked UNC path:", resolvedPath);
+            console.warn("open-native-path-explicit: blocked UNC path");
             return "UNC paths not allowed";
         }
 
@@ -718,14 +734,14 @@ export function initIpcHandlers() {
         try {
             await fs.promises.access(resolvedPath, fs.constants.R_OK);
         } catch {
-            console.warn("open-native-path-explicit: path does not exist or is not accessible:", resolvedPath);
+            console.warn("open-native-path-explicit: path does not exist or is not accessible");
             return "Path does not exist or is not accessible";
         }
 
         let excuse = "";
         await callWithOriginalXdgCurrentDesktopAsync(async () => {
             excuse = await electron.shell.openPath(resolvedPath);
-            if (excuse) console.error(`Failed to open ${resolvedPath} in native application: ${excuse}`);
+            if (excuse) console.error("open-native-path-explicit: failed to open in native application:", excuse);
         });
         return excuse;
     });
@@ -738,8 +754,10 @@ export function initIpcHandlers() {
         if (!filePath || typeof filePath !== "string") {
             return "Invalid file path";
         }
+        // SECURITY: Sanitize before path resolution to prevent null-byte injection
+        const sanitizedEditor = sanitizeFilePath(filePath);
         // Resolve and validate the file path (prevent traversal)
-        const resolvedPath = path.resolve(filePath);
+        const resolvedPath = path.resolve(sanitizedEditor);
         // Check file exists
         try {
             await fs.promises.access(resolvedPath);
@@ -916,7 +934,7 @@ export function initIpcHandlers() {
                     return;
                 }
                 // Log navigation event for debugging/tracking
-                console.log(`WebView Navigation [${payload.eventType}]:`, {
+                console.log("WebView Navigation", payload.eventType, {
                     blockId: payload.blockId,
                     url: payload.url,
                     isMainFrame: payload.isMainFrame,
@@ -1024,4 +1042,67 @@ export function initIpcHandlers() {
             return validPaths;
         }
     );
+
+    /**
+     * Creates a floating widget window for a popped-out block.
+     * The new window loads the same app URL with a ?popout=<blockId> query param.
+     * When the widget window is closed, the origin window receives a "pop-in-block" event.
+     * @param event - IPC event object with sender information
+     * @param blockId - The blockId to pop out into its own window
+     * @returns Promise<void>
+     */
+    electron.ipcMain.handle("request-pop-out", async (event, blockId: string) => {
+        try {
+            if (!blockId || typeof blockId !== "string") {
+                console.error("request-pop-out: invalid blockId");
+                return;
+            }
+
+            const senderWc = event.sender;
+            if (!senderWc || senderWc.isDestroyed()) {
+                console.error("request-pop-out: sender webContents is destroyed");
+                return;
+            }
+            const originWindow = electron.BrowserWindow.fromWebContents(senderWc);
+
+            const preloadPath = isDevVite
+                ? path.join(getElectronAppBasePath(), "preload", "index.cjs")
+                : path.join(getElectronAppBasePath(), "preload", "index.cjs");
+
+            const widgetWin = new electron.BrowserWindow({
+                width: 700,
+                height: 500,
+                minWidth: 300,
+                minHeight: 200,
+                title: "Wave Widget",
+                frame: true,
+                alwaysOnTop: false,
+                webPreferences: {
+                    preload: preloadPath,
+                    webviewTag: true,
+                },
+            });
+
+            // Load the same renderer URL but with ?popout=<blockId>
+            let targetUrl: string;
+            if (isDevVite && process.env.ELECTRON_RENDERER_URL) {
+                const u = new URL(`${process.env.ELECTRON_RENDERER_URL}/index.html`);
+                u.searchParams.set("popout", blockId);
+                targetUrl = u.toString();
+                widgetWin.webContents.loadURL(targetUrl);
+            } else {
+                const basePath = path.join(getElectronAppBasePath(), "frontend", "index.html");
+                widgetWin.webContents.loadFile(basePath, { query: { popout: blockId } });
+            }
+
+            // When the widget window closes, tell the origin window to unhide the block
+            widgetWin.on("closed", () => {
+                if (originWindow && !originWindow.isDestroyed()) {
+                    originWindow.webContents.send("pop-in-block", blockId);
+                }
+            });
+        } catch (err) {
+            console.error("request-pop-out: error", err);
+        }
+    });
 }

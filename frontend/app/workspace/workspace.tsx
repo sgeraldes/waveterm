@@ -14,6 +14,7 @@ import { ContextMenuModel } from "@/app/store/contextmenu";
 import { getTabModelByTabId } from "@/app/store/tab-model";
 import { LoadingSpinner } from "@/app/element/spinner";
 import { atoms, createBlock, getApi } from "@/store/global";
+import { getLayoutModelForStaticTab } from "@/layout/index";
 import * as WOS from "@/store/wos";
 import { fireAndForget } from "@/util/util";
 import { useAtomValue } from "jotai";
@@ -234,6 +235,13 @@ const WorkspaceElem = memo(() => {
     useEffect(() => {
         window.addEventListener("resize", workspaceLayoutModel.handleWindowResize);
         return () => window.removeEventListener("resize", workspaceLayoutModel.handleWindowResize);
+    }, []);
+
+    useEffect(() => {
+        getApi().onPopInBlock((blockId: string) => {
+            const layoutModel = getLayoutModelForStaticTab();
+            layoutModel.unhideNodeByBlockId(blockId);
+        });
     }, []);
 
     return (
