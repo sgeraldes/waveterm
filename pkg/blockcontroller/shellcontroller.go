@@ -226,7 +226,14 @@ func (sc *ShellController) resetTerminalState(logCtx context.Context, termRows i
 	}
 	blocklogger.Debugf(logCtx, "[conndebug] resetTerminalState: resetting terminal state\n")
 	resetSeq := shellutil.GetTerminalResetSeq()
-	resetSeq += "\r\n"
+	// Push restored content fully into scrollback by emitting termRows newlines.
+	// This ensures the viewport is clear when the new shell starts,
+	// preserving ALL historical content in the scrollback buffer.
+	if termRows > 0 {
+		resetSeq += strings.Repeat("\r\n", termRows)
+	} else {
+		resetSeq += "\r\n"
+	}
 	err := HandleAppendBlockFile(sc.BlockId, wavebase.BlockFile_Term, []byte(resetSeq))
 	if err != nil {
 		log.Printf("error appending to blockfile (terminal reset): %v\n", err)
