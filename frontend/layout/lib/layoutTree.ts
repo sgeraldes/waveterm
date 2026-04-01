@@ -19,6 +19,7 @@ import {
     LayoutTreeComputeMoveNodeAction,
     LayoutTreeDeleteNodeAction,
     LayoutTreeFocusNodeAction,
+    LayoutTreeHideNodeAction,
     LayoutTreeInsertNodeAction,
     LayoutTreeInsertNodeAtIndexAction,
     LayoutTreeMagnifyNodeToggleAction,
@@ -26,6 +27,7 @@ import {
     LayoutTreeResizeNodeAction,
     LayoutTreeState,
     LayoutTreeSwapNodeAction,
+    LayoutTreeUnhideNodeAction,
     MoveOperation,
 } from "./types";
 
@@ -527,5 +529,31 @@ export function splitVertical(layoutState: LayoutTreeState, action: LayoutTreeSp
     }
     if (action.focused) {
         layoutState.focusedNodeId = newNode.id;
+    }
+}
+
+export function hideNode(layoutState: LayoutTreeState, action: LayoutTreeHideNodeAction) {
+    if (!action?.nodeId) {
+        console.error("no hide node action provided");
+        return;
+    }
+    const node = findNode(layoutState.rootNode, action.nodeId);
+    if (node) {
+        node.hidden = true;
+    } else {
+        console.error("unable to hide node, not found in tree");
+    }
+}
+
+export function unhideNode(layoutState: LayoutTreeState, action: LayoutTreeUnhideNodeAction) {
+    if (!action?.nodeId) {
+        console.error("no unhide node action provided");
+        return;
+    }
+    const node = findNode(layoutState.rootNode, action.nodeId);
+    if (node) {
+        node.hidden = false;
+    } else {
+        console.error("unable to unhide node, not found in tree");
     }
 }

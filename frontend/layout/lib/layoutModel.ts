@@ -16,6 +16,7 @@ import {
     computeMoveNode,
     deleteNode,
     focusNode,
+    hideNode,
     insertNode,
     insertNodeAtIndex,
     magnifyNodeToggle,
@@ -25,6 +26,7 @@ import {
     splitHorizontal,
     splitVertical,
     swapNode,
+    unhideNode,
 } from "./layoutTree";
 import {
     ContentRenderer,
@@ -37,6 +39,7 @@ import {
     LayoutTreeComputeMoveNodeAction,
     LayoutTreeDeleteNodeAction,
     LayoutTreeFocusNodeAction,
+    LayoutTreeHideNodeAction,
     LayoutTreeInsertNodeAction,
     LayoutTreeInsertNodeAtIndexAction,
     LayoutTreeMagnifyNodeToggleAction,
@@ -48,6 +51,7 @@ import {
     LayoutTreeSplitVerticalAction,
     LayoutTreeState,
     LayoutTreeSwapNodeAction,
+    LayoutTreeUnhideNodeAction,
     NavigateDirection,
     NavigationResult,
     NodeModel,
@@ -695,6 +699,12 @@ export class LayoutModel {
             case LayoutTreeActionType.SplitVertical:
                 splitVertical(this.treeState, action as LayoutTreeSplitVerticalAction);
                 break;
+            case LayoutTreeActionType.HideNode:
+                hideNode(this.treeState, action as LayoutTreeHideNodeAction);
+                break;
+            case LayoutTreeActionType.UnhideNode:
+                unhideNode(this.treeState, action as LayoutTreeUnhideNodeAction);
+                break;
             default:
                 console.error("Invalid reducer action", this.treeState, action);
         }
@@ -801,6 +811,9 @@ export class LayoutModel {
         boundingRect: Dimensions,
         resizeAction?: LayoutTreeResizeNodeAction
     ) {
+        if (node.hidden) {
+            return;
+        }
         if (!node.children?.length) {
             leafs.push(node);
             const addlProps = additionalPropsMap[node.id];
@@ -1581,6 +1594,58 @@ export class LayoutModel {
             }
         }
         return null;
+    }
+
+    /**
+     * Hide a node in the layout by its blockId (used during pop-out).
+     * The node is retained in the tree but excluded from rendering.
+     * @param blockId The blockId of the node to hide.
+     */
+    hideNodeByBlockId(blockId: string) {
+        const findInTree = (node: LayoutNode): LayoutNode | null => {
+            if (!node) return null;
+            if (!node.hidden && node.data?.blockId === blockId) return node;
+            if (node.children) {
+                for (const child of node.children) {
+                    const found = findInTree(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        const target = findInTree(this.treeState.rootNode);
+        if (target) {
+            this.treeReducer({ type: LayoutTreeActionType.HideNode, nodeId: target.id } as LayoutTreeHideNodeAction);
+        } else {
+            console.warn("hideNodeByBlockId: block not found in layout", blockId);
+        }
+    }
+
+    /**
+     * Unhide a previously hidden node in the layout by its blockId (used during pop-in).
+     * @param blockId The blockId of the node to unhide.
+     */
+    unhideNodeByBlockId(blockId: string) {
+        const findHidden = (node: LayoutNode): LayoutNode | null => {
+            if (!node) return null;
+            if (node.hidden && node.data?.blockId === blockId) return node;
+            if (node.children) {
+                for (const child of node.children) {
+                    const found = findHidden(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        const hiddenNode = findHidden(this.treeState.rootNode);
+        if (hiddenNode) {
+            this.treeReducer({
+                type: LayoutTreeActionType.UnhideNode,
+                nodeId: hiddenNode.id,
+            } as LayoutTreeUnhideNodeAction);
+        } else {
+            console.warn("unhideNodeByBlockId: hidden block not found in layout", blockId);
+        }
     }
 
     /**
