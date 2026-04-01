@@ -98,18 +98,6 @@ function initGlobalAtoms(initOpts: GlobalInitOptions) {
     const settingsAtom = atom((get) => {
         return get(fullConfigAtom)?.settings ?? {};
     }) as Atom<SettingsType>;
-    const hasCustomAIPresetsAtom = atom((get) => {
-        const fullConfig = get(fullConfigAtom);
-        if (!fullConfig?.presets) {
-            return false;
-        }
-        for (const presetId in fullConfig.presets) {
-            if (presetId.startsWith("ai@") && presetId !== "ai@global" && presetId !== "ai@wave") {
-                return true;
-            }
-        }
-        return false;
-    }) as Atom<boolean>;
     // this is *the* tab that this tabview represents.  it should never change.
     const staticTabIdAtom: Atom<string> = atom(initOpts.tabId);
     const activeTabAtom: Atom<Tab> = atom((get) => {
@@ -179,7 +167,6 @@ function initGlobalAtoms(initOpts: GlobalInitOptions) {
         fullConfigAtom,
         waveaiModeConfigAtom,
         settingsAtom,
-        hasCustomAIPresetsAtom,
         staticTabId: staticTabIdAtom,
         activeTab: activeTabAtom,
         isFullScreen: isFullScreenAtom,

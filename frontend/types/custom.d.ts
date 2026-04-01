@@ -13,7 +13,6 @@ declare global {
         fullConfigAtom: jotai.PrimitiveAtom<FullConfigType>;
         waveaiModeConfigAtom: jotai.PrimitiveAtom<Record<string, AIModeConfigType>>;
         settingsAtom: jotai.Atom<SettingsType>;
-        hasCustomAIPresetsAtom: jotai.Atom<boolean>;
         staticTabId: jotai.Atom<string>;
         activeTab: jotai.Atom<Tab>;
         isFullScreen: jotai.PrimitiveAtom<boolean>;

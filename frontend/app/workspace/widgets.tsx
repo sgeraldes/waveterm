@@ -120,16 +120,12 @@ const Widget = memo(({ widget, mode }: { widget: WidgetConfigType; mode: "normal
 
 const Widgets = memo(() => {
     const fullConfig = useAtomValue(atoms.fullConfigAtom);
-    const hasCustomAIPresets = useAtomValue(atoms.hasCustomAIPresetsAtom);
     const [mode, setMode] = useState<"normal" | "compact" | "supercompact">("normal");
     const containerRef = useRef<HTMLDivElement>(null);
     const measurementRef = useRef<HTMLDivElement>(null);
 
     const widgetsMap = fullConfig?.widgets ?? {};
-    const filteredWidgets = hasCustomAIPresets
-        ? widgetsMap
-        : Object.fromEntries(Object.entries(widgetsMap).filter(([key]) => key !== "defwidget@ai"));
-    const widgets = sortByDisplayOrder(filteredWidgets);
+    const widgets = sortByDisplayOrder(widgetsMap);
 
     const checkModeNeeded = useCallback(() => {
         if (!containerRef.current || !measurementRef.current) return;
