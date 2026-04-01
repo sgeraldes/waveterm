@@ -68,12 +68,13 @@ interface SessionRowProps {
     session: SessionInfo;
     showBlockId?: boolean;
     isActive: boolean;
+    blockNumber?: number;
     onLoadInBuffer: () => void;
     onOpenViewer: () => void;
     onNewTab: () => void;
 }
 
-function SessionRow({ session, showBlockId, isActive, onLoadInBuffer, onOpenViewer, onNewTab }: SessionRowProps) {
+function SessionRow({ session, showBlockId, isActive, blockNumber, onLoadInBuffer, onOpenViewer, onNewTab }: SessionRowProps) {
     const cwdPath = session.title || session.cwd || session.blockId.substring(0, 8);
     const time = formatRelativeTime(session.lastUpdatedAt);
     const size = formatBytes(session.totalBytes);
@@ -85,12 +86,22 @@ function SessionRow({ session, showBlockId, isActive, onLoadInBuffer, onOpenView
             onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             onClick={onLoadInBuffer}
-            title={`Load into terminal — ${session.cwd || session.blockId}`}
+            title={`Load into terminal — ${session.cwd || session.blockId}${isActive && blockNumber ? ` (Ctrl+Shift+${blockNumber})` : ""}`}
         >
-            {/* Active indicator — left bar */}
-            <div className="w-[3px] h-[20px] rounded-full shrink-0 mr-2" style={{
-                backgroundColor: isActive ? "#4ade80" : "rgba(255,255,255,0.08)",
-            }} />
+            {/* Active indicator — number badge or dim bar */}
+            {isActive && blockNumber ? (
+                <span
+                    className="w-[18px] h-[18px] rounded flex items-center justify-center shrink-0 mr-1.5 text-[10px] font-mono font-bold"
+                    style={{ backgroundColor: "rgba(74, 222, 128, 0.15)", color: "#4ade80" }}
+                >
+                    {blockNumber}
+                </span>
+            ) : (
+                <div className="w-[3px] h-[20px] rounded-full shrink-0 mr-2" style={{
+                    backgroundColor: isActive ? "#4ade80" : "rgba(255,255,255,0.08)",
+                    marginLeft: "7px",
+                }} />
+            )}
 
             {/* Shell badge — fixed width */}
             <ShellBadge shelltype={session.shelltype} />
@@ -226,6 +237,12 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
     const [tabData] = WOS.useWaveObjectValue<Tab>(WOS.makeORef("tab", tabId ?? ""));
     const tabBaseDir = (tabData?.meta?.["tab:basedir"] as string) ?? "";
     const activeBlockIds = useMemo(() => new Set(tabData?.blockids ?? []), [tabData?.blockids]);
+    // Map blockId → 1-based index for Ctrl+Shift+N shortcut display
+    const blockNumberMap = useMemo(() => {
+        const map = new Map<string, number>();
+        (tabData?.blockids ?? []).forEach((id, i) => map.set(id, i + 1));
+        return map;
+    }, [tabData?.blockids]);
 
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
     const currentShellType =
@@ -356,6 +373,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                                         session={s}
                                         showBlockId={false}
                                         isActive={true}
+                                        blockNumber={blockNumberMap.get(s.blockId)}
                                         onLoadInBuffer={() => loadInBuffer(s)}
                                         onOpenViewer={() => openInViewer(s.blockId)}
                                         onNewTab={() => resumeInNewTab(s)}
@@ -383,6 +401,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                                         session={s}
                                         showBlockId={true}
                                         isActive={activeBlockIds.has(s.blockId)}
+                                        blockNumber={blockNumberMap.get(s.blockId)}
                                         onLoadInBuffer={() => loadInBuffer(s)}
                                         onOpenViewer={() => openInViewer(s.blockId)}
                                         onNewTab={() => resumeInNewTab(s)}
