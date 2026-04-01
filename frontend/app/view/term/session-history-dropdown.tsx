@@ -19,25 +19,24 @@ import { useEffect, useMemo, useState } from "react";
 
 function formatRelativeTime(ms: number): string {
     const seconds = Math.floor((Date.now() - ms) / 1000);
-    if (seconds < 60) return "just now";
+    if (seconds < 60) return "now";
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
+    if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
+    if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
-    return `${days}d ago`;
+    return `${days}d`;
 }
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}K`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}M`;
 }
 
 // ── Shell badge ───────────────────────────────────────────────────────────────
 
-// Deterministic color from any string — no hardcoded shell names
-const BADGE_HUES = [210, 140, 35, 280, 170, 0, 60, 320]; // spread across color wheel
+const BADGE_HUES = [210, 140, 35, 280, 170, 0, 60, 320];
 
 function hashString(s: string): number {
     let h = 0;
@@ -52,10 +51,10 @@ function ShellBadge({ shelltype }: { shelltype: string | undefined }) {
     const hue = BADGE_HUES[hashString(label) % BADGE_HUES.length];
     return (
         <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium leading-none whitespace-nowrap"
+            className="inline-flex items-center justify-center w-[72px] shrink-0 px-1 py-[2px] rounded text-[10px] font-mono leading-none truncate"
             style={{
-                backgroundColor: `hsla(${hue}, 60%, 50%, 0.15)`,
-                color: `hsla(${hue}, 70%, 70%, 1)`,
+                backgroundColor: `hsla(${hue}, 55%, 45%, 0.18)`,
+                color: `hsla(${hue}, 65%, 72%, 1)`,
             }}
         >
             {label}
@@ -63,20 +62,9 @@ function ShellBadge({ shelltype }: { shelltype: string | undefined }) {
     );
 }
 
-// ── Active status dot ────────────────────────────────────────────────────────
+// ── Session row ──────────────────────────────────────────────────────────────
 
-function StatusDot({ isActive }: { isActive: boolean }) {
-    return (
-        <span
-            title={isActive ? "Active in this tab" : "Inactive"}
-            className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${isActive ? "bg-green-400" : "bg-zinc-600"}`}
-        />
-    );
-}
-
-// ── Session entry ─────────────────────────────────────────────────────────────
-
-interface SessionEntryProps {
+interface SessionRowProps {
     session: SessionInfo;
     showBlockId?: boolean;
     isActive: boolean;
@@ -85,70 +73,90 @@ interface SessionEntryProps {
     onNewTab: () => void;
 }
 
-function SessionEntry({ session, showBlockId, isActive, onLoadInBuffer, onOpenViewer, onNewTab }: SessionEntryProps) {
-    const cwdPath = session.cwd || session.blockId.substring(0, 8);
+function SessionRow({ session, showBlockId, isActive, onLoadInBuffer, onOpenViewer, onNewTab }: SessionRowProps) {
+    const cwdPath = session.title || session.cwd || session.blockId.substring(0, 8);
     const time = formatRelativeTime(session.lastUpdatedAt);
     const size = formatBytes(session.totalBytes);
-    const shortId = "#" + session.blockId.substring(0, 6);
 
     return (
-        <div className="group relative flex items-center gap-2.5 px-3 py-2 rounded-md mx-1.5 hover:bg-zinc-700/50 transition-colors">
-            {/* Status dot */}
-            <StatusDot isActive={isActive} />
+        <div
+            className="group flex items-center h-[36px] px-2 mx-1 rounded cursor-pointer transition-colors"
+            style={{ background: "transparent" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onClick={onLoadInBuffer}
+            title={`Load into terminal — ${session.cwd || session.blockId}`}
+        >
+            {/* Active indicator — left bar */}
+            <div className="w-[3px] h-[20px] rounded-full shrink-0 mr-2" style={{
+                backgroundColor: isActive ? "#4ade80" : "rgba(255,255,255,0.08)",
+            }} />
 
-            {/* Shell badge */}
+            {/* Shell badge — fixed width */}
             <ShellBadge shelltype={session.shelltype} />
 
-            {/* Main content — click to load into current buffer */}
-            <button
-                className="flex-1 min-w-0 text-left cursor-pointer"
-                onClick={onLoadInBuffer}
-                title={`Load session into terminal — ${cwdPath}`}
-            >
-                <div className="text-[12px] text-[var(--main-text-color)] font-medium truncate leading-tight">
-                    {session.title || cwdPath}
-                </div>
-                <div className="flex items-center gap-1 text-[10px] text-[var(--secondary-text-color)] mt-1 font-mono">
-                    {showBlockId && <span>{shortId}</span>}
-                    {showBlockId && <span className="text-zinc-600">·</span>}
-                    <span>{time}</span>
-                    <span className="text-zinc-600">·</span>
-                    <span>{size}</span>
-                    <span className="text-zinc-600">·</span>
-                    <span>
-                        {session.segmentCount} seg{session.segmentCount !== 1 ? "s" : ""}
-                    </span>
-                </div>
-            </button>
+            {/* Path / title */}
+            <span className="flex-1 min-w-0 mx-2 text-[11px] truncate" style={{ color: "var(--main-text-color)" }}>
+                {cwdPath}
+            </span>
 
-            {/* Action buttons — visible on group hover */}
-            <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Metadata — right-aligned, always visible */}
+            <div
+                className="shrink-0 flex items-center gap-[6px] text-[10px] font-mono tabular-nums group-hover:hidden"
+                style={{ color: "rgba(255,255,255,0.3)" }}
+            >
+                {showBlockId && <span>{session.blockId.substring(0, 5)}</span>}
+                <span className="w-[24px] text-right">{time}</span>
+                <span className="w-[28px] text-right">{size}</span>
+                <span className="w-[8px] text-center">{session.segmentCount}</span>
+            </div>
+
+            {/* Actions — replace metadata on hover */}
+            <div className="shrink-0 hidden group-hover:flex items-center gap-[2px]">
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenViewer();
-                    }}
+                    onClick={(e) => { e.stopPropagation(); onOpenViewer(); }}
                     title="Open in viewer"
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-zinc-600 text-[var(--secondary-text-color)] hover:text-[var(--main-text-color)] transition-colors"
+                    className="w-[24px] h-[24px] flex items-center justify-center rounded transition-colors"
+                    style={{ color: "rgba(255,255,255,0.4)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "var(--main-text-color)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
                 >
-                    <i className="fa-sharp fa-regular fa-eye text-[11px]" />
+                    <i className="fa-sharp fa-regular fa-eye text-[10px]" />
                 </button>
                 <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onNewTab();
-                    }}
+                    onClick={(e) => { e.stopPropagation(); onNewTab(); }}
                     title="Resume in new tab"
-                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-zinc-600 text-[var(--secondary-text-color)] hover:text-[var(--main-text-color)] transition-colors"
+                    className="w-[24px] h-[24px] flex items-center justify-center rounded transition-colors"
+                    style={{ color: "rgba(255,255,255,0.4)" }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "var(--main-text-color)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "rgba(255,255,255,0.4)"; }}
                 >
-                    <i className="fa-sharp fa-regular fa-plus text-[11px]" />
+                    <i className="fa-sharp fa-regular fa-arrow-up-right-from-square text-[10px]" />
                 </button>
             </div>
         </div>
     );
 }
 
-// ── Filter pills ──────────────────────────────────────────────────────────────
+// ── Column header ────────────────────────────────────────────────────────────
+
+function ColumnHeader({ showBlockId }: { showBlockId?: boolean }) {
+    return (
+        <div className="flex items-center h-[20px] px-2 mx-1 text-[9px] font-mono uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.2)" }}>
+            <div className="w-[3px] mr-2" />
+            <div className="w-[72px] shrink-0">shell</div>
+            <div className="flex-1 mx-2">path</div>
+            <div className="shrink-0 flex items-center gap-[6px]">
+                {showBlockId && <span>id</span>}
+                <span className="w-[24px] text-right">age</span>
+                <span className="w-[28px] text-right">size</span>
+                <span className="w-[8px] text-center">#</span>
+            </div>
+        </div>
+    );
+}
+
+// ── Filter pills ─────────────────────────────────────────────────────────────
 
 function FilterPills({
     available,
@@ -160,26 +168,26 @@ function FilterPills({
     onSelect: (shell: string | null) => void;
 }) {
     return (
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-[4px] px-3 pb-1">
             <button
                 onClick={() => onSelect(null)}
-                className={`px-2 py-0.5 rounded text-[10px] leading-none transition-colors ${
-                    active === null
-                        ? "bg-zinc-600/50 text-[var(--main-text-color)]"
-                        : "text-[var(--secondary-text-color)] hover:bg-zinc-700 hover:text-[var(--main-text-color)]"
-                }`}
+                className="px-[6px] py-[2px] rounded text-[10px] font-mono leading-none transition-colors"
+                style={{
+                    background: active === null ? "rgba(255,255,255,0.1)" : "transparent",
+                    color: active === null ? "var(--main-text-color)" : "rgba(255,255,255,0.3)",
+                }}
             >
-                All
+                all
             </button>
             {available.map((sh) => (
                 <button
                     key={sh}
                     onClick={() => onSelect(sh)}
-                    className={`px-2 py-0.5 rounded text-[10px] leading-none font-mono transition-colors ${
-                        active === sh
-                            ? "bg-zinc-600/50 text-[var(--main-text-color)]"
-                            : "text-[var(--secondary-text-color)] hover:bg-zinc-700 hover:text-[var(--main-text-color)]"
-                    }`}
+                    className="px-[6px] py-[2px] rounded text-[10px] font-mono leading-none transition-colors"
+                    style={{
+                        background: active === sh ? "rgba(255,255,255,0.1)" : "transparent",
+                        color: active === sh ? "var(--main-text-color)" : "rgba(255,255,255,0.3)",
+                    }}
                 >
                     {sh}
                 </button>
@@ -188,7 +196,20 @@ function FilterPills({
     );
 }
 
-// ── Main flyover component ────────────────────────────────────────────────────
+// ── Section label ────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+    return (
+        <div
+            className="px-3 pt-2 pb-1 text-[10px] uppercase tracking-[0.08em] font-medium"
+            style={{ color: "rgba(255,255,255,0.25)" }}
+        >
+            {children}
+        </div>
+    );
+}
+
+// ── Main flyover ─────────────────────────────────────────────────────────────
 
 interface SessionHistoryFlyoverProps {
     blockId: string;
@@ -204,11 +225,8 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
 
     const [tabData] = WOS.useWaveObjectValue<Tab>(WOS.makeORef("tab", tabId ?? ""));
     const tabBaseDir = (tabData?.meta?.["tab:basedir"] as string) ?? "";
-
-    // Set of blockIds currently active in this tab
     const activeBlockIds = useMemo(() => new Set(tabData?.blockids ?? []), [tabData?.blockids]);
 
-    // Read the current block's shell type from metadata (for enriching sessions with empty shelltype)
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
     const currentShellType =
         (blockData?.meta?.["term:shelltype"] as string) || (blockData?.meta?.["shell:profile"] as string) || "";
@@ -217,7 +235,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
         open: isOpen,
         onOpenChange: setIsOpen,
         placement: "bottom-end",
-        middleware: [offset(8), flip(), shift({ padding: 8 })],
+        middleware: [offset(6), flip(), shift({ padding: 8 })],
         whileElementsMounted: autoUpdate,
     });
 
@@ -255,12 +273,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
     function openInViewer(sourceBlockId: string) {
         setIsOpen(false);
         fireAndForget(() =>
-            createBlock({
-                meta: {
-                    view: "termhistory",
-                    "termhistory:blockid": sourceBlockId,
-                },
-            })
+            createBlock({ meta: { view: "termhistory", "termhistory:blockid": sourceBlockId } })
         );
     }
 
@@ -280,22 +293,17 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
         );
     }
 
-    // Enrich "this terminal" sessions with the block's current shell type if missing
     const thisTerm = (sessions?.filter((s) => s.blockId === blockId) ?? []).map((s) => ({
         ...s,
         shelltype: s.shelltype || currentShellType,
     }));
     const allSameDir =
         sessions?.filter((s) => s.blockId !== blockId && tabBaseDir && s.tabBaseDir === tabBaseDir) ?? [];
-
-    // Collect unique shell types from the same-dir section for filter pills
     const sameDirShells = Array.from(
         new Set(allSameDir.map((s) => s.shelltype || "shell").filter((l) => l !== "shell"))
     );
-
     const sameDir =
         sameDirFilter === null ? allSameDir : allSameDir.filter((s) => (s.shelltype || "shell") === sameDirFilter);
-
     const isEmpty = !loading && sessions != null && thisTerm.length === 0 && allSameDir.length === 0;
 
     return (
@@ -312,32 +320,38 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                 <FloatingPortal>
                     <div
                         ref={refs.setFloating}
-                        style={floatingStyles}
                         {...getFloatingProps()}
-                        className="bg-zinc-800 border border-border rounded-lg py-2.5 text-xs text-[var(--main-text-color)] shadow-2xl z-50 min-w-[320px] max-w-[380px] max-h-[480px] overflow-y-auto"
+                        className="rounded-lg py-1 z-50 max-h-[480px] overflow-y-auto"
+                        style={{
+                            ...floatingStyles,
+                            background: "color-mix(in srgb, var(--main-bg-color) 97%, white)",
+                            border: "1px solid var(--border-color)",
+                            boxShadow: "0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03)",
+                            width: 420,
+                        }}
                         onMouseDown={(e) => e.stopPropagation()}
                         onFocusCapture={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* Header */}
-                        <div className="px-3.5 pb-2 font-semibold text-[var(--secondary-text-color)] border-b border-border mb-2 text-[11px] uppercase tracking-wider">
-                            Session History
-                        </div>
-
-                        {loading && <div className="px-3.5 py-6 text-[var(--secondary-text-color)] text-center text-[11px]">Loading...</div>}
-
-                        {isEmpty && (
-                            <div className="px-3.5 py-6 text-[var(--secondary-text-color)] text-center text-[11px]">No session history yet</div>
+                        {loading && (
+                            <div className="py-8 text-center text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                Loading sessions...
+                            </div>
                         )}
 
-                        {/* THIS TERMINAL section */}
+                        {isEmpty && (
+                            <div className="py-8 text-center text-[11px]" style={{ color: "rgba(255,255,255,0.3)" }}>
+                                No session history
+                            </div>
+                        )}
+
+                        {/* THIS TERMINAL */}
                         {!loading && thisTerm.length > 0 && (
-                            <div className="mb-2">
-                                <div className="px-3.5 py-1.5 text-[10px] text-[var(--secondary-text-color)] uppercase tracking-wider font-semibold">
-                                    This Terminal
-                                </div>
+                            <div className="pb-1">
+                                <SectionLabel>This Terminal</SectionLabel>
+                                <ColumnHeader showBlockId={false} />
                                 {thisTerm.map((s) => (
-                                    <SessionEntry
+                                    <SessionRow
                                         key={`${s.blockId}-${s.lastUpdatedAt}`}
                                         session={s}
                                         showBlockId={false}
@@ -350,29 +364,21 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                             </div>
                         )}
 
-                        {/* Separator between sections */}
+                        {/* Divider */}
                         {!loading && thisTerm.length > 0 && allSameDir.length > 0 && (
-                            <div className="border-t border-border mx-3 mb-2" />
+                            <div className="mx-2 my-1" style={{ borderTop: "1px solid var(--border-color)" }} />
                         )}
 
-                        {/* SAME DIRECTORY section */}
+                        {/* SAME DIRECTORY */}
                         {!loading && allSameDir.length > 0 && (
-                            <div>
-                                {/* Section header with filter pills */}
-                                <div className="px-3.5 py-1.5 flex items-center justify-between gap-2">
-                                    <span className="text-[10px] text-[var(--secondary-text-color)] uppercase tracking-wider font-semibold flex-shrink-0">
-                                        Same Directory
-                                    </span>
-                                    {sameDirShells.length > 0 && (
-                                        <FilterPills
-                                            available={sameDirShells}
-                                            active={sameDirFilter}
-                                            onSelect={setSameDirFilter}
-                                        />
-                                    )}
-                                </div>
+                            <div className="pb-1">
+                                <SectionLabel>Same Directory</SectionLabel>
+                                {sameDirShells.length > 0 && (
+                                    <FilterPills available={sameDirShells} active={sameDirFilter} onSelect={setSameDirFilter} />
+                                )}
+                                <ColumnHeader showBlockId={true} />
                                 {sameDir.map((s) => (
-                                    <SessionEntry
+                                    <SessionRow
                                         key={`${s.blockId}-${s.lastUpdatedAt}`}
                                         session={s}
                                         showBlockId={true}
@@ -383,7 +389,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                                     />
                                 ))}
                                 {sameDir.length === 0 && sameDirFilter !== null && (
-                                    <div className="px-3.5 py-3 text-[var(--secondary-text-color)] text-[11px] text-center">
+                                    <div className="py-4 text-center text-[11px]" style={{ color: "rgba(255,255,255,0.25)" }}>
                                         No {sameDirFilter} sessions
                                     </div>
                                 )}
