@@ -13,7 +13,7 @@ import {
     useFloating,
     useInteractions,
 } from "@floating-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 // ── Formatting helpers ────────────────────────────────────────────────────────
 
@@ -52,7 +52,7 @@ function ShellBadge({ shelltype }: { shelltype: string | undefined }) {
     const hue = BADGE_HUES[hashString(label) % BADGE_HUES.length];
     return (
         <span
-            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium leading-none"
+            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-mono font-medium leading-none whitespace-nowrap"
             style={{
                 backgroundColor: `hsla(${hue}, 60%, 50%, 0.15)`,
                 color: `hsla(${hue}, 70%, 70%, 1)`,
@@ -63,17 +63,13 @@ function ShellBadge({ shelltype }: { shelltype: string | undefined }) {
     );
 }
 
-// ── Live / dead dot ───────────────────────────────────────────────────────────
+// ── Active status dot ────────────────────────────────────────────────────────
 
-/** A session updated within the last 10 minutes is considered "live" */
-const LIVE_THRESHOLD_MS = 10 * 60 * 1000;
-
-function LiveDot({ lastUpdatedAt }: { lastUpdatedAt: number }) {
-    const isLive = Date.now() - lastUpdatedAt < LIVE_THRESHOLD_MS;
+function StatusDot({ isActive }: { isActive: boolean }) {
     return (
         <span
-            title={isLive ? "Recently active" : "Inactive"}
-            className={`inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${isLive ? "bg-green-400" : "bg-zinc-500"}`}
+            title={isActive ? "Active in this tab" : "Inactive"}
+            className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${isActive ? "bg-green-400" : "bg-zinc-600"}`}
         />
     );
 }
@@ -83,23 +79,25 @@ function LiveDot({ lastUpdatedAt }: { lastUpdatedAt: number }) {
 interface SessionEntryProps {
     session: SessionInfo;
     showBlockId?: boolean;
+    isActive: boolean;
     onLoadInBuffer: () => void;
     onOpenViewer: () => void;
     onNewTab: () => void;
 }
 
-function SessionEntry({ session, showBlockId, onLoadInBuffer, onOpenViewer, onNewTab }: SessionEntryProps) {
+function SessionEntry({ session, showBlockId, isActive, onLoadInBuffer, onOpenViewer, onNewTab }: SessionEntryProps) {
     const cwdPath = session.cwd || session.blockId.substring(0, 8);
     const time = formatRelativeTime(session.lastUpdatedAt);
     const size = formatBytes(session.totalBytes);
-    const shortId = session.blockId.substring(0, 6);
+    const shortId = "#" + session.blockId.substring(0, 6);
 
     return (
-        <div className="group relative flex items-start gap-2 px-2 py-1.5 rounded mx-1 hover:bg-zinc-700/60 transition-colors">
+        <div className="group relative flex items-center gap-2.5 px-3 py-2 rounded-md mx-1.5 hover:bg-zinc-700/50 transition-colors">
+            {/* Status dot */}
+            <StatusDot isActive={isActive} />
+
             {/* Shell badge */}
-            <div className="flex-shrink-0 pt-0.5">
-                <ShellBadge shelltype={session.shelltype} />
-            </div>
+            <ShellBadge shelltype={session.shelltype} />
 
             {/* Main content — click to load into current buffer */}
             <button
@@ -107,38 +105,33 @@ function SessionEntry({ session, showBlockId, onLoadInBuffer, onOpenViewer, onNe
                 onClick={onLoadInBuffer}
                 title={`Load session into terminal — ${cwdPath}`}
             >
-                <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[12px] text-[var(--main-text-color)] font-medium truncate">{session.title || cwdPath}</span>
+                <div className="text-[12px] text-[var(--main-text-color)] font-medium truncate leading-tight">
+                    {session.title || cwdPath}
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] text-[var(--secondary-text-color)] mt-0.5">
-                    {showBlockId && (
-                        <>
-                            <span className="font-mono">#{shortId}</span>
-                            <span>·</span>
-                        </>
-                    )}
+                <div className="flex items-center gap-1 text-[10px] text-[var(--secondary-text-color)] mt-1 font-mono">
+                    {showBlockId && <span>{shortId}</span>}
+                    {showBlockId && <span className="text-zinc-600">·</span>}
                     <span>{time}</span>
-                    <span>·</span>
+                    <span className="text-zinc-600">·</span>
                     <span>{size}</span>
-                    <span>·</span>
+                    <span className="text-zinc-600">·</span>
                     <span>
                         {session.segmentCount} seg{session.segmentCount !== 1 ? "s" : ""}
                     </span>
-                    <LiveDot lastUpdatedAt={session.lastUpdatedAt} />
                 </div>
             </button>
 
             {/* Action buttons — visible on group hover */}
-            <div className="flex-shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity pt-0.5">
+            <div className="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenViewer();
                     }}
                     title="Open in viewer"
-                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-600 text-muted hover:text-foreground transition-colors"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-zinc-600 text-[var(--secondary-text-color)] hover:text-[var(--main-text-color)] transition-colors"
                 >
-                    <i className="fa-sharp fa-regular fa-eye text-[10px]" />
+                    <i className="fa-sharp fa-regular fa-eye text-[11px]" />
                 </button>
                 <button
                     onClick={(e) => {
@@ -146,9 +139,9 @@ function SessionEntry({ session, showBlockId, onLoadInBuffer, onOpenViewer, onNe
                         onNewTab();
                     }}
                     title="Resume in new tab"
-                    className="w-5 h-5 flex items-center justify-center rounded hover:bg-zinc-600 text-muted hover:text-foreground transition-colors"
+                    className="w-6 h-6 flex items-center justify-center rounded hover:bg-zinc-600 text-[var(--secondary-text-color)] hover:text-[var(--main-text-color)] transition-colors"
                 >
-                    <i className="fa-sharp fa-regular fa-plus text-[10px]" />
+                    <i className="fa-sharp fa-regular fa-plus text-[11px]" />
                 </button>
             </div>
         </div>
@@ -170,10 +163,10 @@ function FilterPills({
         <div className="flex items-center gap-1 flex-wrap">
             <button
                 onClick={() => onSelect(null)}
-                className={`px-1.5 py-0.5 rounded text-[10px] leading-none transition-colors ${
+                className={`px-2 py-0.5 rounded text-[10px] leading-none transition-colors ${
                     active === null
-                        ? "bg-zinc-500/40 text-foreground"
-                        : "text-muted hover:bg-zinc-700 hover:text-foreground"
+                        ? "bg-zinc-600/50 text-[var(--main-text-color)]"
+                        : "text-[var(--secondary-text-color)] hover:bg-zinc-700 hover:text-[var(--main-text-color)]"
                 }`}
             >
                 All
@@ -182,10 +175,10 @@ function FilterPills({
                 <button
                     key={sh}
                     onClick={() => onSelect(sh)}
-                    className={`px-1.5 py-0.5 rounded text-[10px] leading-none font-mono transition-colors ${
+                    className={`px-2 py-0.5 rounded text-[10px] leading-none font-mono transition-colors ${
                         active === sh
-                            ? "bg-zinc-500/40 text-foreground"
-                            : "text-muted hover:bg-zinc-700 hover:text-foreground"
+                            ? "bg-zinc-600/50 text-[var(--main-text-color)]"
+                            : "text-[var(--secondary-text-color)] hover:bg-zinc-700 hover:text-[var(--main-text-color)]"
                     }`}
                 >
                     {sh}
@@ -212,11 +205,13 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
     const [tabData] = WOS.useWaveObjectValue<Tab>(WOS.makeORef("tab", tabId ?? ""));
     const tabBaseDir = (tabData?.meta?.["tab:basedir"] as string) ?? "";
 
+    // Set of blockIds currently active in this tab
+    const activeBlockIds = useMemo(() => new Set(tabData?.blockids ?? []), [tabData?.blockids]);
+
     // Read the current block's shell type from metadata (for enriching sessions with empty shelltype)
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
-    const currentShellType = (blockData?.meta?.["term:shelltype"] as string)
-        || (blockData?.meta?.["shell:profile"] as string)
-        || "";
+    const currentShellType =
+        (blockData?.meta?.["term:shelltype"] as string) || (blockData?.meta?.["shell:profile"] as string) || "";
 
     const { refs, floatingStyles, context } = useFloating({
         open: isOpen,
@@ -253,7 +248,6 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
         if (termModel) {
             fireAndForget(() => termModel.loadSessionIntoBuffer(session));
         } else {
-            // Fallback: open in viewer if no model available
             openInViewer(session.blockId);
         }
     }
@@ -272,8 +266,6 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
 
     function resumeInNewTab(session: SessionInfo) {
         setIsOpen(false);
-        // Resume creates a new terminal with the same shell profile, cwd,
-        // and a restore hint so initTerminal preloads the source session's scrollback
         fireAndForget(() =>
             createBlock({
                 meta: {
@@ -298,7 +290,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
 
     // Collect unique shell types from the same-dir section for filter pills
     const sameDirShells = Array.from(
-        new Set(allSameDir.map((s) => (s.shelltype || "shell")).filter((l) => l !== "shell"))
+        new Set(allSameDir.map((s) => s.shelltype || "shell").filter((l) => l !== "shell"))
     );
 
     const sameDir =
@@ -322,26 +314,26 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                         ref={refs.setFloating}
                         style={floatingStyles}
                         {...getFloatingProps()}
-                        className="bg-zinc-800 border border-border rounded-lg py-2 text-xs text-foreground shadow-2xl z-50 min-w-[300px] max-w-[340px] max-h-[480px] overflow-y-auto"
+                        className="bg-zinc-800 border border-border rounded-lg py-2.5 text-xs text-[var(--main-text-color)] shadow-2xl z-50 min-w-[320px] max-w-[380px] max-h-[480px] overflow-y-auto"
                         onMouseDown={(e) => e.stopPropagation()}
                         onFocusCapture={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Header */}
-                        <div className="px-3 pb-2 font-semibold text-secondary border-b border-border mb-1 text-[11px] uppercase tracking-wider">
+                        <div className="px-3.5 pb-2 font-semibold text-[var(--secondary-text-color)] border-b border-border mb-2 text-[11px] uppercase tracking-wider">
                             Session History
                         </div>
 
-                        {loading && <div className="px-3 py-4 text-muted text-center text-[11px]">Loading...</div>}
+                        {loading && <div className="px-3.5 py-6 text-[var(--secondary-text-color)] text-center text-[11px]">Loading...</div>}
 
                         {isEmpty && (
-                            <div className="px-3 py-4 text-muted text-center text-[11px]">No session history yet</div>
+                            <div className="px-3.5 py-6 text-[var(--secondary-text-color)] text-center text-[11px]">No session history yet</div>
                         )}
 
                         {/* THIS TERMINAL section */}
                         {!loading && thisTerm.length > 0 && (
-                            <div className="mb-1">
-                                <div className="px-3 py-1 text-[10px] text-muted uppercase tracking-wider font-semibold">
+                            <div className="mb-2">
+                                <div className="px-3.5 py-1.5 text-[10px] text-[var(--secondary-text-color)] uppercase tracking-wider font-semibold">
                                     This Terminal
                                 </div>
                                 {thisTerm.map((s) => (
@@ -349,6 +341,7 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                                         key={`${s.blockId}-${s.lastUpdatedAt}`}
                                         session={s}
                                         showBlockId={false}
+                                        isActive={true}
                                         onLoadInBuffer={() => loadInBuffer(s)}
                                         onOpenViewer={() => openInViewer(s.blockId)}
                                         onNewTab={() => resumeInNewTab(s)}
@@ -357,12 +350,17 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                             </div>
                         )}
 
+                        {/* Separator between sections */}
+                        {!loading && thisTerm.length > 0 && allSameDir.length > 0 && (
+                            <div className="border-t border-border mx-3 mb-2" />
+                        )}
+
                         {/* SAME DIRECTORY section */}
                         {!loading && allSameDir.length > 0 && (
                             <div>
                                 {/* Section header with filter pills */}
-                                <div className="px-3 py-1 flex items-center justify-between gap-2">
-                                    <span className="text-[10px] text-muted uppercase tracking-wider font-semibold flex-shrink-0">
+                                <div className="px-3.5 py-1.5 flex items-center justify-between gap-2">
+                                    <span className="text-[10px] text-[var(--secondary-text-color)] uppercase tracking-wider font-semibold flex-shrink-0">
                                         Same Directory
                                     </span>
                                     {sameDirShells.length > 0 && (
@@ -378,13 +376,14 @@ export function SessionHistoryFlyover({ blockId, tabId, termModel }: SessionHist
                                         key={`${s.blockId}-${s.lastUpdatedAt}`}
                                         session={s}
                                         showBlockId={true}
+                                        isActive={activeBlockIds.has(s.blockId)}
                                         onLoadInBuffer={() => loadInBuffer(s)}
                                         onOpenViewer={() => openInViewer(s.blockId)}
                                         onNewTab={() => resumeInNewTab(s)}
                                     />
                                 ))}
                                 {sameDir.length === 0 && sameDirFilter !== null && (
-                                    <div className="px-3 py-2 text-muted text-[11px] text-center">
+                                    <div className="px-3.5 py-3 text-[var(--secondary-text-color)] text-[11px] text-center">
                                         No {sameDirFilter} sessions
                                     </div>
                                 )}
