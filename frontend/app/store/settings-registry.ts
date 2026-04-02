@@ -590,7 +590,7 @@ const allSettings: SettingMetadata[] = [
         category: "AI",
         subcategory: "Configuration",
         controlType: "select",
-        defaultValue: "",
+        defaultValue: "ai@global",
         type: "string",
         validation: { options: [] }, // Populated dynamically
         tags: ["preset", "configuration"],
@@ -646,7 +646,7 @@ const allSettings: SettingMetadata[] = [
         category: "AI",
         subcategory: "Configuration",
         controlType: "text",
-        defaultValue: "",
+        defaultValue: "gpt-5-mini",
         type: "string",
         tags: ["model", "gpt", "claude"],
     },
@@ -762,7 +762,7 @@ const allSettings: SettingMetadata[] = [
         category: "AI",
         subcategory: "Configuration",
         controlType: "select",
-        defaultValue: "",
+        defaultValue: "waveai@balanced",
         type: "string",
         validation: { options: [] }, // Populated dynamically
         tags: ["mode", "default"],
