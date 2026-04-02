@@ -20,7 +20,7 @@ import { OmpThemeControl } from "@/app/element/settings/omptheme-control";
 import { PreviewBackgroundToggle, type PreviewBackground } from "@/app/element/settings/preview-background-toggle";
 import { TermThemeControl } from "@/app/element/settings/termtheme-control";
 import { ThemePalettePreview } from "@/app/element/settings/theme-palette-preview";
-import { getSettingsKeyAtom } from "@/app/store/global";
+import { getSettingAtom } from "@/app/store/settings-atoms";
 import { settingsService } from "@/app/store/settings-service";
 import { DisplaySettings } from "@/app/view/waveconfig/display-settings";
 import type { WaveConfigViewModel } from "@/app/view/waveconfig/waveconfig-model";
@@ -44,11 +44,11 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
     const [ompPreviewBg, setOmpPreviewBg] = useState<PreviewBackground>("dark");
 
     // Get current settings
-    const appTheme = (useAtomValue(getSettingsKeyAtom("app:theme")) as string) ?? "dark";
-    const appAccent = (useAtomValue(getSettingsKeyAtom("app:accent")) as string) ?? "green";
-    const termTheme = (useAtomValue(getSettingsKeyAtom("term:theme")) as string) ?? "default-dark";
-    const ompTheme = (useAtomValue(getSettingsKeyAtom("term:omptheme")) as string) ?? "";
-    const themeOverridesRaw = useAtomValue(getSettingsKeyAtom("app:themeoverrides")) as
+    const appTheme = (useAtomValue(getSettingAtom("app:theme")) as string) ?? "dark";
+    const appAccent = (useAtomValue(getSettingAtom("app:accent")) as string) ?? "green";
+    const termTheme = (useAtomValue(getSettingAtom("term:theme")) as string) ?? "default-dark";
+    const ompTheme = (useAtomValue(getSettingAtom("term:omptheme")) as string) ?? "";
+    const themeOverridesRaw = useAtomValue(getSettingAtom("app:themeoverrides")) as
         | Record<string, string>
         | undefined;
     const themeOverrides = useMemo(() => {
@@ -57,7 +57,7 @@ export const AppearanceContent = memo(({ model }: AppearanceContentProps) => {
         }
         return {};
     }, [themeOverridesRaw]);
-    const customAccentsRaw = useAtomValue(getSettingsKeyAtom("app:customaccents")) as
+    const customAccentsRaw = useAtomValue(getSettingAtom("app:customaccents")) as
         | Record<string, { label: string; overrides: Record<string, string> }>
         | undefined;
     const customAccents = useMemo(() => {

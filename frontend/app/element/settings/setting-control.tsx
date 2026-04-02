@@ -37,8 +37,8 @@ const SettingControl = memo(
         children,
     }: SettingControlProps) => {
         const handleReset = useCallback(() => {
-            onChange(defaultValue);
-        }, [onChange, defaultValue]);
+            onChange(null);
+        }, [onChange]);
 
         return (
             <div

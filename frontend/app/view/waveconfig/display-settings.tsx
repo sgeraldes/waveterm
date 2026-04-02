@@ -14,7 +14,7 @@ import { FontControl } from "@/app/element/settings/font-control";
 import { SettingControl } from "@/app/element/settings/setting-control";
 import { SliderControl } from "@/app/element/settings/slider-control";
 import { ToggleControl } from "@/app/element/settings/toggle-control";
-import { getSettingsKeyAtom } from "@/app/store/global";
+import { getSettingAtom } from "@/app/store/settings-atoms";
 import { getDefaultValue } from "@/app/store/settings-registry";
 import { settingsService } from "@/app/store/settings-service";
 import { useAtomValue } from "jotai";
@@ -38,25 +38,25 @@ SubSection.displayName = "SubSection";
 
 export const DisplaySettings = memo(() => {
     // Window settings
-    const windowTransparent = useAtomValue(getSettingsKeyAtom("window:transparent")) ?? false;
-    const windowBlur = useAtomValue(getSettingsKeyAtom("window:blur")) ?? false;
-    const windowOpacity = useAtomValue(getSettingsKeyAtom("window:opacity")) ?? 1;
-    const windowBgcolor = useAtomValue(getSettingsKeyAtom("window:bgcolor")) ?? "";
-    const windowZoom = useAtomValue(getSettingsKeyAtom("window:zoom")) ?? 1;
+    const windowTransparent = useAtomValue(getSettingAtom("window:transparent")) ?? false;
+    const windowBlur = useAtomValue(getSettingAtom("window:blur")) ?? false;
+    const windowOpacity = useAtomValue(getSettingAtom("window:opacity")) ?? 1;
+    const windowBgcolor = useAtomValue(getSettingAtom("window:bgcolor")) ?? "";
+    const windowZoom = useAtomValue(getSettingAtom("window:zoom")) ?? 1;
 
     // Terminal settings
-    const termFontsize = useAtomValue(getSettingsKeyAtom("term:fontsize")) ?? 12;
-    const termFontfamily = useAtomValue(getSettingsKeyAtom("term:fontfamily")) ?? "";
-    const termLigatures = useAtomValue(getSettingsKeyAtom("term:ligatures")) ?? false;
-    const termTransparency = useAtomValue(getSettingsKeyAtom("term:transparency")) ?? 0;
+    const termFontsize = useAtomValue(getSettingAtom("term:fontsize")) ?? 12;
+    const termFontfamily = useAtomValue(getSettingAtom("term:fontfamily")) ?? "";
+    const termLigatures = useAtomValue(getSettingAtom("term:ligatures")) ?? false;
+    const termTransparency = useAtomValue(getSettingAtom("term:transparency")) ?? 0;
 
     // Editor settings
-    const editorFontsize = useAtomValue(getSettingsKeyAtom("editor:fontsize")) ?? 12;
-    const editorMinimap = useAtomValue(getSettingsKeyAtom("editor:minimapenabled")) ?? false;
+    const editorFontsize = useAtomValue(getSettingAtom("editor:fontsize")) ?? 12;
+    const editorMinimap = useAtomValue(getSettingAtom("editor:minimapenabled")) ?? false;
 
     // AI settings
-    const aiFontsize = useAtomValue(getSettingsKeyAtom("ai:fontsize")) ?? 14;
-    const aiFixedFontsize = useAtomValue(getSettingsKeyAtom("ai:fixedfontsize")) ?? 12;
+    const aiFontsize = useAtomValue(getSettingAtom("ai:fontsize")) ?? 14;
+    const aiFixedFontsize = useAtomValue(getSettingAtom("ai:fixedfontsize")) ?? 12;
 
     const makeSetter = useCallback(
         (key: string) => (value: unknown) => {

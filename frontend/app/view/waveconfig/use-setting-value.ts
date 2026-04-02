@@ -93,15 +93,10 @@ export function useSettingValue<T>(key: string): UseSettingValueResult<T> {
         [key, setAtomValue]
     );
 
-    // Reset to default value
+    // Reset to default by removing the key from saved settings
     const reset = useCallback(() => {
-        if (defaultValue !== undefined) {
-            setValue(defaultValue);
-        } else {
-            // For settings without explicit defaults, set to empty/null
-            settingsService.resetSetting(key);
-        }
-    }, [key, defaultValue, setValue]);
+        settingsService.resetSetting(key);
+    }, [key]);
 
     return {
         value: value as T | undefined,

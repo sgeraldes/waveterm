@@ -141,12 +141,11 @@ class SettingsService {
     }
 
     /**
-     * Reset a setting to its default value.
+     * Reset a setting to its default value by removing it from the saved file.
+     * When a key is absent, the application uses the registry default automatically.
      */
     resetSetting(key: string): void {
-        const defaultValue = getDefaultValue(key);
-        // Setting to undefined will remove it from the saved file
-        this.setSetting(key, defaultValue);
+        this.setSetting(key, null);
     }
 
     /**
@@ -168,13 +167,13 @@ class SettingsService {
         const currentValue = this.getSetting(key);
         const defaultValue = getDefaultValue(key);
 
-        // If current value is undefined/null and default is also undefined/null, not modified
-        if (currentValue == null && defaultValue == null) {
+        // If no value is explicitly stored, the setting uses its default → not modified
+        if (currentValue == null) {
             return false;
         }
 
-        // Handle empty string as equivalent to undefined for optional settings
-        if (currentValue === "" && defaultValue === "") {
+        // Handle empty string as equivalent to no value for string-type settings
+        if (currentValue === "" && (defaultValue === "" || defaultValue == null)) {
             return false;
         }
 
@@ -212,11 +211,15 @@ class SettingsService {
         const saved = globalStore.get(savedSettingsAtom);
         const pending = globalStore.get(pendingSettingsAtom);
 
-        // Merge pending into saved
+        // Build the backend payload: include null values so the backend
+        // knows to delete those keys (SetBaseConfigValue does a merge,
+        // so omitting a key would leave the old value in settings.json).
+        const savePayload: Record<string, unknown> = { ...saved, ...pending };
+
+        // Build the clean local state without null/undefined keys
         const newSettings: Record<string, unknown> = { ...saved };
         for (const [key, value] of Object.entries(pending)) {
             if (value === null || value === undefined) {
-                // Remove key if value is null/undefined
                 delete newSettings[key];
             } else {
                 newSettings[key] = value;
@@ -226,7 +229,7 @@ class SettingsService {
         globalStore.set(isSavingAtom, true);
 
         try {
-            await this.saveToFile(newSettings);
+            await this.saveToFile(savePayload);
 
             // Update savedSettingsAtom immediately to prevent race conditions.
             // This ensures any new changes in the debounce window use the correct base state.
