@@ -1083,16 +1083,14 @@ export function initIpcHandlers() {
                 },
             });
 
-            // Load the same renderer URL but with ?popout=<blockId>
-            let targetUrl: string;
+            // Load the widget renderer (separate entry point from main app)
             if (isDevVite && process.env.ELECTRON_RENDERER_URL) {
-                const u = new URL(`${process.env.ELECTRON_RENDERER_URL}/index.html`);
-                u.searchParams.set("popout", blockId);
-                targetUrl = u.toString();
-                widgetWin.webContents.loadURL(targetUrl);
+                const u = new URL(`${process.env.ELECTRON_RENDERER_URL}/widget.html`);
+                u.searchParams.set("blockId", blockId);
+                widgetWin.webContents.loadURL(u.toString());
             } else {
-                const basePath = path.join(getElectronAppBasePath(), "frontend", "index.html");
-                widgetWin.webContents.loadFile(basePath, { query: { popout: blockId } });
+                const basePath = path.join(getElectronAppBasePath(), "frontend", "widget.html");
+                widgetWin.webContents.loadFile(basePath, { query: { blockId } });
             }
 
             // When the widget window closes, tell the origin window to unhide the block

@@ -94,6 +94,7 @@ export default defineConfig({
             rollupOptions: {
                 input: {
                     index: "index.html",
+                    widget: "widget.html",
                 },
                 output: {
                     manualChunks(id) {
