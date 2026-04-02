@@ -25,7 +25,8 @@ declare global {
         | "termtheme" // Terminal color scheme picker
         | "omptheme" // Oh-My-Posh theme selector
         | "omppalette" // Oh-My-Posh palette export
-        | "promptcompat"; // Prompt compatibility help and configuration
+        | "promptcompat" // Prompt compatibility help and configuration
+        | "hotkey"; // Keyboard shortcut capture
 
     /**
      * The underlying JavaScript/TypeScript type for a setting value.

@@ -861,7 +861,7 @@ const allSettings: SettingMetadata[] = [
         label: "Global Hotkey",
         description: "Global keyboard shortcut to show/hide the application.",
         category: "App",
-        controlType: "text",
+        controlType: "hotkey",
         defaultValue: "",
         type: "string",
         tags: ["hotkey", "shortcut", "global"],

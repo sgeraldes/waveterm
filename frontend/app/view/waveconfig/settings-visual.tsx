@@ -10,6 +10,7 @@
 
 import { ColorControl } from "@/app/element/settings/color-control";
 import { FontControl } from "@/app/element/settings/font-control";
+import { HotkeyControl } from "@/app/element/settings/hotkey-control";
 import { NumberControl } from "@/app/element/settings/number-control";
 import { OmpPaletteExport } from "@/app/element/settings/omp-palette-export";
 import { OmpThemeControl } from "@/app/element/settings/omptheme-control";
@@ -458,6 +459,9 @@ function renderControl(
 
         case "promptcompat":
             return <PromptCompatibilityHelp />;
+
+        case "hotkey":
+            return <HotkeyControl value={(value as string) ?? ""} onChange={onChange} />;
 
         default:
             return (
