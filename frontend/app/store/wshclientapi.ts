@@ -47,6 +47,11 @@ class RpcApiType {
         return client.wshRpcCall("authenticatetokenverify", data, opts);
     }
 
+    // command "badgewatchpid" [call]
+    BadgeWatchPidCommand(client: WshClient, data: CommandBadgeWatchPidData, opts?: RpcOpts): Promise<void> {
+        return client.wshRpcCall("badgewatchpid", data, opts);
+    }
+
     // command "blockinfo" [call]
     BlockInfoCommand(client: WshClient, data: string, opts?: RpcOpts): Promise<BlockInfoData> {
         return client.wshRpcCall("blockinfo", data, opts);
@@ -589,13 +594,11 @@ class RpcApiType {
 
     // command "remoteprocesslist" [call]
     RemoteProcessListCommand(client: WshClient, data: CommandRemoteProcessListData, opts?: RpcOpts): Promise<ProcessListResponse> {
-        if (this.mockClient) return this.mockClient.mockWshRpcCall(client, "remoteprocesslist", data, opts);
         return client.wshRpcCall("remoteprocesslist", data, opts);
     }
 
     // command "remoteprocesssignal" [call]
     RemoteProcessSignalCommand(client: WshClient, data: CommandRemoteProcessSignalData, opts?: RpcOpts): Promise<void> {
-        if (this.mockClient) return this.mockClient.mockWshRpcCall(client, "remoteprocesssignal", data, opts);
         return client.wshRpcCall("remoteprocesssignal", data, opts);
     }
 

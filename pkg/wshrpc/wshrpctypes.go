@@ -1086,6 +1086,12 @@ type CommandFileWatchData struct {
 	BlockId string `json:"blockid,omitempty"`
 }
 
+type CommandBadgeWatchPidData struct {
+	Pid     int          `json:"pid"`
+	ORef    waveobj.ORef `json:"oref"`
+	BadgeId string       `json:"badgeid"`
+}
+
 // ProcessInfo holds per-process information for the process viewer.
 // Mem, MemPct, Cpu, and NumThreads are set to -1 when the data is unavailable
 // (e.g. permission denied reading another user's process on macOS).

@@ -157,6 +157,9 @@ const TermSession = React.memo(
                         (termSettings?.["term:lineheight"] as number) ??
                         (blockData?.meta?.["term:lineheight"] as number) ??
                         1.0,
+                    vtExtensions: {
+                        colorSchemeQuery: false,
+                    },
                 },
                 {
                     keydownHandler: model.handleTerminalKeydown.bind(model),

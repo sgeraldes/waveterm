@@ -135,9 +135,8 @@ const (
 	MetaKey_TermReportFocus                  = "term:reportfocus"
 	MetaKey_TermTitle                        = "term:title"
 	MetaKey_TermActiveTabId                  = "term:activetabid"
-
-	MetaKey_TermRestoreFrom                  = "term:restorefrom"
 	MetaKey_TermTabName                      = "term:tabname"
+	MetaKey_TermRestoreFrom                  = "term:restorefrom"
 
 	MetaKey_TermHistoryBlockId               = "termhistory:blockid"
 

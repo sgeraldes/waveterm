@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { Tooltip } from "@/app/element/tooltip";
+import { BlockNodeModel } from "@/app/block/blocktypes";
 import { ContextMenuModel } from "@/app/store/contextmenu";
-import { globalStore } from "@/app/store/jotaiStore";
+import { getBlockMetaKeyAtom, getConnStatusAtom, globalStore } from "@/app/store/global";
+import { TabModel } from "@/app/store/tab-model";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
-import { MetaKeyAtomFnType, WaveEnv, WaveEnvSubset } from "@/app/waveenv/waveenv";
+import { RpcApi } from "@/app/store/wshclientapi";
 import * as keyutil from "@/util/keyutil";
 import { isMacOS } from "@/util/platformutil";
 import { isBlank, makeConnRoute } from "@/util/util";
@@ -19,15 +21,6 @@ type ActionStatus = {
     message: string;
     isError: boolean;
 };
-
-type ProcessViewerEnv = WaveEnvSubset<{
-    rpc: {
-        RemoteProcessListCommand: WaveEnv["rpc"]["RemoteProcessListCommand"];
-        RemoteProcessSignalCommand: WaveEnv["rpc"]["RemoteProcessSignalCommand"];
-    };
-    getConnStatusAtom: WaveEnv["getConnStatusAtom"];
-    getBlockMetaKeyAtom: MetaKeyAtomFnType<"connection">;
-}>;
 
 type SortCol = "pid" | "command" | "user" | "cpu" | "mem" | "status" | "threads";
 
@@ -72,7 +65,6 @@ function fmtLoad(load: number): string {
 export class ProcessViewerViewModel implements ViewModel {
     viewType: string;
     blockId: string;
-    env: ProcessViewerEnv;
 
     viewIcon = jotai.atom<string>("microchip");
     viewName = jotai.atom<string>("Processes");
@@ -103,10 +95,9 @@ export class ProcessViewerViewModel implements ViewModel {
     cancelPoll: (() => void) | null = null;
     fetchEpoch = 0;
 
-    constructor({ blockId, waveEnv }: ViewModelInitType) {
+    constructor(blockId: string, _nodeModel: BlockNodeModel, _tabModel: TabModel) {
         this.viewType = "processviewer";
         this.blockId = blockId;
-        this.env = waveEnv;
 
         this.dataAtom = jotai.atom<ProcessListResponse>(null) as jotai.PrimitiveAtom<ProcessListResponse>;
         this.dataStartAtom = jotai.atom<number>(0);
@@ -124,16 +115,16 @@ export class ProcessViewerViewModel implements ViewModel {
         this.searchOpenAtom = jotai.atom<boolean>(false) as jotai.PrimitiveAtom<boolean>;
         this.fetchIntervalAtom = jotai.atom<number>(2000) as jotai.PrimitiveAtom<number>;
 
-        this.connection = jotai.atom((get) => {
-            const connValue = get(this.env.getBlockMetaKeyAtom(blockId, "connection"));
+        this.connection = jotai.atom<string>((get) => {
+            const connValue = get(getBlockMetaKeyAtom(blockId, "connection"));
             if (isBlank(connValue)) {
                 return "local";
             }
             return connValue;
         });
         this.connStatus = jotai.atom((get) => {
-            const connName = get(this.env.getBlockMetaKeyAtom(blockId, "connection"));
-            const connAtom = this.env.getConnStatusAtom(connName);
+            const connName = get(getBlockMetaKeyAtom(blockId, "connection"));
+            const connAtom = getConnStatusAtom(connName);
             return get(connAtom);
         });
 
@@ -160,7 +151,7 @@ export class ProcessViewerViewModel implements ViewModel {
 
         const route = makeConnRoute(conn);
         try {
-            const resp = await this.env.rpc.RemoteProcessListCommand(
+            const resp = await RpcApi.RemoteProcessListCommand(
                 TabRpcClient,
                 {
                     widgetid: this.blockId,
@@ -193,7 +184,7 @@ export class ProcessViewerViewModel implements ViewModel {
         const conn = globalStore.get(this.connection);
         const route = makeConnRoute(conn);
         try {
-            await this.env.rpc.RemoteProcessListCommand(
+            await RpcApi.RemoteProcessListCommand(
                 TabRpcClient,
                 { widgetid: this.blockId, keepalive: true },
                 { route }
@@ -380,7 +371,7 @@ export class ProcessViewerViewModel implements ViewModel {
         const route = makeConnRoute(conn);
         const label = killLabel ? "Killed" : `sent ${signal}`;
         try {
-            await this.env.rpc.RemoteProcessSignalCommand(TabRpcClient, { pid, signal }, { route });
+            await RpcApi.RemoteProcessSignalCommand(TabRpcClient, { pid, signal }, { route });
             this.setActionStatus({ pid, message: `Process #${pid} ${label}`, isError: false });
         } catch (e) {
             this.setActionStatus({ pid, message: String(e), isError: true });
@@ -931,7 +922,7 @@ export const ProcessViewerView: React.FC<ViewComponentProps<ProcessViewerViewMod
                 menu.push({ type: "separator" });
                 menu.push(...model.getSettingsMenuItems());
 
-                ContextMenuModel.getInstance().showContextMenu(menu, e);
+                ContextMenuModel.showContextMenu(menu, e);
             },
             [model, setSelectedPid]
         );

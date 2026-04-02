@@ -347,3 +347,20 @@ export function handleOsc16162Command(data: string, blockId: string, loaded: boo
 
     return true;
 }
+
+const ClaudeCodeRegex = /^claude\b/;
+
+function normalizeCmd(decodedCmd: string): string {
+    let normalizedCmd = decodedCmd.trim();
+    normalizedCmd = normalizedCmd.replace(/^env\s+/, "");
+    normalizedCmd = normalizedCmd.replace(/^(?:\w+=(?:"[^"]*"|'[^']*'|\S+)\s+)*/, "");
+    return normalizedCmd;
+}
+
+export function isClaudeCodeCommand(decodedCmd: string): boolean {
+    if (!decodedCmd) {
+        return false;
+    }
+    return ClaudeCodeRegex.test(normalizeCmd(decodedCmd));
+}
+
