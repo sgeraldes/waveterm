@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wave Terminal — Feature Specs Interactive Mockups</title>
+<style>
+:root {
+  --bg-primary: #1a1b26;
+  --bg-secondary: #24283b;
+  --bg-tertiary: #2f3349;
+  --bg-hover: #3b3f5c;
+  --text-primary: #c0caf5;
+  --text-secondary: #7982a9;
+  --text-muted: #565f89;
+  --accent: #7aa2f7;
+  --accent-green: #9ece6a;
+  --accent-amber: #e0af68;
+  --accent-red: #f7768e;
+  --accent-purple: #bb9af7;
+  --accent-teal: #2ac3de;
+  --border: #3b3f5c;
+  --shadow: rgba(0,0,0,0.4);
+  --font-mono: 'Cascadia Code', 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: var(--font-ui); background: var(--bg-primary); color: var(--text-primary); min-height:100vh; }
+::selection { background: var(--accent); color: var(--bg-primary); }
+::-webkit-scrollbar { width:6px; height:6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius:3px; }
+.nav { position:fixed; top:0; left:0; right:0; z-index:100; background: var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:0 16px; height:44px; gap:4px; overflow-x:auto; }
+.nav-btn { padding:6px 14px; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; font-size:13px; border-radius:6px; white-space:nowrap; transition:all .15s; font-family:var(--font-ui); }
+.nav-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
+.nav-btn.active { background:var(--accent); color:var(--bg-primary); font-weight:600; }
+.nav-title { font-weight:700; font-size:14px; color:var(--text-primary); margin-right:12px; white-space:nowrap; }
+.section { display:none; padding:60px 24px 24px; max-width:1200px; margin:0 auto; }
+.section.active { display:block; }
+.section h2 { font-size:22px; margin-bottom:6px; }
+.section .desc { color:var(--text-secondary); font-size:14px; margin-bottom:20px; line-height:1.5; }
+.block { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.block-header { display:flex; align-items:center; padding:0 10px; height:34px; background:var(--bg-tertiary); gap:6px; font-size:12px; color:var(--text-secondary); border-bottom:1px solid var(--border); }
+.block-header .title { flex:1; font-weight:600; color:var(--text-primary); }
+.icon-btn { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; border-radius:4px; font-size:11px; }
+.icon-btn:hover { background:var(--bg-hover); color:var(--text-primary); }
+.icon-btn.pop-out { color:var(--accent); }
+.tab-strip { display:flex; align-items:center; height:28px; background:var(--bg-primary); padding:0 4px; gap:2px; overflow-x:auto; border-bottom:1px solid var(--border); }
+.tab-item { display:flex; align-items:center; gap:5px; padding:0 10px; height:24px; font-size:11px; color:var(--text-secondary); cursor:pointer; border-radius:4px 4px 0 0; white-space:nowrap; border-bottom:2px solid transparent; transition:all .15s; }
+.tab-item:hover { background:var(--bg-hover); color:var(--text-primary); }
+.tab-item.active { color:var(--text-primary); border-bottom-color:var(--accent); background:var(--bg-secondary); }
+.tab-item .status-dot { width:5px; height:5px; border-radius:50%; }
+.tab-item .status-dot.ready { background:var(--accent-green); }
+.tab-item .status-dot.running { background:var(--accent-amber); }
+.tab-item .close-tab { display:none; font-size:9px; margin-left:4px; opacity:.6; }
+.tab-item:hover .close-tab { display:inline; }
+.tab-add { width:22px; height:22px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; color:var(--text-muted); cursor:pointer; border-radius:4px; font-size:13px; margin-left:auto; }
+.tab-add:hover { background:var(--bg-hover); color:var(--text-primary); }
+.terminal-content { padding:8px 12px; font-family:var(--font-mono); font-size:13px; line-height:1.5; min-height:200px; background:var(--bg-primary); }
+.term-prompt { color:var(--accent-green); }
+.term-cmd { color:var(--text-primary); }
+.term-output { color:var(--text-secondary); }
+.term-path-link { color:var(--accent); text-decoration:underline; cursor:pointer; text-decoration-style:dotted; }
+.term-path-link:hover { text-decoration-style:solid; background:rgba(122,162,247,.1); }
+.term-url-link { color:var(--accent-teal); text-decoration:underline; cursor:pointer; }
+.restored-banner { display:flex; align-items:center; gap:8px; padding:4px 12px; height:24px; background:var(--bg-tertiary); border-bottom:1px solid var(--border); font-size:11px; color:var(--text-secondary); }
+.restored-banner .return-btn { padding:2px 8px; background:var(--accent); color:var(--bg-primary); border:none; border-radius:3px; cursor:pointer; font-size:10px; font-weight:600; margin-left:auto; }
+.session-dropdown { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; width:380px; box-shadow:0 8px 24px var(--shadow); overflow:hidden; }
+.session-section { padding:8px 0; }
+.session-section-title { font-size:10px; font-weight:700; text-transform:uppercase; color:var(--text-muted); padding:4px 12px; letter-spacing:.5px; }
+.session-entry { display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:pointer; transition:background .1s; font-size:12px; }
+.session-entry:hover { background:var(--bg-hover); }
+.shell-badge { padding:1px 6px; border-radius:3px; font-size:10px; font-weight:600; }
+.shell-badge.pwsh { background:rgba(122,162,247,.15); color:var(--accent); }
+.shell-badge.zsh { background:rgba(158,206,106,.15); color:var(--accent-green); }
+.shell-badge.bash { background:rgba(224,175,104,.15); color:var(--accent-amber); }
+.shell-badge.wsl { background:rgba(187,154,247,.15); color:var(--accent-purple); }
+.session-entry .meta { flex:1; display:flex; flex-direction:column; gap:1px; }
+.session-entry .meta .path { color:var(--text-primary); font-size:11px; }
+.session-entry .meta .info { color:var(--text-muted); font-size:10px; }
+.session-entry .time { color:var(--text-muted); font-size:10px; white-space:nowrap; }
+.live-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+.live-dot.live { background:var(--accent-green); }
+.live-dot.dead { background:var(--text-muted); }
+.session-entry .actions { display:none; gap:4px; }
+.session-entry:hover .actions { display:flex; }
+.session-entry:hover .time { display:none; }
+.action-btn { width:20px; height:20px; border:none; background:var(--bg-tertiary); color:var(--text-secondary); border-radius:3px; cursor:pointer; font-size:10px; display:flex; align-items:center; justify-content:center; }
+.action-btn:hover { background:var(--accent); color:var(--bg-primary); }
+.filter-pills { display:flex; gap:4px; padding:4px 12px; }
+.filter-pill { padding:2px 8px; border-radius:10px; font-size:10px; border:1px solid var(--border); background:transparent; color:var(--text-secondary); cursor:pointer; }
+.filter-pill.active { background:var(--accent); color:var(--bg-primary); border-color:var(--accent); }
+.kanban-board { display:flex; gap:12px; overflow-x:auto; padding:12px; min-height:400px; }
+.kanban-col { flex:0 0 260px; background:var(--bg-secondary); border-radius:8px; display:flex; flex-direction:column; max-height:500px; }
+.kanban-col-header { display:flex; align-items:center; padding:10px 12px; gap:8px; font-weight:600; font-size:13px; }
+.kanban-col-header .count { background:var(--bg-hover); padding:1px 6px; border-radius:8px; font-size:11px; color:var(--text-secondary); font-weight:400; }
+.kanban-col-header .col-menu { margin-left:auto; opacity:0; cursor:pointer; color:var(--text-muted); }
+.kanban-col:hover .col-menu { opacity:1; }
+.kanban-cards { flex:1; overflow-y:auto; padding:0 8px 8px; display:flex; flex-direction:column; gap:6px; min-height:60px; }
+.kanban-card { background:var(--bg-tertiary); border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:12px; cursor:grab; transition:all .15s; line-height:1.4; }
+.kanban-card:hover { border-color:var(--accent); box-shadow:0 2px 8px rgba(0,0,0,.2); }
+.kanban-card.dragging { opacity:.4; }
+.kanban-add { padding:8px 12px; }
+.kanban-add input { width:100%; background:transparent; border:1px dashed var(--border); border-radius:4px; padding:6px 8px; color:var(--text-primary); font-size:12px; font-family:var(--font-ui); }
+.kanban-add input::placeholder { color:var(--text-muted); }
+.kanban-add input:focus { outline:none; border-color:var(--accent); border-style:solid; }
+.kanban-ghost-col { flex:0 0 260px; border:2px dashed var(--border); border-radius:8px; display:flex; align-items:center; justify-content:center; color:var(--text-muted); cursor:pointer; font-size:24px; min-height:200px; transition:all .15s; }
+.kanban-ghost-col:hover { border-color:var(--accent); color:var(--accent); }
+.context-menu { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; width:220px; padding:4px; box-shadow:0 8px 24px var(--shadow); font-size:12px; }
+.ctx-item { display:flex; align-items:center; gap:8px; padding:6px 10px; border-radius:4px; cursor:pointer; color:var(--text-primary); transition:background .1s; }
+.ctx-item:hover { background:var(--accent); color:var(--bg-primary); }
+.ctx-sep { height:1px; background:var(--border); margin:4px 8px; }
+.ctx-submenu { position:relative; }
+.ctx-submenu .sub-items { display:none; position:absolute; left:100%; top:-4px; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; width:200px; padding:4px; box-shadow:0 8px 24px var(--shadow); }
+.ctx-submenu:hover .sub-items { display:block; }
+.file-list { font-size:12px; }
+.file-row { display:flex; align-items:center; gap:8px; padding:6px 12px; cursor:default; transition:background .1s; }
+.file-row:hover { background:var(--bg-hover); }
+.file-row .icon { width:16px; text-align:center; }
+.file-row .name { flex:1; }
+.file-row .size { color:var(--text-muted); width:60px; text-align:right; }
+.file-row .date { color:var(--text-muted); width:100px; text-align:right; }
+.properties-overlay { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:16px; width:280px; box-shadow:0 8px 24px var(--shadow); font-size:12px; }
+.prop-row { display:flex; padding:4px 0; gap:8px; }
+.prop-label { color:var(--text-muted); width:80px; flex-shrink:0; }
+.prop-value { color:var(--text-primary); word-break:break-all; }
+.popout-window { position:absolute; background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; box-shadow:0 12px 36px var(--shadow); overflow:hidden; min-width:300px; cursor:move; z-index:50; }
+.popout-titlebar { display:flex; align-items:center; padding:0 10px; height:30px; background:var(--bg-tertiary); gap:6px; font-size:12px; border-bottom:1px solid var(--border); }
+.popout-titlebar .title { flex:1; font-weight:600; color:var(--text-primary); font-size:11px; }
+.popout-titlebar .badge { padding:1px 6px; border-radius:3px; font-size:9px; background:rgba(122,162,247,.15); color:var(--accent); }
+.popout-titlebar .btn { width:20px; height:20px; display:flex; align-items:center; justify-content:center; border:none; background:transparent; color:var(--text-secondary); cursor:pointer; border-radius:3px; font-size:10px; }
+.popout-titlebar .btn:hover { background:var(--bg-hover); color:var(--text-primary); }
+.popout-titlebar .btn.pin { color:var(--accent-amber); }
+.drop-zone { position:absolute; border:2px dashed var(--accent); background:rgba(122,162,247,.05); border-radius:4px; display:none; z-index:40; pointer-events:none; }
+.drop-zone.visible { display:block; animation:pulse .8s infinite alternate; }
+@keyframes pulse { from{opacity:.4} to{opacity:.8} }
+.modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+.modal { background:var(--bg-secondary); border:1px solid var(--border); border-radius:10px; padding:24px; width:380px; box-shadow:0 16px 48px var(--shadow); }
+.modal h3 { font-size:16px; margin-bottom:8px; }
+.modal p { font-size:13px; color:var(--text-secondary); line-height:1.5; margin-bottom:16px; }
+.modal .warn-text { color:var(--accent-amber); font-weight:500; }
+.modal .checkbox-row { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-secondary); margin-bottom:16px; cursor:pointer; }
+.modal .checkbox-row input { accent-color:var(--accent); }
+.modal .btn-row { display:flex; gap:8px; justify-content:flex-end; }
+.modal .btn { padding:7px 16px; border-radius:6px; border:none; font-size:13px; cursor:pointer; font-family:var(--font-ui); font-weight:500; transition:all .15s; }
+.modal .btn-cancel { background:var(--bg-tertiary); color:var(--text-primary); }
+.modal .btn-cancel:hover { background:var(--bg-hover); }
+.modal .btn-danger { background:var(--accent-red); color:white; }
+.modal .btn-danger:hover { opacity:.9; }
+.ws-panel { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; width:260px; padding:8px; }
+.ws-entry { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:6px; cursor:pointer; transition:all .15s; }
+.ws-entry:hover { background:var(--bg-hover); }
+.ws-entry.current { background:rgba(122,162,247,.12); border:1px solid var(--accent); }
+.ws-entry .ws-icon { width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.ws-entry .ws-info { flex:1; }
+.ws-entry .ws-name { font-size:12px; font-weight:600; }
+.ws-entry .ws-tabs { font-size:10px; color:var(--text-muted); }
+.ws-entry .ws-open-indicator { font-size:10px; color:var(--accent-green); }
+.ws-mini-window { background:var(--bg-secondary); border:1px solid var(--border); border-radius:6px; overflow:hidden; width:200px; }
+.ws-mini-window .mini-titlebar { height:20px; background:var(--bg-tertiary); display:flex; align-items:center; padding:0 6px; font-size:9px; color:var(--text-secondary); border-bottom:1px solid var(--border); }
+.ws-mini-window .mini-content { height:80px; background:var(--bg-primary); padding:4px; font-family:var(--font-mono); font-size:8px; color:var(--text-muted); }
+.demo-layout { display:grid; gap:16px; }
+.two-col { grid-template-columns:1fr 1fr; }
+.side-by-side { display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.hint { display:inline-block; padding:2px 6px; background:var(--bg-tertiary); border-radius:3px; font-size:10px; color:var(--text-muted); margin-bottom:12px; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <span class="nav-title">Wave Specs</span>
+  <button class="nav-btn active" data-section="terminal">1. Terminal Sessions</button>
+  <button class="nav-btn" data-section="preview">2. Multi-Doc Preview</button>
+  <button class="nav-btn" data-section="kanban">3. Kanban Board</button>
+  <button class="nav-btn" data-section="links">4. File Links</button>
+  <button class="nav-btn" data-section="context">5. Context Menu</button>
+  <button class="nav-btn" data-section="popout">6. Widget Pop-Out</button>
+  <button class="nav-btn" data-section="workspaces">7. Workspaces</button>
+  <button class="nav-btn" data-section="closewarning">8. Close Warning</button>
+</nav>
+
+<div id="terminal" class="section active">
+  <h2>1. Terminal Session Management</h2>
+  <p class="desc">Multi-session tabs within a terminal block + redesigned session history with shell type labels, filtering, and buffer restoration.</p>
+  <span class="hint">Click tabs to switch. Click clock icon for session history. Try loading a session and returning to live.</span>
+  <div class="demo-layout two-col">
+    <div>
+      <div class="block">
+        <div class="block-header">
+          <span>></span>
+          <span class="title">PowerShell 7.5 (default)</span>
+          <button class="icon-btn" id="history-btn" title="Session History">&#x1F552;</button>
+          <button class="icon-btn">&#9881;</button>
+          <button class="icon-btn">&#x2715;</button>
+        </div>
+        <div class="tab-strip" id="term-tabs"></div>
+        <div class="restored-banner" id="restored-banner" style="display:none">
+          &#x1F552; Showing session from Mar 25, 2026 17:41
+          <button class="return-btn" id="return-btn">Return to live session</button>
+        </div>
+        <div id="term-content"></div>
+      </div>
+    </div>
+    <div>
+      <div class="session-dropdown" id="session-dropdown" style="display:none"></div>
+      <div id="session-placeholder" style="color:var(--text-muted);font-size:13px;padding:12px">Click the <b>&#x1F552;</b> clock icon to open session history.</div>
+    </div>
+  </div>
+</div>
+
+<div id="preview" class="section">
+  <h2>2. Multi-Document Preview</h2>
+  <p class="desc">Open multiple files in a single preview block via an inline doc tab bar.</p>
+  <span class="hint">Click tabs to switch documents.</span>
+  <div style="max-width:600px">
+    <div class="block">
+      <div class="block-header"><span>&#x1F4C4;</span><span class="title">Preview</span><button class="icon-btn">&#x270E;</button><button class="icon-btn">&#x21BB;</button><button class="icon-btn">&#x2715;</button></div>
+      <div class="tab-strip" id="doc-tabs"></div>
+      <div id="doc-content"></div>
+    </div>
+  </div>
+</div>
+
+<div id="kanban" class="section">
+  <h2>3. Kanban Board</h2>
+  <p class="desc">TODO widget evolution into a Trello-like board with draggable cards.</p>
+  <span class="hint">Drag cards between columns. Type in inputs to add cards.</span>
+  <div class="block">
+    <div class="block-header"><span>&#x2611;</span><span class="title">TODO</span><button class="icon-btn" style="color:var(--accent)">&#x25A6;</button><button class="icon-btn">&#x270E;</button><button class="icon-btn">&#x2715;</button></div>
+    <div class="kanban-board" id="kanban-board"></div>
+  </div>
+</div>
+
+<div id="links" class="section">
+  <h2>4. Clickable File Links</h2>
+  <p class="desc">File paths in terminal output become underlined, clickable links opening in Wave preview.</p>
+  <span class="hint">Hover over file paths (blue) vs URL links (teal). Click to "open".</span>
+  <div style="max-width:700px">
+    <div class="block">
+      <div class="block-header"><span>></span><span class="title">PowerShell 7.5</span><button class="icon-btn">&#x2715;</button></div>
+      <div class="terminal-content" id="links-content"></div>
+    </div>
+  </div>
+</div>
+
+<div id="context" class="section">
+  <h2>5. File Context Menu + Double-Click</h2>
+  <p class="desc">Explorer-like right-click menu and smart double-click in directory preview.</p>
+  <span class="hint">Right-click a file for the context menu. Click "Properties" to see the overlay.</span>
+  <div class="side-by-side">
+    <div>
+      <div class="block" style="width:400px">
+        <div class="block-header"><span>&#x1F4C1;</span><span class="title">G:\Code\waveterm</span><button class="icon-btn">&#x2715;</button></div>
+        <div class="file-list" id="file-list"></div>
+      </div>
+    </div>
+    <div id="ctx-area" style="position:relative;min-width:240px;min-height:300px">
+      <div class="context-menu" id="ctx-menu" style="display:none;position:absolute"></div>
+      <div class="properties-overlay" id="props-overlay" style="display:none;position:absolute;top:0;left:260px"></div>
+    </div>
+  </div>
+</div>
+
+<div id="popout" class="section">
+  <h2>6. Widget Pop-Out</h2>
+  <p class="desc">Any block can be popped out into a standalone floating window.</p>
+  <span class="hint">Click the blue pop-out button. Drag the floating window. Click Return to pop back in.</span>
+  <div style="position:relative;min-height:400px">
+    <div class="block" id="popout-source" style="width:350px">
+      <div class="block-header"><span>&#x1F4DD;</span><span class="title">Notes</span><button class="icon-btn pop-out" id="popout-btn" title="Pop out">&#x2197;</button><button class="icon-btn">&#9881;</button><button class="icon-btn">&#x2715;</button></div>
+      <div style="padding:12px;font-size:13px;min-height:150px;color:var(--text-secondary);line-height:1.6">PERSONAL NOTES<br>TO ADD TO GITIGNORE / DO NOT REMOVE!</div>
+    </div>
+    <div class="popout-window" id="popout-window" style="display:none;top:20px;left:420px;width:350px">
+      <div class="popout-titlebar">
+        <span>&#x1F4DD;</span><span class="title">Notes</span><span class="badge">waveterm</span>
+        <button class="btn pin" title="Pin (Ctrl+Shift+P)">&#x1F4CC;</button>
+        <button class="btn" id="popin-btn" title="Return">&#x21A9;</button>
+        <button class="btn" id="popin-close" title="Close">&#x2715;</button>
+      </div>
+      <div style="padding:12px;font-size:13px;min-height:120px;color:var(--text-secondary);line-height:1.6;background:var(--bg-primary)">PERSONAL NOTES<br>TO ADD TO GITIGNORE / DO NOT REMOVE!</div>
+    </div>
+    <div class="drop-zone" id="drop-zone" style="top:0;left:0;width:350px;height:200px"></div>
+  </div>
+</div>
+
+<div id="workspaces" class="section">
+  <h2>7. Simultaneous Workspaces</h2>
+  <p class="desc">Selecting a workspace opens it in a NEW window. Previous window stays open.</p>
+  <span class="hint">Click workspaces to open new windows.</span>
+  <div class="side-by-side">
+    <div><div class="ws-panel" id="ws-panel"></div></div>
+    <div id="ws-windows" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-start"></div>
+  </div>
+</div>
+
+<div id="closewarning" class="section">
+  <h2>8. Tab Close Warning</h2>
+  <p class="desc">Confirmation dialogs when closing tabs or blocks with running processes.</p>
+  <span class="hint">Click buttons to see modal variants.</span>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
+    <button class="nav-btn" style="background:var(--bg-tertiary)" data-modal="tab">Tab Close</button>
+    <button class="nav-btn" style="background:var(--bg-tertiary)" data-modal="tab-process">Tab Close (running process)</button>
+    <button class="nav-btn" style="background:var(--bg-tertiary)" data-modal="block">Block Close (running)</button>
+    <button class="nav-btn" style="background:var(--bg-tertiary)" data-modal="delete">Delete File</button>
+  </div>
+  <div id="modal-container"></div>
+</div>
+
+<script>
+// Safe DOM helpers
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'text') e.textContent = v;
+    else if (k === 'html') e.textContent = v; // safe: no HTML injection
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'className') e.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+    else e.setAttribute(k, v);
+  });
+  if (children) children.forEach(c => { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  return e;
+}
+
+// === NAV ===
+document.querySelectorAll('.nav-btn[data-section]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(btn.dataset.section).classList.add('active');
+    btn.classList.add('active');
+  });
+});
+
+// === 1. TERMINAL ===
+const termTabs = [
+  { name: 'pwsh', icon: 'PS', color: 'var(--accent)', status: 'ready', content: [
+    {p:'PS G:\\Code\\waveterm>', c:'npm test'},
+    {o:' Test Files  50 passed (50)'}, {o:'      Tests  358 passed (358)'},
+    {p:'PS G:\\Code\\waveterm>', c:'_'}
+  ]},
+  { name: 'zsh: waveterm', icon: 'Z', color: 'var(--accent-green)', status: 'running', content: [
+    {p:'~/waveterm $', c:'go build ./...'}, {o:'building...'}, {p:'~/waveterm $', c:'_'}
+  ]},
+  { name: 'bash: build', icon: 'B', color: 'var(--accent-amber)', status: 'ready', content: [
+    {p:'bash-5.2$', c:'make build'}, {o:'CC src/main.c'}, {o:'LD bin/app'}, {p:'bash-5.2$', c:'_'}
+  ]}
+];
+let activeTermTab = 0;
+
+function renderTermTabs() {
+  const strip = document.getElementById('term-tabs');
+  strip.replaceChildren();
+  termTabs.forEach((t,i) => {
+    const tab = el('div', {className:'tab-item' + (i===activeTermTab?' active':''), onclick:() => { activeTermTab=i; renderTermTabs(); renderTermContent(); }}, [
+      el('span', {text:t.icon, style:{color:t.color, fontSize:'10px', fontWeight:'700'}}),
+      el('span', {text:t.name}),
+      el('span', {className:'status-dot '+t.status}),
+      el('span', {className:'close-tab', text:'\u2715'})
+    ]);
+    strip.appendChild(tab);
+  });
+  strip.appendChild(el('button', {className:'tab-add', text:'+', title:'New Terminal Tab (Ctrl+Shift+T)'}));
+}
+
+function renderTermContent() {
+  const cont = document.getElementById('term-content');
+  cont.replaceChildren();
+  const tc = el('div', {className:'terminal-content'});
+  termTabs[activeTermTab].content.forEach(line => {
+    const div = el('div', {className:'term-line'});
+    if (line.p) { div.appendChild(el('span', {className:'term-prompt', text:line.p})); div.appendChild(document.createTextNode(' ')); div.appendChild(el('span', {className:'term-cmd', text:line.c})); }
+    if (line.o) div.appendChild(el('span', {className:'term-output', text:line.o}));
+    tc.appendChild(div);
+  });
+  cont.appendChild(tc);
+}
+
+function renderSessionDropdown() {
+  const dd = document.getElementById('session-dropdown');
+  dd.replaceChildren();
+  const sections = [
+    { title:'This Terminal', entries:[
+      {shell:'pwsh', cls:'pwsh', path:'G:/Code/waveterm', info:'1.4KB \u00B7 1 segment', time:'1h ago', live:true},
+      {shell:'pwsh', cls:'pwsh', path:'G:/Code/waveterm', info:'14KB \u00B7 3 segments', time:'3h ago', live:false},
+      {shell:'wsl:Ubuntu', cls:'wsl', path:'/mnt/g/Code/waveterm', info:'7.2KB \u00B7 1 segment', time:'1d ago', live:false}
+    ]},
+    { title:'Same Directory', filter:true, entries:[
+      {shell:'pwsh', cls:'pwsh', path:'G:/Code/waveterm', info:'T3 \u00B7 15KB \u00B7 2 segments', time:'1h ago', live:true},
+      {shell:'zsh', cls:'zsh', path:'/home/sebastian/waveterm', info:'T5 (WSL) \u00B7 194KB \u00B7 5 segments', time:'2h ago', live:false}
+    ]}
+  ];
+  sections.forEach((sec,si) => {
+    if (si > 0) dd.appendChild(el('div', {style:{borderTop:'1px solid var(--border)'}}));
+    const section = el('div', {className:'session-section'});
+    section.appendChild(el('div', {className:'session-section-title', text:sec.title}));
+    if (sec.filter) {
+      const pills = el('div', {className:'filter-pills'});
+      ['All','pwsh','zsh','wsl'].forEach((p,i) => {
+        const pill = el('span', {className:'filter-pill'+(i===0?' active':''), text:p, onclick:function() {
+          pills.querySelectorAll('.filter-pill').forEach(pp => pp.classList.remove('active'));
+          this.classList.add('active');
+        }});
+        pills.appendChild(pill);
+      });
+      section.appendChild(pills);
+    }
+    sec.entries.forEach(e => {
+      const entry = el('div', {className:'session-entry', onclick:() => loadSession(e)}, [
+        el('span', {className:'shell-badge '+e.cls, text:e.shell}),
+        el('div', {className:'meta'}, [
+          el('span', {className:'path', text:e.path}),
+          el('span', {className:'info', text:e.info})
+        ]),
+        el('span', {className:'time', text:e.time}),
+        el('span', {className:'live-dot '+(e.live?'live':'dead')}),
+        el('div', {className:'actions'}, [
+          el('button', {className:'action-btn', title:'Open in viewer', text:'\uD83D\uDC41'}),
+          el('button', {className:'action-btn', title:'Resume in new tab', text:'+'})
+        ])
+      ]);
+      section.appendChild(entry);
+    });
+    dd.appendChild(section);
+  });
+}
+
+function loadSession(s) {
+  document.getElementById('restored-banner').style.display = 'flex';
+  const cont = document.getElementById('term-content');
+  cont.replaceChildren();
+  const tc = el('div', {className:'terminal-content'});
+  tc.appendChild(el('div', {className:'term-line', style:{color:'var(--text-muted)'}, text:'--- Restored session from '+s.path+' ---'}));
+  tc.appendChild(el('div', {className:'term-line'}, [el('span',{className:'term-prompt',text:'PS '+s.path+'>'}), document.createTextNode(' '), el('span',{className:'term-cmd',text:'npm run build'})]));
+  tc.appendChild(el('div', {className:'term-line'}, [el('span',{className:'term-output',text:'vite v6.0.0 building for production...'})]));
+  tc.appendChild(el('div', {className:'term-line'}, [el('span',{className:'term-output',text:'Build completed in 3.2s'})]));
+  cont.appendChild(tc);
+  document.getElementById('session-dropdown').style.display = 'none';
+}
+
+document.getElementById('history-btn').addEventListener('click', () => {
+  const dd = document.getElementById('session-dropdown');
+  const ph = document.getElementById('session-placeholder');
+  if (dd.style.display === 'none') { dd.style.display='block'; ph.style.display='none'; renderSessionDropdown(); }
+  else { dd.style.display='none'; ph.style.display='block'; }
+});
+document.getElementById('return-btn').addEventListener('click', () => {
+  document.getElementById('restored-banner').style.display = 'none';
+  renderTermContent();
+});
+renderTermTabs();
+renderTermContent();
+
+// === 2. DOC TABS ===
+const docTabs = [
+  {name:'README.md', icon:'\uD83D\uDCC4', color:'var(--accent)'},
+  {name:'package.json', icon:'{}', color:'var(--accent-amber)'},
+  {name:'main.go', icon:'Go', color:'var(--accent-teal)'}
+];
+const docContents = [
+  () => { const d=el('div',{style:{padding:'16px',fontSize:'13px',minHeight:'200px'}}); d.appendChild(el('h3',{text:'Wave Terminal',style:{marginBottom:'8px'}})); d.appendChild(el('p',{text:'Open-source AI-native terminal built with Electron. Combines traditional terminal features with graphical capabilities.',style:{color:'var(--text-secondary)',lineHeight:'1.6'}})); return d; },
+  () => { const d=el('div',{style:{padding:'16px',fontSize:'13px',minHeight:'200px',fontFamily:'var(--font-mono)'}}); ['{','\u00A0\u00A0"name": "waveterm",','\u00A0\u00A0"version": "0.15.0",','\u00A0\u00A0"productName": "Wave"','}'].forEach(l => d.appendChild(el('div',{text:l}))); return d; },
+  () => { const d=el('div',{style:{padding:'16px',fontSize:'13px',minHeight:'200px',fontFamily:'var(--font-mono)'}}); ['package main','','import "fmt"','','func main() {','\u00A0\u00A0fmt.Println("Wave Terminal Server")','}'].forEach(l => d.appendChild(el('div',{text:l}))); return d; }
+];
+let activeDocTab = 0;
+
+function renderDocTabs() {
+  const strip = document.getElementById('doc-tabs');
+  strip.replaceChildren();
+  docTabs.forEach((t,i) => {
+    strip.appendChild(el('div', {className:'tab-item'+(i===activeDocTab?' active':''), onclick:() => { activeDocTab=i; renderDocTabs(); renderDocContent(); }}, [
+      el('span', {text:t.icon, style:{color:t.color}}), document.createTextNode(' '+t.name),
+      el('span', {className:'close-tab', text:'\u2715'})
+    ]));
+  });
+  strip.appendChild(el('button', {className:'tab-add', text:'+'}));
+}
+function renderDocContent() {
+  const cont = document.getElementById('doc-content');
+  cont.replaceChildren();
+  cont.appendChild(docContents[activeDocTab]());
+}
+renderDocTabs();
+renderDocContent();
+
+// === 3. KANBAN ===
+const kanbanData = {
+  todo: ['Add more terminals as tabs', 'Multiple documents in preview', 'Clickable file links in terminal'],
+  progress: ['Widget pop-out feature', 'Tab close warning'],
+  done: ['Edit tasks (click done/undone)']
+};
+let draggedCard = null;
+
+function renderKanban() {
+  const board = document.getElementById('kanban-board');
+  board.replaceChildren();
+  [['todo','Todo'],['progress','In Progress'],['done','Done']].forEach(([id,name]) => {
+    const col = el('div', {className:'kanban-col'});
+    col.addEventListener('dragover', e => e.preventDefault());
+    col.addEventListener('drop', e => {
+      e.preventDefault();
+      if (draggedCard && draggedCard.parentId !== id) {
+        kanbanData[draggedCard.parentId] = kanbanData[draggedCard.parentId].filter(c => c !== draggedCard.text);
+        kanbanData[id].push(draggedCard.text);
+        draggedCard = null;
+        renderKanban();
+      }
+    });
+    col.appendChild(el('div', {className:'kanban-col-header'}, [
+      document.createTextNode(name+' '),
+      el('span', {className:'count', text:String(kanbanData[id].length)}),
+      el('span', {className:'col-menu', text:'\u22EF'})
+    ]));
+    const cards = el('div', {className:'kanban-cards'});
+    kanbanData[id].forEach(text => {
+      const card = el('div', {className:'kanban-card', draggable:'true', text:text});
+      card.addEventListener('dragstart', () => {
+        card.classList.add('dragging');
+        draggedCard = {text, parentId:id};
+      });
+      card.addEventListener('dragend', () => card.classList.remove('dragging'));
+      cards.appendChild(card);
+    });
+    col.appendChild(cards);
+    const addDiv = el('div', {className:'kanban-add'});
+    const input = el('input', {placeholder:'+ Add a card...'});
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && input.value.trim()) {
+        kanbanData[id].push(input.value.trim());
+        renderKanban();
+      }
+    });
+    addDiv.appendChild(input);
+    col.appendChild(addDiv);
+    board.appendChild(col);
+  });
+  const ghost = el('div', {className:'kanban-ghost-col', text:'+', onclick:() => alert('Create new column')});
+  board.appendChild(ghost);
+}
+renderKanban();
+
+// === 4. FILE LINKS ===
+function handleFileClick(path, e) {
+  if (e.ctrlKey || e.metaKey) {
+    alert('Ctrl+Click: Opens ' + path + ' in external editor (VS Code, Notepad++, or OS default)');
+  } else {
+    alert('Click: Opens ' + path + ' in Wave preview block (internal viewer)');
+  }
+}
+function renderLinks() {
+  const cont = document.getElementById('links-content');
+  cont.replaceChildren();
+  const lines = [
+    {p:'PS G:\\Code\\waveterm>', c:'go vet ./...'},
+    {o:'# github.com/wavetermdev/waveterm/pkg/wconfig'},
+    {link:'pkg/wconfig/settingsconfig.go:155:2', after:': field TabConfirmClose is unused'},
+    {link:'pkg/waveobj/metaconsts.go:110', after:': duplicate constant'},
+    {o:''},
+    {p:'PS G:\\Code\\waveterm>', c:'cat README.md | head'},
+    {o:'See ', url:'https://docs.waveterm.dev', after:' for docs'},
+    {o:'Config: ', link:'~/.waveterm/settings.json'},
+    {o:'Source: ', link:'./frontend/app/app.tsx'},
+    {o:''},
+    {p:'PS G:\\Code\\waveterm>', c:'echo "Check docs at docs.waveterm.dev"'},
+    {o:'Check docs at ', url:'https://docs.waveterm.dev', after:''},
+    {o:''},
+    {legend:true}
+  ];
+  lines.forEach(l => {
+    const div = el('div', {className:'term-line'});
+    if (l.p) { div.appendChild(el('span',{className:'term-prompt',text:l.p})); div.appendChild(document.createTextNode(' ')); div.appendChild(el('span',{className:'term-cmd',text:l.c})); }
+    if (l.o !== undefined && !l.link && !l.url) div.appendChild(el('span',{className:'term-output',text:l.o}));
+    if (l.o !== undefined && l.link) { div.appendChild(el('span',{className:'term-output',text:l.o})); }
+    if (l.link) {
+      const a = el('span', {className:'term-path-link', text:l.link, onclick:(e) => handleFileClick(l.link, e)});
+      a.title = 'Click: open in Wave preview | Ctrl+Click: open in external editor';
+      div.appendChild(a);
+      if (l.after) div.appendChild(el('span',{className:'term-output',text:l.after}));
+    }
+    if (l.url) {
+      if (l.o) div.appendChild(el('span',{className:'term-output',text:l.o}));
+      div.appendChild(el('span',{className:'term-url-link',text:l.url,onclick:()=>alert('Opens web block (existing behavior)')}));
+      if (l.after) div.appendChild(el('span',{className:'term-output',text:l.after}));
+    }
+    if (l.legend) {
+      div.style.fontSize = '11px';
+      div.style.color = 'var(--text-muted)';
+      div.appendChild(el('span',{text:'\u25CF File links: Click=preview, Ctrl+Click=external editor ',style:{color:'var(--accent)'}}));
+      div.appendChild(document.createTextNode(' '));
+      div.appendChild(el('span',{text:'\u25CF URL links (existing) ',style:{color:'var(--accent-teal)'}}));
+      div.appendChild(document.createTextNode(' '));
+      div.appendChild(el('span',{text:'\u25CF Regular text'}));
+    }
+    cont.appendChild(div);
+  });
+}
+renderLinks();
+
+// === 5. CONTEXT MENU ===
+function renderFileList() {
+  const list = document.getElementById('file-list');
+  list.replaceChildren();
+  [{icon:'\uD83D\uDCC1',name:'frontend/',size:'\u2014',date:'Mar 25',action:'Navigate into directory'},
+   {icon:'\uD83D\uDCC4',name:'README.md',size:'5.3 KB',date:'Mar 25',action:'Open in Wave editor'},
+   {icon:'\uD83D\uDCC4',name:'package.json',size:'2.1 KB',date:'Mar 24',action:'Open in Wave editor'},
+   {icon:'\u2699',name:'wavesrv.exe',size:'18 MB',date:'Mar 23',action:'Run with OS (openNativePathExplicit)',highlight:true},
+   {icon:'\uD83D\uDDBC',name:'logo.png',size:'42 KB',date:'Mar 20',action:'Open in Wave image viewer'}
+  ].forEach(f => {
+    const row = el('div', {className:'file-row'});
+    row.addEventListener('dblclick', () => alert(f.action));
+    row.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(); });
+    row.appendChild(el('span', {className:'icon', text:f.icon}));
+    const nameEl = el('span', {className:'name', text:f.name});
+    if (f.highlight) nameEl.style.color = 'var(--accent-amber)';
+    row.appendChild(nameEl);
+    row.appendChild(el('span', {className:'size', text:f.size}));
+    row.appendChild(el('span', {className:'date', text:f.date}));
+    list.appendChild(row);
+  });
+}
+
+function showCtxMenu() {
+  const menu = document.getElementById('ctx-menu');
+  menu.replaceChildren();
+  const items = [
+    {text:'Open', bold:true},
+    {text:'Open With', sub:['Open in Wave Preview','Open in Terminal',null,'Reveal in Explorer']},
+    {text:'Open Preview in New Block'},
+    {text:'Open Terminal Here'},
+    null,
+    {text:'Rename'},{text:'Copy File Name'},{text:'Copy Full Path'},
+    null,
+    {text:'Delete', danger:true, onclick:() => { menu.style.display='none'; showModalType('delete'); }},
+    null,
+    {text:'Properties', onclick:() => { menu.style.display='none'; showProps(); }}
+  ];
+  items.forEach(item => {
+    if (!item) { menu.appendChild(el('div',{className:'ctx-sep'})); return; }
+    if (item.sub) {
+      const sub = el('div', {className:'ctx-submenu'});
+      const trigger = el('div', {className:'ctx-item'}, [document.createTextNode(item.text), el('span',{className:'arrow',text:'\u25B6',style:{marginLeft:'auto',fontSize:'10px'}})]);
+      const subItems = el('div', {className:'sub-items'});
+      item.sub.forEach(s => {
+        if (!s) subItems.appendChild(el('div',{className:'ctx-sep'}));
+        else subItems.appendChild(el('div',{className:'ctx-item',text:s}));
+      });
+      sub.appendChild(trigger);
+      sub.appendChild(subItems);
+      menu.appendChild(sub);
+    } else {
+      const ci = el('div', {className:'ctx-item', text:item.text});
+      if (item.bold) ci.style.fontWeight = '600';
+      if (item.danger) ci.style.color = 'var(--accent-red)';
+      if (item.onclick) ci.addEventListener('click', item.onclick);
+      menu.appendChild(ci);
+    }
+  });
+  menu.style.display = 'block';
+}
+
+function showProps() {
+  const ov = document.getElementById('props-overlay');
+  ov.replaceChildren();
+  ov.appendChild(el('div', {text:'\uD83D\uDCC4 README.md', style:{fontWeight:'600',marginBottom:'10px',fontSize:'14px'}}));
+  [['Full path','G:\\Code\\waveterm\\README.md'],['Size','5,312 bytes (5.3 KB)'],['MIME type','text/markdown'],['Permissions','rw-r--r--'],['Modified','Mar 25, 2026 15:30'],['Read-only','No']].forEach(([k,v]) => {
+    ov.appendChild(el('div',{className:'prop-row'},[el('span',{className:'prop-label',text:k}),el('span',{className:'prop-value',text:v})]));
+  });
+  ov.style.display = 'block';
+}
+renderFileList();
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.context-menu') && !e.target.closest('.file-list')) document.getElementById('ctx-menu').style.display='none';
+  if (!e.target.closest('.properties-overlay') && !e.target.closest('.context-menu')) document.getElementById('props-overlay').style.display='none';
+});
+
+// === 6. POP-OUT ===
+document.getElementById('popout-btn').addEventListener('click', () => {
+  document.getElementById('popout-source').style.opacity = '.3';
+  document.getElementById('popout-window').style.display = 'block';
+});
+function popIn() {
+  document.getElementById('popout-source').style.opacity = '1';
+  document.getElementById('popout-window').style.display = 'none';
+  document.getElementById('drop-zone').classList.remove('visible');
+}
+document.getElementById('popin-btn').addEventListener('click', popIn);
+document.getElementById('popin-close').addEventListener('click', popIn);
+
+let isDragging=false, dragOX=0, dragOY=0;
+document.getElementById('popout-window').addEventListener('mousedown', e => {
+  if (e.target.tagName==='BUTTON') return;
+  isDragging=true;
+  const r = document.getElementById('popout-window').getBoundingClientRect();
+  dragOX=e.clientX-r.left; dragOY=e.clientY-r.top;
+});
+document.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const win=document.getElementById('popout-window');
+  const sec=document.getElementById('popout').getBoundingClientRect();
+  win.style.left=(e.clientX-sec.left-dragOX)+'px';
+  win.style.top=(e.clientY-sec.top-dragOY)+'px';
+  const src=document.getElementById('popout-source').getBoundingClientRect();
+  const wr=win.getBoundingClientRect();
+  const overlap=!(wr.right<src.left||wr.left>src.right||wr.bottom<src.top||wr.top>src.bottom);
+  document.getElementById('drop-zone').classList.toggle('visible', overlap);
+});
+document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging=false;
+    if (document.getElementById('drop-zone').classList.contains('visible')) popIn();
+  }
+});
+
+// === 7. WORKSPACES ===
+const wsData = [
+  {name:'waveterm',icon:'\uD83C\uDF0A',tabs:'3 tabs',color:'var(--accent)',bg:'rgba(122,162,247,.15)',current:true},
+  {name:'personal',icon:'\uD83C\uDFE0',tabs:'5 tabs',color:'var(--accent-green)',bg:'rgba(158,206,106,.15)'},
+  {name:'work-api',icon:'\uD83D\uDCBC',tabs:'2 tabs',color:'var(--accent-amber)',bg:'rgba(224,175,104,.15)'},
+  {name:'devops',icon:'\u2699',tabs:'1 tab',color:'var(--accent-purple)',bg:'rgba(187,154,247,.15)'}
+];
+const openWindows = new Set(['waveterm']);
+
+function renderWorkspaces() {
+  const panel = document.getElementById('ws-panel');
+  panel.replaceChildren();
+  panel.appendChild(el('div',{text:'Workspaces',style:{fontSize:'11px',fontWeight:'700',color:'var(--text-muted)',padding:'4px 10px',textTransform:'uppercase',letterSpacing:'.5px'}}));
+  wsData.forEach(ws => {
+    const entry = el('div', {className:'ws-entry'+(ws.current?' current':''), onclick:() => {
+      openWindows.add(ws.name);
+      wsData.forEach(w => w.current = w.name===ws.name);
+      renderWorkspaces();
+      renderWsWindows();
+    }}, [
+      el('div', {className:'ws-icon', style:{background:ws.bg}, text:ws.icon}),
+      el('div', {className:'ws-info'}, [el('div',{className:'ws-name',text:ws.name}), el('div',{className:'ws-tabs',text:ws.tabs})])
+    ]);
+    if (openWindows.has(ws.name)) entry.appendChild(el('span',{className:'ws-open-indicator',text:'\u25CF'}));
+    panel.appendChild(entry);
+  });
+}
+function renderWsWindows() {
+  const cont = document.getElementById('ws-windows');
+  cont.replaceChildren();
+  openWindows.forEach(name => {
+    const ws = wsData.find(w => w.name===name);
+    const win = el('div', {className:'ws-mini-window', style:{animation:'fadeIn .3s'}});
+    const tb = el('div', {className:'mini-titlebar'});
+    tb.appendChild(document.createTextNode(ws.icon+' '+ws.name));
+    const status = el('span', {style:{marginLeft:'auto',color:ws.current?ws.color:'var(--text-muted)'}, text:ws.current?'\u25CF active':'\u25CF open'});
+    tb.appendChild(status);
+    win.appendChild(tb);
+    const mc = el('div', {className:'mini-content', style:{borderLeft:'2px solid '+ws.color}});
+    mc.appendChild(document.createTextNode(ws.name+' workspace\n'+ws.tabs+'\n$ _'));
+    win.appendChild(mc);
+    cont.appendChild(win);
+  });
+}
+renderWorkspaces();
+renderWsWindows();
+
+// === 8. MODALS ===
+document.querySelectorAll('[data-modal]').forEach(btn => {
+  btn.addEventListener('click', () => showModalType(btn.dataset.modal));
+});
+
+function showModalType(type) {
+  const c = document.getElementById('modal-container');
+  c.replaceChildren();
+  const backdrop = el('div', {className:'modal-backdrop', onclick:function(e){if(e.target===this)closeModal();}});
+  const modal = el('div', {className:'modal'});
+  const btnRow = el('div', {className:'btn-row'});
+  btnRow.appendChild(el('button', {className:'btn btn-cancel', text:'Cancel', onclick:closeModal}));
+
+  if (type==='tab') {
+    modal.appendChild(el('h3',{text:'Close Tab?'}));
+    modal.appendChild(el('p',{text:'Are you sure you want to close "waveterm"?'}));
+    const cb = el('label',{className:'checkbox-row'});
+    cb.appendChild(el('input',{type:'checkbox'}));
+    cb.appendChild(document.createTextNode(" Don't ask again"));
+    modal.appendChild(cb);
+    btnRow.appendChild(el('button',{className:'btn btn-danger',text:'Close Tab',onclick:closeModal}));
+  } else if (type==='tab-process') {
+    modal.appendChild(el('h3',{text:'Close Tab?'}));
+    const p = el('p');
+    p.appendChild(document.createTextNode('Are you sure you want to close "waveterm"? '));
+    p.appendChild(el('span',{className:'warn-text',text:'This tab has a running process that will be terminated.'}));
+    modal.appendChild(p);
+    const cb = el('label',{className:'checkbox-row'});
+    cb.appendChild(el('input',{type:'checkbox'}));
+    cb.appendChild(document.createTextNode(" Don't ask again"));
+    modal.appendChild(cb);
+    btnRow.appendChild(el('button',{className:'btn btn-danger',text:'Close Tab',onclick:closeModal}));
+  } else if (type==='block') {
+    modal.appendChild(el('h3',{text:'Close Terminal?'}));
+    const p = el('p');
+    p.appendChild(el('span',{className:'warn-text',text:'This terminal has a running process.'}));
+    p.appendChild(document.createTextNode(' Closing will terminate it.'));
+    modal.appendChild(p);
+    btnRow.appendChild(el('button',{className:'btn btn-danger',text:'Close Terminal',onclick:closeModal}));
+  } else if (type==='delete') {
+    modal.appendChild(el('h3',{text:'Delete File?'}));
+    modal.appendChild(el('p',{text:'Delete README.md? This cannot be undone.'}));
+    btnRow.appendChild(el('button',{className:'btn btn-danger',text:'Delete',onclick:closeModal}));
+  }
+  modal.appendChild(btnRow);
+  backdrop.appendChild(modal);
+  c.appendChild(backdrop);
+}
+function closeModal() { document.getElementById('modal-container').replaceChildren(); }
+</script>
+</body>
+</html>
