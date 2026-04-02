@@ -12,6 +12,8 @@ import { ErrorBoundary } from "@/element/errorboundary";
 import { CenteredDiv } from "@/element/quickelems";
 import { atom } from "jotai";
 import { memo, Suspense, useEffect, useMemo, useRef } from "react";
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 
 interface WidgetAppProps {
     blockId: string;
@@ -98,27 +100,29 @@ const WidgetApp = memo(({ blockId, blockData }: WidgetAppProps) => {
     const VC = viewModel.viewComponent;
 
     return (
-        <TabModelContext.Provider value={tabModel}>
-            <div className="widget-app" ref={blockRef} style={{ width: "100%", height: "100vh", overflow: "hidden" }}>
-                <div
-                    className="block-content"
-                    ref={contentRef}
-                    style={{ width: "100%", height: "100%", position: "relative" }}
-                >
-                    <ErrorBoundary>
-                        <Suspense fallback={<CenteredDiv>Loading...</CenteredDiv>}>
-                            <VC
-                                key={blockId}
-                                blockId={blockId}
-                                blockRef={blockRef}
-                                contentRef={contentRef}
-                                model={viewModel}
-                            />
-                        </Suspense>
-                    </ErrorBoundary>
+        <DndProvider backend={HTML5Backend}>
+            <TabModelContext.Provider value={tabModel}>
+                <div className="widget-app" ref={blockRef} style={{ width: "100%", height: "100vh", overflow: "hidden" }}>
+                    <div
+                        className="block-content"
+                        ref={contentRef}
+                        style={{ width: "100%", height: "100%", position: "relative" }}
+                    >
+                        <ErrorBoundary>
+                            <Suspense fallback={<CenteredDiv>Loading...</CenteredDiv>}>
+                                <VC
+                                    key={blockId}
+                                    blockId={blockId}
+                                    blockRef={blockRef}
+                                    contentRef={contentRef}
+                                    model={viewModel}
+                                />
+                            </Suspense>
+                        </ErrorBoundary>
+                    </div>
                 </div>
-            </div>
-        </TabModelContext.Provider>
+            </TabModelContext.Provider>
+        </DndProvider>
     );
 });
 
