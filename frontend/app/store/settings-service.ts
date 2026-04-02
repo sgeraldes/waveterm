@@ -152,11 +152,19 @@ class SettingsService {
      * Reset all settings to defaults.
      */
     async resetAllSettings(): Promise<void> {
+        const saved = globalStore.get(savedSettingsAtom);
+
+        // Build a payload that nulls out every saved key so the backend deletes them
+        const nullPayload: Record<string, unknown> = {};
+        for (const key of Object.keys(saved)) {
+            nullPayload[key] = null;
+        }
+
         globalStore.set(pendingSettingsAtom, {});
         globalStore.set(savedSettingsAtom, {});
         this.pendingChanges = {};
 
-        await this.saveToFile({});
+        await this.saveToFile(nullPayload);
         this.notifySubscribers({});
     }
 
@@ -211,10 +219,11 @@ class SettingsService {
         const saved = globalStore.get(savedSettingsAtom);
         const pending = globalStore.get(pendingSettingsAtom);
 
-        // Build the backend payload: include null values so the backend
-        // knows to delete those keys (SetBaseConfigValue does a merge,
-        // so omitting a key would leave the old value in settings.json).
-        const savePayload: Record<string, unknown> = { ...saved, ...pending };
+        // Send only the pending changes to the backend (not the full state).
+        // The backend's SetBaseConfigValue does a merge: non-null values are set,
+        // null values trigger key deletion. Sending only changes is both more
+        // efficient and avoids re-validating unchanged settings.
+        const savePayload: Record<string, unknown> = { ...pending };
 
         // Build the clean local state without null/undefined keys
         const newSettings: Record<string, unknown> = { ...saved };
