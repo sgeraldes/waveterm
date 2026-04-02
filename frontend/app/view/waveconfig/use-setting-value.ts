@@ -93,7 +93,7 @@ export function useSettingValue<T>(key: string): UseSettingValueResult<T> {
         [key, setAtomValue]
     );
 
-    // Reset to default by removing the key from saved settings
+    // Reset to default by writing the registry default value
     const reset = useCallback(() => {
         settingsService.resetSetting(key);
     }, [key]);

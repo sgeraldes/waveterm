@@ -141,11 +141,15 @@ class SettingsService {
     }
 
     /**
-     * Reset a setting to its default value by removing it from the saved file.
-     * When a key is absent, the application uses the registry default automatically.
+     * Reset a setting to its registry default value.
+     * We must explicitly write the default to settings.json because the backend
+     * merges embedded defaults (defaultconfig/settings.json) which may differ
+     * from the frontend registry defaults. Deleting a key would just reveal
+     * the embedded default, not the registry default.
      */
     resetSetting(key: string): void {
-        this.setSetting(key, null);
+        const defaultValue = getDefaultValue(key);
+        this.setSetting(key, defaultValue);
     }
 
     /**
@@ -250,7 +254,7 @@ class SettingsService {
             globalStore.set(pendingSettingsAtom, {});
             globalStore.set(saveErrorAtom, null);
         } catch (error) {
-            console.error("Failed to save settings:", error);
+            console.error("[settings-service] Failed to save settings:", error);
             globalStore.set(saveErrorAtom, `Failed to save: ${error}`);
         } finally {
             globalStore.set(isSavingAtom, false);
