@@ -238,10 +238,12 @@ const WorkspaceElem = memo(() => {
     }, []);
 
     useEffect(() => {
-        getApi().onPopInBlock((blockId: string) => {
-            const layoutModel = getLayoutModelForStaticTab();
-            layoutModel.unhideNodeByBlockId(blockId);
-        });
+        if (typeof getApi().onPopInBlock === "function") {
+            getApi().onPopInBlock((blockId: string) => {
+                const layoutModel = getLayoutModelForStaticTab();
+                layoutModel.unhideNodeByBlockId(blockId);
+            });
+        }
     }, []);
 
     return (
