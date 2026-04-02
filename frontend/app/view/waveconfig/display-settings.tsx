@@ -78,7 +78,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="window:transparent"
                     label="Transparent Window"
-                    description=""
+                    description="Make the window background see-through. Requires a restart to take effect. Enable this before adjusting opacity or blur."
                     value={windowTransparent as boolean}
                     defaultValue={getDefaultValue("window:transparent")}
                     onChange={makeOnChange("window:transparent")}
@@ -93,7 +93,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="window:blur"
                     label="Background Blur"
-                    description=""
+                    description="Apply a frosted-glass blur effect behind the transparent window. Only visible when Transparent Window is enabled."
                     value={windowBlur as boolean}
                     defaultValue={getDefaultValue("window:blur")}
                     onChange={makeOnChange("window:blur")}
@@ -107,7 +107,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="window:opacity"
                     label="Window Opacity"
-                    description=""
+                    description="How opaque the window is, from nearly invisible (0.1) to fully solid (1.0). Only has effect when Transparent Window is enabled."
                     value={windowOpacity as number}
                     defaultValue={getDefaultValue("window:opacity")}
                     onChange={makeOnChange("window:opacity")}
@@ -124,7 +124,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="window:bgcolor"
                     label="Background Color"
-                    description=""
+                    description="Override the window background with a custom color. Leave empty to use the current theme's background."
                     value={windowBgcolor as string}
                     defaultValue={getDefaultValue("window:bgcolor")}
                     onChange={makeOnChange("window:bgcolor")}
@@ -138,7 +138,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="window:zoom"
                     label="Interface Zoom"
-                    description=""
+                    description="Scale the entire UI up or down. Useful for high-DPI displays or if you prefer larger/smaller controls and text."
                     value={windowZoom as number}
                     defaultValue={getDefaultValue("window:zoom")}
                     onChange={makeOnChange("window:zoom")}
@@ -158,7 +158,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="term:fontsize"
                     label="Font Size"
-                    description=""
+                    description="The size of text in terminal blocks, in pixels. Affects all terminal instances."
                     value={termFontsize as number}
                     defaultValue={getDefaultValue("term:fontsize")}
                     onChange={makeOnChange("term:fontsize")}
@@ -175,7 +175,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="term:fontfamily"
                     label="Font Family"
-                    description=""
+                    description="The monospace font used for terminal text. Nerd Fonts are recommended for icon support in prompts. Leave empty for the system default."
                     value={termFontfamily as string}
                     defaultValue={getDefaultValue("term:fontfamily")}
                     onChange={makeOnChange("term:fontfamily")}
@@ -190,7 +190,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="term:ligatures"
                     label="Font Ligatures"
-                    description=""
+                    description="Combine multi-character sequences like => and != into single glyphs. Requires a ligature-capable font (Fira Code, JetBrains Mono, Cascadia Code)."
                     value={termLigatures as boolean}
                     defaultValue={getDefaultValue("term:ligatures")}
                     onChange={makeOnChange("term:ligatures")}
@@ -204,7 +204,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="term:transparency"
                     label="Transparency"
-                    description=""
+                    description="Make the terminal background semi-transparent so your desktop shows through. Requires Transparent Window to be enabled."
                     value={termTransparency as number}
                     defaultValue={getDefaultValue("term:transparency")}
                     onChange={makeOnChange("term:transparency")}
@@ -224,7 +224,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="editor:fontsize"
                     label="Font Size"
-                    description=""
+                    description="The size of text in the code editor and file previews, in pixels."
                     value={editorFontsize as number}
                     defaultValue={getDefaultValue("editor:fontsize")}
                     onChange={makeOnChange("editor:fontsize")}
@@ -241,7 +241,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="editor:minimapenabled"
                     label="Show Minimap"
-                    description=""
+                    description="Display a scrollable miniature overview of the file on the right side of the editor."
                     value={editorMinimap as boolean}
                     defaultValue={getDefaultValue("editor:minimapenabled")}
                     onChange={makeOnChange("editor:minimapenabled")}
@@ -258,7 +258,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="ai:fontsize"
                     label="Text Font Size"
-                    description=""
+                    description="The size of regular text in AI chat responses, in pixels."
                     value={aiFontsize as number}
                     defaultValue={getDefaultValue("ai:fontsize")}
                     onChange={makeOnChange("ai:fontsize")}
@@ -275,7 +275,7 @@ export const DisplaySettings = memo(() => {
                 <SettingControl
                     settingKey="ai:fixedfontsize"
                     label="Code Font Size"
-                    description=""
+                    description="The size of code blocks and inline code in AI chat responses, in pixels."
                     value={aiFixedFontsize as number}
                     defaultValue={getDefaultValue("ai:fixedfontsize")}
                     onChange={makeOnChange("ai:fixedfontsize")}
