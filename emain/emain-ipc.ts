@@ -1097,8 +1097,12 @@ export function initIpcHandlers() {
 
             // When the widget window closes, tell the origin window to unhide the block
             widgetWin.on("closed", () => {
-                if (originWindow && !originWindow.isDestroyed()) {
-                    originWindow.webContents.send("pop-in-block", blockId);
+                try {
+                    if (originWindow && !originWindow.isDestroyed() && originWindow.webContents && !originWindow.webContents.isDestroyed()) {
+                        originWindow.webContents.send("pop-in-block", blockId);
+                    }
+                } catch {
+                    // Origin window may have been destroyed during shutdown
                 }
             });
         } catch (err) {
