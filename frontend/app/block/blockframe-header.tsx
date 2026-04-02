@@ -17,8 +17,7 @@ import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import { SessionHistoryFlyover } from "@/app/view/term/session-history-dropdown";
 import { IconButton } from "@/element/iconbutton";
-import { getLayoutModelForStaticTab, LayoutTreeActionType, NodeModel } from "@/layout/index";
-import type { LayoutTreeDeleteNodeAction } from "@/layout/lib/types";
+import { getLayoutModelForStaticTab, NodeModel } from "@/layout/index";
 import * as util from "@/util/util";
 import { cn } from "@/util/util";
 import * as jotai from "jotai";
@@ -151,15 +150,7 @@ const HeaderEndIcons = React.memo(({ viewModel, nodeModel, blockId, isTerminalBl
             title: "Pop Out Block",
             click: () => {
                 const layoutModel = getLayoutModelForStaticTab();
-                // Remove from layout WITHOUT deleting the block from backend
-                const leafs = globalStore.get(layoutModel.leafs);
-                const leaf = leafs?.find((l) => l.data?.blockId === blockId);
-                if (leaf) {
-                    layoutModel.treeReducer({
-                        type: LayoutTreeActionType.DeleteNode,
-                        nodeId: leaf.id,
-                    } as LayoutTreeDeleteNodeAction);
-                }
+                layoutModel.detachNodeByBlockId(blockId);
                 getApi().requestPopOut(blockId);
             },
         };

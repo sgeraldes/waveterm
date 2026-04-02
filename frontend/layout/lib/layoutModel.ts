@@ -1407,6 +1407,28 @@ export class LayoutModel {
     }
 
     /**
+     * Remove a node from the layout tree WITHOUT deleting the block from the backend.
+     * Used for pop-out: the block stays alive, just detached from this layout.
+     */
+    detachNodeByBlockId(blockId: string) {
+        const leafs = this.getter(this.leafs);
+        const leaf = leafs?.find((l) => l.data?.blockId === blockId);
+        if (!leaf) {
+            console.warn("detachNodeByBlockId: block not found in layout", blockId);
+            return;
+        }
+        if (leaf.id === this.magnifiedNodeId) {
+            this.magnifyNodeToggle(leaf.id);
+        }
+        const deleteAction: LayoutTreeDeleteNodeAction = {
+            type: LayoutTreeActionType.DeleteNode,
+            nodeId: leaf.id,
+        };
+        this.treeReducer(deleteAction);
+        // Note: intentionally NOT calling onNodeDelete — block stays alive in backend
+    }
+
+    /**
      * Shorthand function for closing the focused node in a layout.
      */
     async closeFocusedNode() {
