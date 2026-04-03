@@ -193,15 +193,12 @@ export function handleOsc7Command(data: string, blockId: string, tabId: string, 
                     }
                     const currentVersion = currentTab.version ?? 0;
                     const isLocked = currentTab.meta?.["tab:basedirlock"];
-                    const currentBasedir = currentTab.meta?.["tab:basedir"];
                     if (isLocked) {
                         dlog("OSC 7: Skipping update - tab basedir is locked");
                         return;
                     }
-                    if (currentBasedir && currentBasedir !== "~") {
-                        dlog("OSC 7: Skipping update - tab basedir already explicitly set:", currentBasedir);
-                        return;
-                    }
+                    // Always update basedir on OSC 7 (unless locked)
+                    // This allows the tab to track the active terminal's cwd
                     try {
                         await services.ObjectService.UpdateObjectMetaIfNotLocked(
                             tabORef,

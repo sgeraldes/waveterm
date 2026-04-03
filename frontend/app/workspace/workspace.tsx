@@ -178,18 +178,18 @@ const TabBreadcrumb = memo(() => {
                     />
                 )}
             </div>
+            {baseDir && (
+                <button
+                    type="button"
+                    className="menu-button breadcrumb-lock"
+                    onClick={handleLockToggle}
+                    title={isLocked ? "Unlock: allow smart directory detection" : "Lock: prevent auto directory update"}
+                    aria-label={isLocked ? "Unlock base directory" : "Lock base directory"}
+                >
+                    <i className={isLocked ? "fa fa-lock" : "fa fa-lock-open"} />
+                </button>
+            )}
             <div className="breadcrumb-actions">
-                {baseDir && (
-                    <button
-                        type="button"
-                        className="menu-button"
-                        onClick={handleLockToggle}
-                        title={isLocked ? "Unlock: allow smart directory detection" : "Lock: prevent auto directory update"}
-                        aria-label={isLocked ? "Unlock base directory" : "Lock base directory"}
-                    >
-                        <i className={isLocked ? "fa fa-lock" : "fa fa-lock-open"} />
-                    </button>
-                )}
                 <button
                     type="button"
                     className="menu-button"

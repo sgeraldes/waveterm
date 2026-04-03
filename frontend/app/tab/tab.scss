@@ -13,15 +13,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    // Inactive tab: 25% white overlay on tab bar background
-    background: rgb(255 255 255 / 0.04);
+    // Inactive tab: transparent — inherits the dark tab bar background
+    background: transparent;
 
     // Tab color stripe - shows manual color ONLY (VS Code style top stripe)
     .tab-color-stripe {
         position: absolute;
         top: 0;
-        left: 0;
-        right: 0;
+        left: 4px;
+        right: 4px;
         height: 2px;
         border-radius: 0;
         z-index: var(--zindex-tab-name);
@@ -50,15 +50,9 @@
         animation: text-pulse 1.5s ease-in-out infinite;
     }
 
-    &::after {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 1px;
-        border-right: 1px solid rgb(from var(--main-text-color) r g b / 0.2);
-    }
+    // Separator between inactive tabs — using border instead of ::after
+    // (::before/::after are reserved for active tab curves)
+    border-left: 1px solid rgb(from var(--main-text-color) r g b / 0.2);
 
     .tab-inner {
         position: relative;
@@ -75,12 +69,31 @@
     }
 
     &.active {
-        // Active tab matches the content area below for a seamless look
-        background: var(--main-bg-color);
-        // Subtle side borders to separate from inactive tabs
-        box-shadow:
-            inset 1px 0 0 rgb(255 255 255 / 0.06),
-            inset -1px 0 0 rgb(255 255 255 / 0.06);
+        // Active tab — noticeably lighter than inactive tabs
+        background: color-mix(in srgb, var(--main-bg-color) 85%, white);
+        z-index: 1;
+
+        // Dark side overlays — inner edge curves away at the bottom
+        &::before,
+        &::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            width: 4px;
+            height: 100%;
+            background: color-mix(in srgb, var(--main-bg-color) 70%, black);
+            z-index: 2;
+        }
+
+        &::before {
+            left: 0;
+            border-bottom-right-radius: 4px;
+        }
+
+        &::after {
+            right: 0;
+            border-bottom-left-radius: 4px;
+        }
 
         .tab-inner {
             border-color: transparent;
@@ -97,14 +110,16 @@
             visibility: visible;
         }
 
-        & + .tab::after,
-        &::after {
-            content: none;
+        // Hide separator on active tab and the tab immediately after it
+        border-left: none;
+
+        & + .tab {
+            border-left: none;
         }
     }
 
-    &:first-child::after {
-        content: none;
+    &:first-child {
+        border-left: none;
     }
 
     .tab-name-wrapper {
@@ -185,9 +200,11 @@
 // Only apply hover effects when not in nohover mode. This prevents the previously-hovered tab from remaining hovered while a tab view is not mounted.
 body:not(.nohover) .tab:hover,
 body:not(.nohover) .tab.dragging {
-    & + .tab::after,
-    &::after {
-        content: none;
+    // Hide separator on hovered tab and the one after it
+    border-left-color: transparent;
+
+    & + .tab {
+        border-left-color: transparent;
     }
 
     // Hover tab: use shared hover variable for consistency with settings panel
@@ -204,9 +221,9 @@ body:not(.nohover) .tab.dragging {
     }
 }
 
-// Active tab hover shouldn't change the background
+// Active tab hover — slightly brighter than active state
 body:not(.nohover) .tab.active:hover {
-    background: rgb(255 255 255 / 0.12);
+    background: color-mix(in srgb, var(--main-bg-color) 80%, white);
 }
 
 // When in nohover mode, always show the close button on the active tab. This prevents the close button of the active tab from flickering when nohover is toggled.
@@ -232,17 +249,13 @@ body.nohover .tab.active .close {
         }
 
         &.active {
-            background: rgb(0 0 0 / 0.08);
-            box-shadow:
-                0 2px 4px rgb(0 0 0 / 0.12),
-                inset 1px 0 0 rgb(0 0 0 / 0.06),
-                inset -1px 0 0 rgb(0 0 0 / 0.06);
+            background: color-mix(in srgb, var(--main-bg-color) 92%, black);
         }
     }
 }
 
 [data-theme="light"] body:not(.nohover) .tab.active:hover {
-    background: rgb(0 0 0 / 0.08);
+    background: color-mix(in srgb, var(--main-bg-color) 80%, white);
 }
 
 @keyframes expandWidthAndFadeIn {

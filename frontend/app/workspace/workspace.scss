@@ -2,17 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 .tab-breadcrumb {
-    height: 24px;
-    padding: 0 12px;
+    height: 28px;
+    padding: 2px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     font-size: 12px;
     color: var(--secondary-text-color);
-    // Computed solid color matching active tab visual appearance:
-    // Active tab = 12% white overlay on tab-bar-wrapper (70% main-bg + 30% black)
-    // This computes the same result as a solid color for seamless connection
-    background: color-mix(in srgb, color-mix(in srgb, var(--main-bg-color) 70%, black) 88%, white);
+    // Must exactly match active tab background for seamless connection
+    background: color-mix(in srgb, var(--main-bg-color) 85%, white);
     flex-shrink: 0;
     // Darker shadow to be visible against dark content area
     box-shadow: 0 2px 4px rgb(0 0 0 / 0.5);
@@ -43,6 +41,17 @@
 
         &:last-child {
             color: var(--main-text-color);
+        }
+    }
+
+    button.breadcrumb-lock.menu-button {
+        margin-left: 10px;
+        -webkit-app-region: no-drag;
+        width: 14px !important;
+        height: 14px !important;
+
+        i {
+            font-size: 9px !important;
         }
     }
 
