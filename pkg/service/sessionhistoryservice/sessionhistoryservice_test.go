@@ -16,7 +16,7 @@ func TestSaveAndListRoundTrip(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	err := svc.SaveRollingSegment(ctx, "block-rt", "hello world", "tab-1", "/proj", "", "/proj", "", "", "")
+	err := svc.SaveRollingSegment(ctx, "block-rt", "hello world", "tab-1", "/proj", "", "/proj", "", "")
 	if err != nil {
 		t.Fatalf("SaveRollingSegment failed: %v", err)
 	}
@@ -38,7 +38,7 @@ func TestReadSegmentRoundTrip(t *testing.T) {
 	ctx := context.Background()
 
 	content := "\x1b[32mhello terminal\x1b[0m"
-	if err := svc.SaveRollingSegment(ctx, "block-read", content, "tab-1", "/proj", "", "/proj", "", "", ""); err != nil {
+	if err := svc.SaveRollingSegment(ctx, "block-read", content, "tab-1", "/proj", "", "/proj", "", ""); err != nil {
 		t.Fatalf("SaveRollingSegment failed: %v", err)
 	}
 
@@ -76,7 +76,7 @@ func TestReadLatestSegmentsRoundTrip(t *testing.T) {
 	ctx := context.Background()
 
 	content := strings.Repeat("x", 200)
-	if err := svc.SaveRollingSegment(ctx, "block-latest", content, "tab-1", "/proj", "", "/proj", "", "", ""); err != nil {
+	if err := svc.SaveRollingSegment(ctx, "block-latest", content, "tab-1", "/proj", "", "/proj", "", ""); err != nil {
 		t.Fatalf("SaveRollingSegment failed: %v", err)
 	}
 
@@ -98,7 +98,7 @@ func TestContentCapEnforced(t *testing.T) {
 	ctx := context.Background()
 
 	oversized := strings.Repeat("a", maxContentBytes+1)
-	err := svc.SaveRollingSegment(ctx, "block-cap", oversized, "tab-1", "/proj", "", "/proj", "", "", "")
+	err := svc.SaveRollingSegment(ctx, "block-cap", oversized, "tab-1", "/proj", "", "/proj", "", "")
 	if err == nil {
 		t.Errorf("expected error for content exceeding 5MB cap, got nil")
 	}
@@ -109,7 +109,7 @@ func TestSnapshotSegmentCreated(t *testing.T) {
 	ctx := context.Background()
 
 	content := "snapshot content"
-	if err := svc.SaveSnapshotSegment(ctx, "block-snap", content, "tab-1", "/proj", "", "/proj", "clear", "", "", ""); err != nil {
+	if err := svc.SaveSnapshotSegment(ctx, "block-snap", content, "tab-1", "/proj", "", "/proj", "clear", "", ""); err != nil {
 		t.Fatalf("SaveSnapshotSegment failed: %v", err)
 	}
 
@@ -134,8 +134,8 @@ func TestListFilterByTabBaseDir(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	svc.SaveRollingSegment(ctx, "block-a", "data", "tab-1", "/proj/a", "", "/proj/a", "", "", "")
-	svc.SaveRollingSegment(ctx, "block-b", "data", "tab-2", "/proj/b", "", "/proj/b", "", "", "")
+	svc.SaveRollingSegment(ctx, "block-a", "data", "tab-1", "/proj/a", "", "/proj/a", "", "")
+	svc.SaveRollingSegment(ctx, "block-b", "data", "tab-2", "/proj/b", "", "/proj/b", "", "")
 
 	sessions, err := svc.ListSessionHistory(ctx, "", "/proj/a")
 	if err != nil {
@@ -150,9 +150,9 @@ func TestListCombinedFilter_ReturnsThisTermAndSameDir(t *testing.T) {
 	svc := newTestService(t)
 	ctx := context.Background()
 
-	svc.SaveRollingSegment(ctx, "term-1", "data", "tab-1", "/proj", "", "/proj", "", "", "")
-	svc.SaveRollingSegment(ctx, "term-2", "data", "tab-1", "/proj", "", "/proj", "", "", "")
-	svc.SaveRollingSegment(ctx, "term-3", "data", "tab-2", "/other", "", "/other", "", "", "")
+	svc.SaveRollingSegment(ctx, "term-1", "data", "tab-1", "/proj", "", "/proj", "", "")
+	svc.SaveRollingSegment(ctx, "term-2", "data", "tab-1", "/proj", "", "/proj", "", "")
+	svc.SaveRollingSegment(ctx, "term-3", "data", "tab-2", "/other", "", "/other", "", "")
 
 	sessions, err := svc.ListSessionHistory(ctx, "term-1", "/proj")
 	if err != nil {
