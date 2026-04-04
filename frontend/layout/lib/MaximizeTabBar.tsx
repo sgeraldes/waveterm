@@ -3,6 +3,7 @@
 
 import { blockViewToIcon, blockViewToName } from "@/app/block/blockutil";
 import { WOS } from "@/app/store/global";
+import { uxCloseBlock } from "@/app/store/keymodel";
 import { makeIconClass } from "@/util/util";
 import clsx from "clsx";
 import { useAtomValue } from "jotai";
@@ -14,16 +15,28 @@ interface MaximizeTabChipProps {
     blockId: string;
     isActive: boolean;
     onClick: () => void;
+    onMiddleClick: () => void;
 }
 
-const MaximizeTabChip = React.memo(({ blockId, isActive, onClick }: MaximizeTabChipProps) => {
+const MaximizeTabChip = React.memo(({ blockId, isActive, onClick, onMiddleClick }: MaximizeTabChipProps) => {
     const [blockData] = WOS.useWaveObjectValue<Block>(WOS.makeORef("block", blockId));
     const icon = blockData?.meta?.["frame:icon"] ?? blockViewToIcon(blockData?.meta?.view);
     const name = blockData?.meta?.["frame:title"] ?? blockViewToName(blockData?.meta?.view);
     const iconClass = makeIconClass(icon, false);
 
     return (
-        <div className={clsx("maximize-tab", { active: isActive })} onClick={onClick} title={name}>
+        <div
+            className={clsx("maximize-tab", { active: isActive })}
+            onClick={onClick}
+            onMouseDown={(e) => {
+                if (e.button === 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onMiddleClick();
+                }
+            }}
+            title={name}
+        >
             {iconClass && <i className={iconClass} />}
             <span className="maximize-tab-name">{name}</span>
         </div>
@@ -48,6 +61,7 @@ export const MaximizeTabBar = React.memo(({ layoutModel }: MaximizeTabBarProps) 
                         blockId={entry.blockid}
                         isActive={entry.blockid === activeBlockId}
                         onClick={() => layoutModel.maximizeSetActiveBlock(entry.blockid)}
+                        onMiddleClick={() => uxCloseBlock(entry.blockid)}
                     />
                 ))}
             </div>

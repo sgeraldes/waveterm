@@ -342,9 +342,9 @@ function copyErrorDetails(error: Error) {
 const AppCrashFallback = ({ error }: { error: Error }) => (
     <div className="flex flex-col items-center justify-center h-full bg-[var(--main-bg-color)]">
         <i className="fa fa-exclamation-triangle text-6xl text-red-500 mb-4" />
-        <h1 className="text-2xl font-bold mb-2">Wave Terminal Error</h1>
+        <h1 className="text-2xl font-bold mb-2">SG Wave Terminal Error</h1>
         <p className="text-gray-400 mb-4 text-center max-w-md">
-            Wave Terminal encountered an unexpected error and needs to reload.
+            SG Wave Terminal encountered an unexpected error and needs to reload.
         </p>
         {error && (
             <p className="text-gray-500 text-sm mb-4 text-center max-w-md">{sanitizeErrorMessage(error)}</p>

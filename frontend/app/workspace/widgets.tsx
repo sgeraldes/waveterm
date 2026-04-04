@@ -206,17 +206,17 @@ const Widgets = memo(() => {
             <div className="border-t border-border mx-1 my-1 opacity-40" />
             <Tooltip content="Help" placement="left">
                 <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openHelp} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openHelp(); } }}>
-                    <i className={makeIconClass("circle-question", true)}></i>
+                    <i className={makeIconClass("circle-question", true)} style={{ color: "#60a5fa" }}></i>
                 </div>
             </Tooltip>
             <Tooltip content="Tips" placement="left">
                 <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openTips} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTips(); } }}>
-                    <i className={makeIconClass("lightbulb", true)}></i>
+                    <i className={makeIconClass("lightbulb", true)} style={{ color: "#fbbf24" }}></i>
                 </div>
             </Tooltip>
             <Tooltip content="Settings" placement="left">
                 <div className={bottomButtonClass} role="button" tabIndex={0} onClick={openSettings} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openSettings(); } }}>
-                    <i className={makeIconClass("gear", true)}></i>
+                    <i className={makeIconClass("gear", true)} style={{ color: "#cbd5e1" }}></i>
                 </div>
             </Tooltip>
         </>
@@ -268,13 +268,13 @@ const Widgets = memo(() => {
                 <div className="flex-grow" />
                 <div className="border-t border-border mx-1 my-1" />
                 <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
-                    <i className={makeIconClass("circle-question", true)}></i>
+                    <i className={makeIconClass("circle-question", true)} style={{ color: "#60a5fa" }}></i>
                 </div>
                 <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
-                    <i className={makeIconClass("lightbulb", true)}></i>
+                    <i className={makeIconClass("lightbulb", true)} style={{ color: "#fbbf24" }}></i>
                 </div>
                 <div className="flex flex-col justify-center items-center w-full py-1.5 pr-0.5 text-lg">
-                    <i className={makeIconClass("gear", true)}></i>
+                    <i className={makeIconClass("gear", true)} style={{ color: "#cbd5e1" }}></i>
                 </div>
                 {isDev() ? (
                     <div

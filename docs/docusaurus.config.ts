@@ -5,20 +5,20 @@ import { docOgRenderer } from "./src/renderer/image-renderers";
 const baseUrl = process.env.EMBEDDED ? "/docsite/" : "/";
 
 const config: Config = {
-    title: "Wave Terminal Documentation",
-    tagline: "Level Up Your Terminal With Graphical Widgets",
+    title: "SG Wave Documentation",
+    tagline: "A fork-first terminal with graphical widgets, better workflows, and stronger defaults",
     favicon: "img/logo/wave-logo_appicon.svg",
 
     // Set the production url of your site here
-    url: "https://docs.waveterm.dev/",
+    url: "https://sgeraldes.github.io",
     // Set the /<baseUrl>/ pathname under which your site is served
     // For GitHub pages deployment, it is often '/<projectName>/'
     baseUrl,
 
     // GitHub pages deployment config.
     // If you aren't using GitHub pages, you don't need these.
-    organizationName: "wavetermdev", // Usually your GitHub org/user name.
-    projectName: "waveterm-docs", // Usually your repo name.
+    organizationName: "sgeraldes", // Usually your GitHub org/user name.
+    projectName: "waveterm", // Usually your repo name.
     deploymentBranch: "main",
 
     onBrokenAnchors: "ignore",
@@ -40,7 +40,7 @@ const config: Config = {
                 path: "docs",
                 routeBasePath: "/",
                 exclude: ["features/**"],
-                editUrl: !process.env.EMBEDDED ? "https://github.com/wavetermdev/waveterm/edit/main/docs/" : undefined,
+                editUrl: !process.env.EMBEDDED ? "https://github.com/sgeraldes/waveterm/edit/main/docs/" : undefined,
                 rehypePlugins: [rehypeHighlight],
             } as import("@docusaurus/plugin-content-docs").Options,
         ],
@@ -84,7 +84,7 @@ const config: Config = {
             logo: {
                 src: "img/logo/wave-light.png",
                 srcDark: "img/logo/wave-dark.png",
-                href: "https://www.waveterm.dev/",
+                href: "https://github.com/sgeraldes/waveterm",
             },
             hideOnScroll: true,
             items: [
@@ -98,17 +98,11 @@ const config: Config = {
                     ? [
                           {
                               position: "left",
-                              href: "https://docs.waveterm.dev/storybook",
-                              label: "Storybook",
+                              href: "https://github.com/sgeraldes/waveterm/releases",
+                              label: "Releases",
                           },
                           {
-                              href: "https://discord.gg/zUeP2aAjaP",
-                              position: "right",
-                              className: "header-link-custom custom-icon-discord",
-                              "aria-label": "Discord invite",
-                          },
-                          {
-                              href: "https://github.com/wavetermdev/waveterm",
+                              href: "https://github.com/sgeraldes/waveterm",
                               position: "right",
                               className: "header-link-custom custom-icon-github",
                               "aria-label": "GitHub repository",
@@ -129,19 +123,19 @@ const config: Config = {
             },
             {
                 name: "og:site_name",
-                content: "Wave Terminal Documentation",
+                content: "SG Wave Documentation",
             },
             {
                 name: "application-name",
-                content: "Wave Terminal Documentation",
+                content: "SG Wave Documentation",
             },
             {
                 name: "apple-mobile-web-app-title",
-                content: "Wave Terminal Documentation",
+                content: "SG Wave Documentation",
             },
         ],
         footer: {
-            copyright: `Copyright © ${new Date().getFullYear()} Command Line Inc. Built with Docusaurus.`,
+            copyright: `Copyright © ${new Date().getFullYear()} sgeraldes. Upstream Wave Terminal credited. Built with Docusaurus.`,
         },
         algolia: {
             appId: "B6A8512SN4",
@@ -183,7 +177,7 @@ const config: Config = {
             tagName: "script",
             attributes: {
                 defer: "true",
-                "data-domain": "docs.waveterm.dev",
+                "data-domain": "github.com/sgeraldes/waveterm",
                 src: "https://plausible.io/js/script.file-downloads.outbound-links.tagged-events.js",
             },
         },

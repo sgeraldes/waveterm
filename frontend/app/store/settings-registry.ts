@@ -787,7 +787,7 @@ const allSettings: SettingMetadata[] = [
         description: "The default URL to load in new web views.",
         category: "Web",
         controlType: "text",
-        defaultValue: "https://github.com/wavetermdev/waveterm",
+        defaultValue: "https://github.com/sgeraldes/waveterm",
         type: "string",
         tags: ["url", "homepage", "start"],
     },

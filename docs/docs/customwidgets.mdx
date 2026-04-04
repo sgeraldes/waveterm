@@ -6,7 +6,7 @@ title: "Custom Widgets"
 
 # Custom Widgets
 
-Wave allows users to create their own widgets to uniquely customize their experience for what works for them. While we plan on greatly expanding on this in the future, it is already possible to make some widgets that you can access at the press of a button. All widgets can be created by modifying the `<WAVETERM_HOME>/config/widgets.json` file. By adding a widget to this file, it is possible to add widgets to the widget bar. By default, the widget bar looks like this:
+SG Wave allows users to create their own widgets to uniquely customize their experience for what works for them. While we plan on greatly expanding on this in the future, it is already possible to make some widgets that you can access at the press of a button. All widgets can be created by modifying the `<WAVETERM_HOME>/config/widgets.json` file. By adding a widget to this file, it is possible to add widgets to the widget bar. By default, the widget bar looks like this:
 ![The default widget bar](./img/all-widgets-default.webp)
 
 By adding additional widgets, it is possible to get a widget bar that looks like this:
@@ -284,8 +284,8 @@ The `WidgetConfigType` takes the usual options common to all widgets. The `MetaT
 | Key | Description |
 |-----|-------------|
 | "view" | A string that specifies the general type of widget. In the case of custom web widgets, this must be set to `"web"`.|
-| "url" | This string is the url of the current page. As part of a widget, it will serve as the page the widget starts at. If not specified, this will default to the globally configurable `"web:defaulturl"` which is [https://github.com/wavetermdev/waveterm](https://github.com/wavetermdev/waveterm) on a fresh install. |
-| "pinnedurl" | (optional) This string is the url the homepage button will take you to. If not specified, this will default to the globally configurable `"web:defaulturl"` which is [https://github.com/wavetermdev/waveterm](https://github.com/wavetermdev/waveterm) on a fresh install. |
+| "url" | This string is the url of the current page. As part of a widget, it will serve as the page the widget starts at. If not specified, this will default to the globally configurable `"web:defaulturl"` which is [https://github.com/sgeraldes/waveterm](https://github.com/sgeraldes/waveterm) on a fresh install. |
+| "pinnedurl" | (optional) This string is the url the homepage button will take you to. If not specified, this will default to the globally configurable `"web:defaulturl"` which is [https://github.com/sgeraldes/waveterm](https://github.com/sgeraldes/waveterm) on a fresh install. |
 
 ### Example Web Widgets
 
@@ -415,7 +415,7 @@ This adds an icon to the widget bar that you can press to launch All CPU plots b
 
 ## Overriding Default Widgets
 
-Wave ships with 4 default widgets in the widgets bar (terminal, files, web, and sysinfo). You can modify or remove these by overriding their config in widgets.json. The names of the 4 widgets, in order, are:
+SG Wave ships with 4 default widgets in the widgets bar (terminal, files, web, and sysinfo). You can modify or remove these by overriding their config in widgets.json. The names of the 4 widgets, in order, are:
 
 - `defwidget@terminal`
 - `defwidget@files`
@@ -424,4 +424,4 @@ Wave ships with 4 default widgets in the widgets bar (terminal, files, web, and 
 
 To remove any of them, just set that key to `null` in your widgets.json file.
 
-To see their definitions, to copy/paste them, or to understand how they work, you can view all of their definitions on [GitHub - default widgets.json](https://github.com/wavetermdev/waveterm/blob/main/pkg/wconfig/defaultconfig/widgets.json)
+To see their definitions, to copy/paste them, or to understand how they work, you can view all of their definitions on [GitHub - default widgets.json](https://github.com/sgeraldes/waveterm/blob/main/pkg/wconfig/defaultconfig/widgets.json)

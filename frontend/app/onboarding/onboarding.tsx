@@ -44,52 +44,48 @@ const InitPage = ({ isCompact }: { isCompact: boolean }) => {
                 <div className={`${isCompact ? "" : "mb-2.5"} flex justify-center`}>
                     <Logo />
                 </div>
-                <div className="text-center text-[25px] font-normal text-foreground">Welcome to Wave Terminal</div>
+                <div className="text-center text-[25px] font-normal text-foreground">Welcome to SG Wave Terminal</div>
+                <div className="text-center text-sm text-secondary">
+                    A major community fork with new workflows, stronger validation, and a refreshed UI.
+                </div>
             </header>
             <OverlayScrollbarsComponent
                 className="flex-1 overflow-y-auto min-h-0"
                 options={{ scrollbars: { autoHide: "never" } }}
             >
                 <div className="flex flex-col items-start gap-8 w-full mb-5 unselectable">
-                    <div className="flex w-full items-center gap-[18px]">
+                    <div className="flex w-full items-start gap-[18px] rounded-xl border border-white/10 bg-black/20 p-4">
                         <div>
-                            <a
-                                target="_blank"
-                                href="https://github.com/wavetermdev/waveterm?ref=install"
-                                rel={"noopener"}
-                            >
-                                <i className="text-[32px] text-white/50 fa-brands fa-github"></i>
+                            <a target="_blank" href="https://github.com/sgeraldes/waveterm?ref=install" rel={"noopener"}>
+                                <i className="text-[32px] text-accent fa-brands fa-github"></i>
                             </a>
                         </div>
                         <div className="flex flex-col items-start gap-1 flex-1">
-                            <div className="text-foreground text-base leading-[18px]">Support us on GitHub</div>
+                            <div className="text-foreground text-base leading-[18px]">Project home</div>
                             <div className="text-secondary leading-5">
-                                We're <i>open source</i> and committed to providing a free terminal for individual
-                                users. Please show your support by giving us a star on{" "}
-                                <a
-                                    target="_blank"
-                                    href="https://github.com/wavetermdev/waveterm?ref=install"
-                                    rel={"noopener"}
-                                >
-                                    Github&nbsp;(wavetermdev/waveterm)
+                                This build is the <i>sgeraldes</i> fork of Wave Terminal, with major additions across
+                                tabs, settings, validation, terminal behavior, and visuals.
+                                <br />
+                                <a target="_blank" href="https://github.com/sgeraldes/waveterm?ref=install" rel={"noopener"}>
+                                    github.com/sgeraldes/waveterm
                                 </a>
                             </div>
                         </div>
                     </div>
-                    <div className="flex w-full items-center gap-[18px]">
+                    <div className="flex w-full items-start gap-[18px] rounded-xl border border-white/10 bg-black/20 p-4">
                         <div>
-                            <a target="_blank" href="https://discord.gg/XfvZ334gwU" rel={"noopener"}>
-                                <i className="text-[25px] text-white/50 fa-solid fa-people-group"></i>
+                            <a target="_blank" href="https://github.com/wavetermdev/waveterm?ref=install-upstream" rel={"noopener"}>
+                                <i className="text-[25px] text-white/60 fa-solid fa-code-branch"></i>
                             </a>
                         </div>
                         <div className="flex flex-col items-start gap-1 flex-1">
-                            <div className="text-foreground text-base leading-[18px]">Join our Community</div>
+                            <div className="text-foreground text-base leading-[18px]">Credits to upstream</div>
                             <div className="text-secondary leading-5">
-                                Get help, submit feature requests, report bugs, or just chat with fellow terminal
-                                enthusiasts.
+                                Originally built on top of the upstream Wave Terminal project. We keep the original repo
+                                linked here for reference, comparison, and proper credit.
                                 <br />
-                                <a target="_blank" href="https://discord.gg/XfvZ334gwU" rel={"noopener"}>
-                                    Join the Wave&nbsp;Discord&nbsp;Channel
+                                <a target="_blank" href="https://github.com/wavetermdev/waveterm?ref=install-upstream" rel={"noopener"}>
+                                    github.com/wavetermdev/waveterm
                                 </a>
                             </div>
                         </div>

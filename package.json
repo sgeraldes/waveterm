@@ -4,13 +4,13 @@
         "name": "Command Line Inc",
         "email": "info@commandline.dev"
     },
-    "productName": "Wave",
-    "description": "Open-Source AI-Native Terminal Built for Seamless Workflows",
+    "productName": "SG Wave",
+    "description": "SG Wave Terminal - a heavily customized community fork with improved workflows, visuals, and validation",
     "license": "Apache-2.0",
-    "version": "0.15.0",
-    "homepage": "https://waveterm.dev",
+    "version": "0.99.0",
+    "homepage": "https://github.com/sgeraldes/waveterm",
     "build": {
-        "appId": "dev.commandline.waveterm"
+        "appId": "dev.sgeraldes.sgwave"
     },
     "private": true,
     "main": "./dist/main/index.js",

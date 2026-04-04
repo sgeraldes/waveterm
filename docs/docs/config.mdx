@@ -13,7 +13,7 @@ import { VersionBadge } from "@site/src/components/versionbadge";
 <PlatformSelectorButton />
 <div style={{ marginBottom: 20 }}></div>
 
-Wave's configuration files are located at `~/.config/waveterm/`.
+SG Wave's configuration files are located at `~/.config/waveterm/`.
 
 The main configuration file is `settings.json` (`~/.config/waveterm/settings.json`).
 
@@ -22,7 +22,7 @@ use ":" as level separators.
 
 :::info
 
-The easiest way to edit your config files is to use the wsh editconfig command which will open your Wave config file in our built-in preview editor.
+The easiest way to edit your config files is to use the wsh editconfig command which will open your SG Wave config file in the built-in preview editor.
 
 ```
 wsh editconfig
@@ -35,7 +35,7 @@ wsh editconfig
 | Key Name                             | Type     | Function                                                                                                                                                                                                                                                      |
 | ------------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | app:globalhotkey                     | string   | A systemwide keybinding to open your most recent wave window. This is a set of key names separated by `:`. For more info, see [Customizable Systemwide Global Hotkey](#customizable-systemwide-global-hotkey)                                                 |
-| app:dismissarchitecturewarning       | bool     | Disable warnings on app start when you are using a non-native architecture for Wave. For more info, see [Why does Wave warn me about ARM64 translation when it launches?](./faq#why-does-wave-warn-me-about-arm64-translation-when-it-launches).              |
+| app:dismissarchitecturewarning       | bool     | Disable warnings on app start when you are using a non-native architecture for SG Wave. For more info, see [Why does SG Wave warn me about ARM64 translation when it launches?](./faq#why-does-sg-wave-warn-me-about-arm64-translation-when-it-launches).              |
 | app:defaultnewblock                  | string   | Sets the default new block (Cmd:n, Cmd:d). "term" for terminal block, "launcher" for launcher block (default = "term")                                                                                                                                        |
 | app:showoverlayblocknums             | bool     | Set to false to disable the Ctrl+Shift block number overlay that appears when holding Ctrl+Shift (defaults to true)                                                                                                                                           |
 | app:ctrlvpaste                       | bool     | On Windows/Linux, when null (default) uses Control+V on Windows only. Set to true to force Control+V on all non-macOS platforms, false to disable the accelerator. macOS always uses Command+V regardless of this setting                                     |
@@ -44,13 +44,13 @@ wsh editconfig
 | ai:baseurl                           | string   | Set the AI Base Url (must be OpenAI compatible)                                                                                                                                                                                                               |
 | ai:apitoken                          | string   | your AI api token                                                                                                                                                                                                                                             |
 | ai:apitype                           | string   | defaults to "open_ai", but can also set to "azure" (forspecial Azure AI handling), "anthropic", or "perplexity"                                                                                                                                               |
-| ai:name                              | string   | string to display in the Wave AI block header                                                                                                                                                                                                                 |
+| ai:name                              | string   | string to display in the SG Wave AI block header                                                                                                                                                                                                                 |
 | ai:model                             | string   | model name to pass to API                                                                                                                                                                                                                                     |
 | ai:apiversion                        | string   | for Azure AI only (when apitype is "azure", this will default to "2023-05-15")                                                                                                                                                                                |
 | ai:orgid                             | string   |                                                                                                                                                                                                                                                               |
 | ai:maxtokens                         | int      | max tokens to pass to API                                                                                                                                                     |
 | ai:timeoutms                         | int      | timeout (in milliseconds) for AI calls                                                                                                                                        |
-| ai:proxyurl                          | string   | HTTP proxy URL for AI API requests (does not apply to Wave Cloud AI)                                                                                                          |
+| ai:proxyurl                          | string   | HTTP proxy URL for AI API requests (does not apply to SG Wave cloud AI)                                                                                                          |
 | conn:askbeforewshinstall             | bool     | set to false to disable popup asking if you want to install wsh extensions on new machines                                                                                                                                                                    |
 | conn:localhostdisplayname <VersionBadge version="v0.14" />           | string   | override the display name for localhost in the UI (e.g., set to "My Laptop" or "Local", or set to empty string to hide the name)                                                                                                                                                                       |
 | term:fontsize                        | float    | the fontsize for the terminal block                                                                                                                                                                                                                           |
@@ -120,7 +120,7 @@ For reference, this is the current default configuration (v0.11.5):
     "conn:askbeforewshinstall": true,
     "conn:wshenabled": true,
     "editor:minimapenabled": true,
-    "web:defaulturl": "https://github.com/wavetermdev/waveterm",
+    "web:defaulturl": "https://github.com/sgeraldes/waveterm",
     "web:defaultsearch": "https://www.google.com/search?q={query}",
     "window:tilegapsize": 3,
     "window:maxtabcachesize": 10,
@@ -143,7 +143,7 @@ For reference, this is the current default configuration (v0.11.5):
 
 :::warning
 
-If you installed Wave pre-v0.9.0 your configuration file will be located at
+If you installed SG Wave pre-v0.9.0 your configuration file will be located at
 `~/.waveterm/config/settings.json`. This includes all of the other configuration
 files as well: `termthemes.json`, `presets.json`, and `widgets.json`.
 
@@ -151,7 +151,7 @@ files as well: `termthemes.json`, `presets.json`, and `widgets.json`.
 
 ## Environment Variable Resolution
 
-To avoid putting secrets directly in config files, Wave supports environment variable resolution using `$ENV:VARIABLE_NAME` or `$ENV:VARIABLE_NAME:fallback` syntax.  This works for any string value in any config file (settings.json, presets.json, ai.json, etc.).
+To avoid putting secrets directly in config files, SG Wave supports environment variable resolution using `$ENV:VARIABLE_NAME` or `$ENV:VARIABLE_NAME:fallback` syntax. This works for any string value in any config file (settings.json, presets.json, ai.json, etc.).
 
 ```json
 {
@@ -200,23 +200,23 @@ Each bookmark follows this structure (only `url` is required):
     "url": "https://claude.ai",
     "title": "Claude AI"
   },
-  "bookmark@wave": {
-    "url": "https://waveterm.dev",
-    "title": "Wave Terminal",
+  "bookmark@sgwave": {
+    "url": "https://github.com/sgeraldes/waveterm",
+    "title": "SG Wave",
     "display:order": -1
   },
-  "bookmark@wave-github": {
-    "url": "https://github.com/wavetermdev/waveterm",
-    "title": "Wave Github",
+  "bookmark@sgwave-releases": {
+    "url": "https://github.com/sgeraldes/waveterm/releases",
+    "title": "SG Wave Releases",
     "iconurl": "https://github.githubassets.com/favicons/favicon-dark.png"
   },
   "bookmark@chatgpt": {
     "url": "https://chatgpt.com",
     "iconurl": "https://cdn.oaistatic.com/assets/favicon-miwirzcw.ico"
   },
-  "bookmark@wave-pulls": {
-    "url": "https://github.com/wavetermdev/waveterm/pulls",
-    "title": "Wave Pull Requests",
+  "bookmark@upstream-wave": {
+    "url": "https://github.com/wavetermdev/waveterm",
+    "title": "Upstream Wave",
     "iconurl": "https://github.githubassets.com/favicons/favicon-dark.png"
   }
 }
@@ -241,7 +241,7 @@ the block's metadata key `term:theme`. This uses the JSON key value as the ident
 wsh setmeta this term:theme="default-dark"
 ```
 
-Here is an example of defining a full terminal theme. All of the built-in themes are defined here: https://github.com/wavetermdev/waveterm/blob/main/pkg/wconfig/defaultconfig/termthemes.json (if you'd like to add a popular terminal theme, please submit a PR!)
+Here is an example of defining a full terminal theme. All of the built-in themes are defined here: https://github.com/sgeraldes/waveterm/blob/main/pkg/wconfig/defaultconfig/termthemes.json (if you'd like to add a popular terminal theme, please submit a PR!)
 
 ```json
 {
@@ -313,11 +313,11 @@ wsh editconfig termthemes.json
 
 ## Customizable Systemwide Global Hotkey
 
-Wave allows settings a custom global hotkey to open your most recent window from anywhere in your computer. This has the name `"app:globalhotkey"` in the `settings.json` file and takes the form of a series of key names separated by the `:` character.
+SG Wave allows setting a custom global hotkey to open your most recent window from anywhere on your computer. This has the name `"app:globalhotkey"` in the `settings.json` file and takes the form of a series of key names separated by the `:` character.
 
 ### Examples
 
-As a practical example, suppose you want a value of `F5` as your global hotkey. Then you can simply set the value of `"app:globalhotkey"` to `"F5"` and reboot Wave to make that your global hotkey.
+As a practical example, suppose you want a value of `F5` as your global hotkey. Then you can simply set the value of `"app:globalhotkey"` to `"F5"` and reboot SG Wave to make that your global hotkey.
 
 As a less practical example, suppose you use the combination of the keys `Ctrl`, `Option`, and `e`. Then the value for this keybinding would be `"Ctrl:Option:e"`.
 

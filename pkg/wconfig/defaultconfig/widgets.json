@@ -2,6 +2,7 @@
     "defwidget@terminal": {
         "display:order": -5,
         "icon": "square-terminal",
+        "color": "#a5b4fc",
         "label": "terminal",
         "blockdef": {
             "meta": {
@@ -13,6 +14,7 @@
     "defwidget@files": {
         "display:order": -4,
         "icon": "folder",
+        "color": "#60a5fa",
         "label": "files",
         "blockdef": {
             "meta": {
@@ -24,6 +26,7 @@
     "defwidget@web": {
         "display:order": -3,
         "icon": "globe",
+        "color": "#2dd4bf",
         "label": "web",
         "blockdef": {
             "meta": {
@@ -34,6 +37,7 @@
     "defwidget@sysinfo": {
         "display:order": -2,
         "icon": "chart-line",
+        "color": "#c084fc",
         "label": "sysinfo",
         "blockdef": {
             "meta": {
@@ -44,6 +48,7 @@
     "defwidget@treeview": {
         "display:order": 1,
         "icon": "sitemap",
+        "color": "#34d399",
         "label": "tree view",
         "blockdef": {
             "meta": {
@@ -54,6 +59,7 @@
     "defwidget@notes": {
         "display:order": 2,
         "icon": "note-sticky",
+        "color": "#f59e0b",
         "label": "notes",
         "blockdef": {
             "meta": {
@@ -64,6 +70,7 @@
     "defwidget@todo": {
         "display:order": 3,
         "icon": "check-square",
+        "color": "#a3e635",
         "label": "todo",
         "blockdef": {
             "meta": {
@@ -74,6 +81,7 @@
     "defwidget@kanban": {
         "display:order": 4,
         "icon": "table-columns",
+        "color": "#fb7185",
         "label": "kanban",
         "blockdef": {
             "meta": {

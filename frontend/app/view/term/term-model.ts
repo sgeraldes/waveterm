@@ -3,6 +3,7 @@
 
 
 import { WaveAIModel } from "@/app/aipanel/waveai-model";
+import { getShellProfileDisplayInfo, resolveEffectiveDefaultShell } from "@/app/block/blockutil";
 import { BlockNodeModel } from "@/app/block/blocktypes";
 import { appHandleKeyDown } from "@/app/store/keymodel";
 import { type TabModel } from "@/app/store/tab-model";
@@ -100,6 +101,8 @@ export class TermViewModel implements ViewModel {
     showReconnectPrompt: jotai.PrimitiveAtom<boolean>;
     reconnectTimeoutId: number | null;
     lastDisconnectTime: number;
+    titleEditingAtom: jotai.PrimitiveAtom<boolean>;
+    titleEditValueAtom: jotai.PrimitiveAtom<string>;
 
     constructor(blockId: string, nodeModel: BlockNodeModel, tabModel: TabModel) {
         this.viewType = "term";
@@ -133,11 +136,16 @@ export class TermViewModel implements ViewModel {
         this.showReconnectPrompt = jotai.atom(false);
         this.reconnectTimeoutId = null;
         this.lastDisconnectTime = 0;
+        this.titleEditingAtom = jotai.atom(false);
+        this.titleEditValueAtom = jotai.atom("");
         this.viewIcon = jotai.atom((get): string | IconButtonDecl => {
             const blockData = get(this.blockAtom);
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
-            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+            const defaultShell = resolveEffectiveDefaultShell(
+                fullConfig?.settings?.["shell:profiles"],
+                fullConfig?.settings?.["shell:default"] || ""
+            );
             const effectiveShell = shellProfile || defaultShell;
 
             const lowerId = effectiveShell.toLowerCase();
@@ -154,7 +162,10 @@ export class TermViewModel implements ViewModel {
             }
             const fullConfig = get(atoms.fullConfigAtom);
             const shellProfile = blockData?.meta?.["shell:profile"] || "";
-            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+            const defaultShell = resolveEffectiveDefaultShell(
+                fullConfig?.settings?.["shell:profiles"],
+                fullConfig?.settings?.["shell:default"] || ""
+            );
             const effectiveShell = shellProfile || defaultShell;
             const isDefault = !shellProfile || effectiveShell === defaultShell;
 
@@ -224,14 +235,65 @@ export class TermViewModel implements ViewModel {
                     }
                 }
             }
-            // Terminal title (set by shell via escape sequences) in the middle of the header line
+            // Terminal title in the middle of the header line.
+            // Priority: custom override > shell-provided title > fallback shell name.
             if (!isCmd) {
                 const blockData = get(this.blockAtom);
-                const termTitle = blockData?.meta?.["term:title"] as string;
-                if (termTitle) {
+                const fullConfig = get(atoms.fullConfigAtom);
+                const shellProfile = blockData?.meta?.["shell:profile"] || "";
+                const defaultShell = resolveEffectiveDefaultShell(
+                    fullConfig?.settings?.["shell:profiles"],
+                    fullConfig?.settings?.["shell:default"] || ""
+                );
+                const customTitle = (blockData?.meta?.["frame:title"] as string) || "";
+                const termTitle = (blockData?.meta?.["term:title"] as string) || "";
+                const fallbackTitle = getShellProfileDisplayInfo(
+                    shellProfile,
+                    fullConfig?.settings?.["shell:profiles"],
+                    defaultShell
+                ).displayName || "Terminal";
+                const visibleTitle = customTitle || termTitle || fallbackTitle;
+                const isEditingTitle = get(this.titleEditingAtom);
+                const editValue = get(this.titleEditValueAtom);
+
+                const commitTitleEdit = () => {
+                    const trimmed = editValue.trim();
+                    globalStore.set(this.titleEditingAtom, false);
+                    RpcApi.SetMetaCommand(TabRpcClient, {
+                        oref: WOS.makeORef("block", this.blockId),
+                        meta: { "frame:title": trimmed === "" ? null : trimmed },
+                    }).catch((error) => {
+                        console.error("Failed to update terminal title:", error);
+                    });
+                };
+
+                if (isEditingTitle) {
+                    rtn.push({
+                        elemtype: "input",
+                        value: editValue,
+                        className: "!h-[22px] !min-w-[180px] px-1.5 py-0 text-[13px]",
+                        autoFocus: true,
+                        onChange: (e) => globalStore.set(this.titleEditValueAtom, e.target.value),
+                        onBlur: () => commitTitleEdit(),
+                        onKeyDown: (e) => {
+                            if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitTitleEdit();
+                            } else if (e.key === "Escape") {
+                                e.preventDefault();
+                                globalStore.set(this.titleEditValueAtom, visibleTitle);
+                                globalStore.set(this.titleEditingAtom, false);
+                            }
+                        },
+                    });
+                } else if (visibleTitle) {
                     rtn.push({
                         elemtype: "text",
-                        text: termTitle,
+                        text: visibleTitle,
+                        onDoubleClick: () => {
+                            globalStore.set(this.titleEditValueAtom, customTitle || termTitle || fallbackTitle);
+                            globalStore.set(this.titleEditingAtom, true);
+                        },
                     });
                 }
             }

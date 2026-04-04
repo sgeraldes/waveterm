@@ -8,7 +8,7 @@ import { VersionBadge } from "@site/src/components/versionbadge";
 
 # Connections
 
-Wave allows users to connect to various machines and unify them together in a way that preserves the unique behavior of each. At the moment, this extends to SSH remote connections, local WSL connections, and AWS S3 buckets.
+SG Wave allows users to connect to various machines and unify them together in a way that preserves the unique behavior of each. At the moment, this extends to SSH remote connections, local WSL connections, and AWS S3 buckets.
 
 ## Access a Connection in a Block
 
@@ -47,7 +47,7 @@ As such, certain features will not be available for certain types of connections
 - The user-defined environment variables in the `cmd:env` entry of`connections.json` are injected into the session.
 - The user-defined initialization scripts located in `connections.json` are run. For more information on these scripts, see the section below.
 
-If this fails for some reason, Wave will attempt to run without `wsh`. You will see this indicated by a small **<code><i className="fa-link-slash fa-solid fa-sharp"/></code>** icon in the block header. For more info on what `wsh` is capable of, see [wsh command](/wsh). And if you wish to view the source code of `wsh`, you can find it [here](https://github.com/wavetermdev/waveterm/tree/main/cmd/wsh).
+If this fails for some reason, SG Wave will attempt to run without `wsh`. You will see this indicated by a small **<code><i className="fa-link-slash fa-solid fa-sharp"/></code>** icon in the block header. For more info on what `wsh` is capable of, see [wsh command](/wsh). And if you wish to view the source code of `wsh`, you can find it [here](https://github.com/sgeraldes/waveterm/tree/main/cmd/wsh).
 
 With `wsh` installed, you have the ability to view certain widgets from the remote machine as if it were your host, for instance the `files` and `sysinfo` widgets. In addition, `wsh` can be used to influence the widgets across various machines. As a simple example, you can close a widget on the host machine by using the `wsh` command in a terminal window on a remote machine. For more information on what you can accomplish with `wsh`, take a look [here](/wsh).
 
@@ -68,7 +68,7 @@ As mentioned above, `wsh` injects a few environment variables in remote sessions
 
 # Initialization Scripts
 
-Wave provides you with options for running initialization scripts on your remote machines when connecting to them. These are defined in `connections.json` and can take either the form of the path of a script or a short script written directly in the file. If multiple scripts are defined, the most specific one relevant to the current shell is applied. The keywords for the scripts are:
+SG Wave provides you with options for running initialization scripts on your remote machines when connecting to them. These are defined in `connections.json` and can take either the form of the path of a script or a short script written directly in the file. If multiple scripts are defined, the most specific one relevant to the current shell is applied. The keywords for the scripts are:
 
 | Script Keyword      | Shells Where Applied |
 | ------------------- | -------------------- |
@@ -169,11 +169,11 @@ In addition to the regular ssh config file, wave also has its own config file to
 
 ### SSH Agent Detection
 
-Wave resolves the identity agent path in this order:
+SG Wave resolves the identity agent path in this order:
 
 - If `ssh:identityagent` (or `IdentityAgent` in SSH config) is set for the connection, that socket or pipe is used.
-- If not set on Windows, Wave falls back to the built-in OpenSSH agent pipe `\\.\pipe\openssh-ssh-agent`. Ensure the **OpenSSH Authentication Agent** service is running.
-- If not set on macOS/Linux, Wave queries your shell environment for `SSH_AUTH_SOCK` to detect the agent path automatically.
+- If not set on Windows, SG Wave falls back to the built-in OpenSSH agent pipe `\\.\pipe\openssh-ssh-agent`. Ensure the **OpenSSH Authentication Agent** service is running.
+- If not set on macOS/Linux, SG Wave queries your shell environment for `SSH_AUTH_SOCK` to detect the agent path automatically.
 
 ### Example Internal Configurations
 
@@ -246,7 +246,7 @@ This will create a connection without that connection needing to be in the `~/.s
 
 ### Disabling wsh for a Connection
 
-While Wave provides an option disable `wsh` when first connecting to a remote, there are cases where you may wish to disable it afterward. The easiest way to do this is by editing the `connections.json` file. Suppose the connection shows up in the dropdown as `root@wshless`. Then you can disable it manually with the following line:
+While SG Wave provides an option to disable `wsh` when first connecting to a remote, there are cases where you may wish to disable it afterward. The easiest way to do this is by editing the `connections.json` file. Suppose the connection shows up in the dropdown as `root@wshless`. Then you can disable it manually with the following line:
 
 ```json
 {
@@ -278,7 +278,7 @@ In the case that there is an error setting up `wsh`, your connection will still 
 
 #### Shell Type
 
-Wave is capable of injecting `wsh` in the following shells:
+SG Wave is capable of injecting `wsh` in the following shells:
 
 - bash
 - zsh

@@ -1,6 +1,7 @@
 // Copyright 2026, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
+import { resolveEffectiveDefaultShell } from "@/app/block/blockutil";
 import { RpcApi } from "@/app/store/wshclientapi";
 import { TabRpcClient } from "@/app/store/wshrpcutil";
 import type { TermViewModel } from "@/app/view/term/term-model";
@@ -32,7 +33,10 @@ const TermTab = React.memo(({ blockId, isActive, isPrimary, parentBlockId, model
 
     const tabName = blockData?.meta?.["term:tabname"] as string | undefined;
     const shellProfile = blockData?.meta?.["shell:profile"] || "";
-    const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+    const defaultShell = resolveEffectiveDefaultShell(
+        fullConfig?.settings?.["shell:profiles"],
+        fullConfig?.settings?.["shell:default"] || ""
+    );
     const effectiveShell = shellProfile || defaultShell;
 
     // Derive display name from shell or tabname

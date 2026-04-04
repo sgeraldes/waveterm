@@ -21,11 +21,11 @@ const AboutModal = ({}: AboutModalProps) => {
             <div className="flex flex-col gap-[26px] w-full">
                 <div className="flex flex-col items-center justify-center gap-4 self-stretch w-full text-center">
                     <Logo />
-                    <div className="text-[25px]">Wave Terminal</div>
+                    <div className="text-[25px]">SG Wave Terminal</div>
                     <div className="leading-5">
-                        Open-Source AI-Native Terminal
+                        A heavily customized community fork of Wave Terminal
                         <br />
-                        Built for Seamless Workflows
+                        with major workflow, UI, and security upgrades.
                     </div>
                 </div>
                 <div className="items-center gap-4 self-stretch w-full text-center">
@@ -36,32 +36,32 @@ const AboutModal = ({}: AboutModalProps) => {
                 </div>
                 <div className="flex items-start gap-[10px] self-stretch w-full text-center">
                     <a
-                        href="https://github.com/wavetermdev/waveterm?ref=about"
+                        href="https://github.com/sgeraldes/waveterm?ref=about"
                         target="_blank"
                         rel="noopener"
                         className="inline-flex items-center px-4 py-2 rounded border border-border hover:bg-hoverbg transition-colors duration-200"
                     >
-                        <i className="fa-brands fa-github mr-2"></i>Github
+                        <i className="fa-brands fa-github mr-2"></i>Project Repo
                     </a>
                     <a
-                        href="https://www.waveterm.dev/?ref=about"
+                        href="https://github.com/sgeraldes/waveterm/releases?ref=about"
                         target="_blank"
                         rel="noopener"
                         className="inline-flex items-center px-4 py-2 rounded border border-border hover:bg-hoverbg transition-colors duration-200"
                     >
-                        <i className="fa-sharp fa-light fa-globe mr-2"></i>Website
+                        <i className="fa-sharp fa-light fa-box-archive mr-2"></i>Releases
                     </a>
                     <a
-                        href="https://github.com/wavetermdev/waveterm/blob/main/ACKNOWLEDGEMENTS.md"
+                        href="https://github.com/wavetermdev/waveterm?ref=about-upstream"
                         target="_blank"
                         rel="noopener"
                         className="inline-flex items-center px-4 py-2 rounded border border-border hover:bg-hoverbg transition-colors duration-200"
                     >
-                        <i className="fa-sharp fa-light fa-heart mr-2"></i>Acknowledgements
+                        <i className="fa-sharp fa-light fa-heart mr-2"></i>Upstream Credits
                     </a>
                 </div>
                 <div className="items-center gap-4 self-stretch w-full text-center">
-                    &copy; {currentDate.getFullYear()} Command Line Inc.
+                    Fork maintained by sgeraldes &middot; based on the original Wave Terminal project.
                 </div>
             </div>
         </Modal>

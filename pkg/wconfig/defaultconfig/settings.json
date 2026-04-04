@@ -14,7 +14,7 @@
     "editor:minimapenabled": true,
     "editor:wordwrap": true,
     "preview:showhiddenfiles": true,
-    "web:defaulturl": "https://github.com/wavetermdev/waveterm",
+    "web:defaulturl": "https://github.com/sgeraldes/waveterm",
     "web:defaultsearch": "https://www.google.com/search?q={query}",
     "window:tilegapsize": 3,
     "window:maxtabcachesize": 10,

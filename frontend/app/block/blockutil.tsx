@@ -18,7 +18,7 @@ import * as React from "react";
  * - "pwsh-7.5" → "PowerShell 7.5"
  * - "bash" → "Bash"
  */
-function formatShellName(name: string): string {
+export function formatShellName(name: string): string {
     if (!name) return name;
 
     const lowerName = name.toLowerCase();
@@ -208,18 +208,45 @@ export function getViewIconElem(
     }
 }
 
+export function resolveEffectiveDefaultShell(
+    shellProfiles?: Record<string, ShellProfileType>,
+    configuredDefault?: string
+): string {
+    if (!util.isBlank(configuredDefault)) {
+        return configuredDefault;
+    }
+    if (!shellProfiles) {
+        return "zsh";
+    }
+
+    const entries = Object.entries(shellProfiles).filter(([, profile]) => !profile?.hidden);
+    const byPredicate = (predicate: (id: string, profile: ShellProfileType) => boolean) =>
+        entries.find(([id, profile]) => predicate(id, profile))?.[0] || "";
+
+    return (
+        byPredicate((_, profile) => profile?.["shell:path"] === "/bin/zsh") ||
+        byPredicate((_, profile) => profile?.["shell:type"] === "zsh") ||
+        byPredicate((_, profile) => profile?.["shell:path"] === "/bin/bash") ||
+        byPredicate((_, profile) => profile?.autodetected === true) ||
+        entries[0]?.[0] ||
+        "zsh"
+    );
+}
+
 /**
  * Gets shell profile display info from a profile ID.
  * Falls back to formatting the ID as a display name if no profile config exists.
  * When profileId is blank, uses the default shell setting.
  */
-function getShellProfileDisplayInfo(
+export function getShellProfileDisplayInfo(
     profileId: string,
     shellProfiles?: Record<string, ShellProfileType>,
     defaultShell?: string
 ): { displayName: string; icon: string; isDefault: boolean } {
     // Use default shell when profileId is blank
-    const effectiveProfileId = util.isBlank(profileId) ? defaultShell || "pwsh" : profileId;
+    const effectiveProfileId = util.isBlank(profileId)
+        ? resolveEffectiveDefaultShell(shellProfiles, defaultShell)
+        : profileId;
     const isDefault = util.isBlank(profileId) || effectiveProfileId === defaultShell;
 
     // Check configured shell profiles
@@ -302,14 +329,16 @@ export const ShellButton = React.memo(
             const [, setShellModalOpen] = jotai.useAtom(changeShellModalAtom);
             const fullConfig = jotai.useAtomValue(atoms.fullConfigAtom);
             const shellProfiles = fullConfig?.settings?.["shell:profiles"];
-            const defaultShell = fullConfig?.settings?.["shell:default"] || "";
+            const defaultShell = resolveEffectiveDefaultShell(
+                shellProfiles,
+                fullConfig?.settings?.["shell:default"] || ""
+            );
 
             const { displayName, icon, isDefault } = getShellProfileDisplayInfo(
                 shellProfile,
                 shellProfiles,
                 defaultShell
             );
-            const displayLabel = isDefault ? `${displayName} (default)` : displayName;
 
             const clickHandler = function () {
                 recordTEvent("action:other", { "action:type": "shellselector", "action:initiator": "mouse" });
@@ -322,9 +351,8 @@ export const ShellButton = React.memo(
                 <div ref={ref} className={clsx("shell-button")} onClick={clickHandler} title={titleText}>
                     <i
                         className={clsx(util.makeIconClass(icon, false), "shell-icon")}
-                        style={{ color: "var(--grey-text-color)", marginRight: 4 }}
+                        style={{ color: "var(--grey-text-color)" }}
                     />
-                    <div className="shell-name ellipsis">{displayLabel}</div>
                 </div>
             );
         }
@@ -333,7 +361,7 @@ export const ShellButton = React.memo(
 
 export const Input = React.memo(
     ({ decl, className, preview }: { decl: HeaderInput; className: string; preview: boolean }) => {
-        const { value, ref, isDisabled, onChange, onKeyDown, onFocus, onBlur } = decl;
+        const { value, ref, isDisabled, autoFocus, onChange, onKeyDown, onFocus, onBlur } = decl;
         return (
             <div className="input-wrapper">
                 <input
@@ -343,6 +371,7 @@ export const Input = React.memo(
                             : undefined /* don't wire up the input field if the preview block is being rendered */
                     }
                     disabled={isDisabled}
+                    autoFocus={autoFocus}
                     className={className}
                     value={value}
                     onChange={(e) => onChange(e)}
@@ -403,7 +432,11 @@ export const HeaderTextElem = React.memo(({ elem, preview }: { elem: HeaderElem;
     } else if (elem.elemtype == "text") {
         return (
             <div className={clsx("block-frame-text ellipsis", elem.className, { "flex-nogrow": elem.noGrow })}>
-                <span ref={preview ? null : elem.ref} onClick={(e) => elem?.onClick(e)}>
+                <span
+                    ref={preview ? null : elem.ref}
+                    onClick={(e) => elem?.onClick(e)}
+                    onDoubleClick={(e) => elem?.onDoubleClick?.(e)}
+                >
                     &lrm;{elem.text}
                 </span>
             </div>

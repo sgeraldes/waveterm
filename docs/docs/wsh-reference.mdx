@@ -11,7 +11,7 @@ import { PlatformProvider, PlatformSelectorButton } from "@site/src/components/p
 
 # wsh command
 
-The `wsh` command is always available from Wave blocks. It is a powerful tool for interacting with Wave blocks and can bridge data between your CLI and the widget GUIs.
+The `wsh` command is always available from SG Wave blocks. It is a powerful tool for interacting with SG Wave blocks and can bridge data between your CLI and the widget GUIs.
 
 This is the detailed wsh reference documention. For an overview of `wsh` functionality, please see our [wsh command docs](/wsh).
 
@@ -26,7 +26,7 @@ wsh view [path]
 ```
 
 You can use this command to easily preview images, markdown files, and directories. For code/text files this will open
-a codeedit block which you can use to quickly edit the file using Wave's embedded graphical editor.
+a codeedit block which you can use to quickly edit the file using SG Wave's embedded graphical editor.
 
 ---
 
@@ -86,7 +86,7 @@ You can update any metadata key value pair for blocks (and tabs) by using the se
 ```sh
 wsh setmeta -b [blockid] [key]=[value]
 wsh setmeta -b [blockid] file=~/myfile.txt
-wsh setmeta -b [blockid] url=https://waveterm.dev/
+wsh setmeta -b [blockid] url=https://github.com/sgeraldes/waveterm
 
 # set the metadata for the current tab using the given json file
 wsh setmeta -b tab --json [jsonfile]
@@ -110,7 +110,7 @@ wsh getmeta -b [other-tab-id] "bg:*" --clear-prefix | wsh setmeta -b tab --json 
 
 ## ai
 
-Append content to the Wave AI sidebar. Files are attached as proper file attachments (supporting images, PDFs, and text), not encoded as text. By default, content is added to the sidebar without auto-submitting, allowing you to review and add more context before sending to the AI.
+Append content to the SG Wave AI sidebar. Files are attached as proper file attachments (supporting images, PDFs, and text), not encoded as text. By default, content is added to the sidebar without auto-submitting, allowing you to review and add more context before sending to the AI.
 
 You can attach multiple files at once (up to 15 files). Use `-m` to add a message along with files, `-s` to auto-submit immediately, and `-n` to start a new chat conversation. Use "-" to read from stdin.
 
@@ -359,7 +359,7 @@ Examples:
 
 ```sh
 # Open a URL
-wsh web open https://waveterm.dev
+wsh web open https://github.com/sgeraldes/waveterm
 
 # Search with the configured search engine
 wsh web open "wave terminal documentation"
@@ -501,7 +501,7 @@ The `file` command provides a set of subcommands for managing files across diffe
 
 :::note
 
-Wave Terminal is capable of managing files from remote SSH hosts. Files are addressed via URIs, which
+SG Wave Terminal is capable of managing files from remote SSH hosts. Files are addressed via URIs, which
 vary depending on the storage system. If no scheme is specified, the file will be treated as a local connection.
 
 URI format: `[profile]:[uri-scheme]://[connection]/[path]`
@@ -703,7 +703,7 @@ Widget configurations can be customized in your `widgets.json` configuration fil
 
 ## getvar/setvar
 
-Wave Terminal provides commands for managing persistent variables at different scopes (block, tab, workspace, or client-wide).
+SG Wave Terminal provides commands for managing persistent variables at different scopes (block, tab, workspace, or client-wide).
 
 ### setvar
 

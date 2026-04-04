@@ -279,6 +279,7 @@ declare global {
         className?: string;
         noGrow?: boolean;
         onClick?: (e: React.MouseEvent<any>) => void;
+        onDoubleClick?: (e: React.MouseEvent<any>) => void;
     };
 
     type HeaderInput = {
@@ -286,6 +287,7 @@ declare global {
         value: string;
         className?: string;
         isDisabled?: boolean;
+        autoFocus?: boolean;
         ref?: React.RefObject<HTMLInputElement>;
         onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
         onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;

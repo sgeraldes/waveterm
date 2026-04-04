@@ -58,7 +58,7 @@ const UpgradeOnboardingMinor = () => {
             oref: WOS.makeORef("client", clientId),
             meta: { "onboarding:githubstar": true },
         });
-        window.open("https://github.com/wavetermdev/waveterm?ref=upgrade", "_blank");
+        window.open("https://github.com/sgeraldes/waveterm?ref=upgrade", "_blank");
         setPageName("features");
     };
 
@@ -100,7 +100,7 @@ const UpgradeOnboardingMinor = () => {
                     <div className="flex justify-center">
                         <Logo />
                     </div>
-                    <div className="text-center text-[25px] font-normal text-foreground">Welcome to Wave v0.13!</div>
+                    <div className="text-center text-[25px] font-normal text-foreground">Welcome to SG Wave v0.99!</div>
                 </header>
                 <OverlayScrollbarsComponent
                     className="flex-1 overflow-y-auto min-h-0"
@@ -114,22 +114,24 @@ const UpgradeOnboardingMinor = () => {
                             </div>
                             <div className="text-secondary leading-relaxed max-w-[600px]">
                                 <p className="mb-4">
-                                    Wave AI is your terminal assistant with full context. It can read your terminal
-                                    output, analyze widgets, read and write files, and help you solve
-                                    problems&nbsp;faster.
+                                    SG Wave keeps the original Wave AI vision but layers on major fork-specific work in
+                                    project-aware tabs, GUI settings, terminal improvements, and stricter validation.
                                 </p>
                                 <p className="mb-4">
-                                    <span className="font-semibold text-foreground">New in v0.13:</span> Wave AI now
-                                    supports local models and bring-your-own-key! Use Ollama, LM Studio, vLLM,
-                                    OpenRouter, or any OpenAI-compatible provider.
+                                    <span className="font-semibold text-foreground">In this fork:</span> expanded tab
+                                    workflows, stronger metadata validation, telemetry removal by default, UI refreshes,
+                                    and a more opinionated power-user experience.
                                 </p>
                                 <p className="py-3 px-2 border border-border rounded-md bg-hover/30">
-                                    Wave AI is in beta with included AI credits while we refine the experience. We're
-                                    actively improving it and would love your feedback in{" "}
-                                    <a target="_blank" href="https://discord.gg/XfvZ334gwU" className="hover:underline">
-                                        Discord
+                                    Follow releases, open issues, and track fork-specific changes on{" "}
+                                    <a
+                                        target="_blank"
+                                        href="https://github.com/sgeraldes/waveterm"
+                                        className="hover:underline"
+                                    >
+                                        github.com/sgeraldes/waveterm
                                     </a>
-                                    .
+                                    . Upstream remains credited as the foundation.
                                 </p>
                             </div>
                         </div>
@@ -137,10 +139,10 @@ const UpgradeOnboardingMinor = () => {
                         <div className="w-full max-w-[550px] border-t border-border my-2"></div>
 
                         <div className="flex flex-col items-center gap-3 text-center max-w-[550px]">
-                            <div className="text-foreground text-base">Thanks for being an early Wave adopter! ⭐</div>
+                            <div className="text-foreground text-base">Thanks for testing the fork! ⭐</div>
                             <div className="text-secondary text-sm">
-                                A GitHub star shows your support for Wave (and open-source) and helps us reach more
-                                developers.
+                                A GitHub star helps this fork gain visibility while still giving credit to the original
+                                project it builds on.
                             </div>
                         </div>
                     </div>

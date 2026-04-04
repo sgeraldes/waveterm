@@ -9,10 +9,10 @@
   <br/>
 </p>
 
-<h1 align="center">Wave Terminal — Experimental Fork</h1>
+<h1 align="center">SG Wave Terminal</h1>
 
 <p align="center">
-  An opinionated fork of <a href="https://github.com/wavetermdev/waveterm">Wave Terminal</a> with project-centric workflows, better terminal rendering, and zero telemetry.<br/>
+  A heavily customized fork of <a href="https://github.com/wavetermdev/waveterm">Wave Terminal</a> with project-centric workflows, better visuals, stronger validation, and zero telemetry.<br/>
   <strong>macOS · Linux · Windows · WSL</strong>
 </p>
 
@@ -27,16 +27,16 @@
 
 ## What's Different
 
-This fork takes Wave Terminal and pushes it toward a **project-centric, privacy-respecting** developer experience. The main changes:
+SG Wave pushes Wave Terminal toward a **project-centric, privacy-respecting** developer experience. Main changes:
 
 - **Tabs are project-aware** — each tab knows its working directory, colors itself accordingly, and passes context to every block inside it.
 - **Terminal rendering is fixed** — xterm.js 6.1.0 with Synchronized Output means htop, npm progress bars, and TUI spinners actually work.
-- **No telemetry, period** — all telemetry collection is removed. Wave AI works without it.
+- **No telemetry, period** — all telemetry collection is removed. SG Wave AI works without it.
 - **WSL is a first-class citizen** — WSL distributions appear as local shell profiles, not remote connections.
 - **Visual settings** — a VS Code-style settings panel instead of editing JSON by hand.
 - **Maximize mode** — expand any block to full screen with a keyboard shortcut, navigate between maximized blocks with a chip bar.
 
-274 commits ahead of upstream. Based on Wave Terminal v0.14.x with upstream's durable sessions merged.
+Includes major fork-specific UI, tab workflow, widget, shell-header, and privacy changes on top of upstream Wave.
 
 ![WaveTerm Screenshot](./assets/wave-screenshot.webp)
 
@@ -130,7 +130,7 @@ A visual editor for Oh-My-Posh themes, directly inside the Appearance settings.
 ### Privacy
 
 - **All telemetry removed** — no usage data, no analytics, no cloud pings
-- **Wave AI works without telemetry** — cloud AI modes don't gate on telemetry opt-in
+- **SG Wave AI works without telemetry** — cloud AI modes don't gate on telemetry opt-in
 - **S3 and WaveFile transfers removed** — no cloud file sync
 - **Simplified onboarding** — no telemetry toggle in setup
 
@@ -145,14 +145,14 @@ Comprehensive metadata validation added on top of upstream:
 
 ---
 
-## Everything from Wave Terminal
+## Upstream Foundation
 
-This fork includes all upstream Wave Terminal features:
+This fork still includes the broad upstream feature set from Wave Terminal, plus SG Wave-specific changes:
 
 - Drag & drop tiled layout for terminals, editors, web browsers, and AI assistants
 - Built-in Monaco editor for local and remote files
 - Rich file previews — markdown, images, video, PDFs, CSVs, directories
-- Wave AI with terminal context, file operations, and multi-provider support (OpenAI, Claude, Azure, Ollama, etc.)
+- SG Wave AI with terminal context, file operations, and multi-provider support (OpenAI, Claude, Azure, Ollama, etc.)
 - Command Blocks for isolating individual commands
 - One-click SSH remote connections with full filesystem access
 - Secure secret storage using native system backends
@@ -218,4 +218,4 @@ For the official Wave Terminal experience, visit the [upstream repository](https
 
 ## License
 
-Wave Terminal is licensed under the [Apache-2.0 License](LICENSE). For dependency information, see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).
+SG Wave Terminal is distributed under the [Apache-2.0 License](LICENSE). Upstream Wave Terminal remains credited in this fork. For dependency information, see [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md).

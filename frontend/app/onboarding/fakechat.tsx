@@ -13,13 +13,14 @@ interface ChatConfig {
 
 const chatConfigs: ChatConfig[] = [
     {
-        userPrompt: "Check out ~/waveterm and summarize the project — what it does and how it's organized.",
+        userPrompt: "Check out ~/waveterm and summarize the project — what this SG Wave fork does and how it's organized.",
         toolName: "read_dir",
         toolDescription: 'reading directory "~/waveterm"',
-        markdownResponse: `Here's a quick, file-structure–driven overview of this repo (Wave Terminal):
+        markdownResponse: `Here's a quick, file-structure–driven overview of this repo (SG Wave Terminal):
 
 ## What it is
-- Electron + React front end with a Go backend ("wavesrv"). Provides a terminal with GUI widgets, previews, web, and AI. (README.md)
+- Electron + React front end with a Go backend ("wavesrv"). Provides a terminal with GUI widgets, previews, web, and AI.
+- This fork significantly extends the upstream Wave Terminal base with new tab workflows, stronger validation, GUI settings work, and visual refinements.
 - Licensed Apache-2.0. (LICENSE)
 
 ## Architecture at a glance
