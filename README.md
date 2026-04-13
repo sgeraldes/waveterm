@@ -105,6 +105,8 @@ A VS Code-style settings panel for people who don't want to edit JSON.
 - **Dual view** — switch between visual mode and raw JSON anytime
 - **Real-time sync** — changes persist immediately with debounced saves
 
+![Visual Settings Screenshot](./assets/wave-screenshot-settings.png)
+
 ### Terminal Upgrades
 
 - **xterm.js 6.1.0** — DEC mode 2026 (Synchronized Output) for proper TUI rendering
