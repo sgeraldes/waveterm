@@ -120,6 +120,8 @@ Extra widget types beyond what upstream offers:
 | **Notes**     | Markdown notes with live preview and image paste                     |
 | **Todo**      | Inline-editable task lists with drag reordering and markdown support |
 
+![Todo / Kanban Screenshot](./assets/wave-screenshot-todo.png)
+
 ### Oh-My-Posh Configurator
 
 A visual editor for Oh-My-Posh themes, directly inside the Appearance settings.
