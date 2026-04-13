@@ -38,7 +38,7 @@ SG Wave pushes Wave Terminal toward a **project-centric, privacy-respecting** de
 
 Includes major fork-specific UI, tab workflow, widget, shell-header, and privacy changes on top of upstream Wave.
 
-![WaveTerm Screenshot](./assets/wave-screenshot.webp)
+![WaveTerm Screenshot](./assets/wave-screenshot.png)
 
 ---
 
