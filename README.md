@@ -63,6 +63,8 @@ Expand any block to fill the entire workspace. Useful for deep terminal work or 
 - **Chip bar** along the top to switch between all blocks while maximized
 - **Instant toggle** back to tiled layout — your arrangement is preserved
 
+![Maximize Mode Screenshot](./assets/wave-screenshot-maximize.png)
+
 ### Block Editor
 
 A Notion-style rich text editor block for notes and documentation right inside your terminal workspace.
