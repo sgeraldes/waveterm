@@ -135,6 +135,8 @@ A visual editor for Oh-My-Posh themes, directly inside the Appearance settings.
 - Edit properties, colors, and segment order visually
 - High contrast mode analysis for readability
 
+![Oh-My-Posh Configurator Screenshot](./assets/wave-screenshot-omp.png)
+
 ### Privacy
 
 - **All telemetry removed** — no usage data, no analytics, no cloud pings
