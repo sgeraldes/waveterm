@@ -74,6 +74,8 @@ A Notion-style rich text editor block for notes and documentation right inside y
 - **Markdown preview** — editor, split, and preview modes
 - **Live preview** — see rendered markdown as you type
 
+![Block Editor Screenshot](./assets/wave-screenshot-editor.png)
+
 ### Theme System
 
 Two-dimensional theming: **Mode** (Dark / Light / System) and **Accent** (Green / Warm / Blue / Purple / Teal).
