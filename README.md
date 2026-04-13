@@ -83,6 +83,8 @@ Two-dimensional theming: **Mode** (Dark / Light / System) and **Accent** (Green 
 - **Theme overrides** — fine-tune individual CSS variables
 - **Consistent theming** across AI panel, settings, terminal, and all widgets
 
+![Theme System Screenshot](./assets/wave-screenshot-theme.png)
+
 ### Shell Profiles & WSL
 
 Shells and connections are separated. Local shells (including WSL) get their own profile system.
