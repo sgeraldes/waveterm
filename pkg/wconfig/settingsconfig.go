@@ -130,11 +130,11 @@ type SettingsType struct {
 
 	TabPreset string `json:"tab:preset,omitempty"`
 
-	WidgetClear           bool   `json:"widget:*,omitempty"`
-	WidgetShowHelp        *bool  `json:"widget:showhelp,omitempty"`
-	WidgetPopTabHoverMs   *int64 `json:"widget:poptabhoverms,omitempty"`
-	WidgetPopoutEnabled   *bool  `json:"widget:popoutenabled,omitempty"`
-	WidgetPopoutAlwaysOnTop *bool `json:"widget:popoutalwaysontop,omitempty"`
+	WidgetClear             bool   `json:"widget:*,omitempty"`
+	WidgetShowHelp          *bool  `json:"widget:showhelp,omitempty"`
+	WidgetPopTabHoverMs     *int64 `json:"widget:poptabhoverms,omitempty"`
+	WidgetPopoutEnabled     *bool  `json:"widget:popoutenabled,omitempty"`
+	WidgetPopoutAlwaysOnTop *bool  `json:"widget:popoutalwaysontop,omitempty"`
 
 	WindowClear                         bool     `json:"window:*,omitempty"`
 	WindowFullscreenOnLaunch            bool     `json:"window:fullscreenonlaunch,omitempty"`
@@ -144,6 +144,7 @@ type SettingsType struct {
 	WindowBgColor                       string   `json:"window:bgcolor,omitempty"`
 	WindowReducedMotion                 bool     `json:"window:reducedmotion,omitempty"`
 	WindowTileGapSize                   *int64   `json:"window:tilegapsize,omitempty"`
+	WindowLayoutAnimations              string   `json:"window:layoutanimations,omitempty"`
 	WindowShowMenuBar                   bool     `json:"window:showmenubar,omitempty"`
 	WindowNativeTitleBar                bool     `json:"window:nativetitlebar,omitempty"`
 	WindowDisableHardwareAcceleration   bool     `json:"window:disablehardwareacceleration,omitempty"`
@@ -157,7 +158,7 @@ type SettingsType struct {
 	WindowDimensions                    string   `json:"window:dimensions,omitempty"`
 	WindowZoom                          *float64 `json:"window:zoom,omitempty"`
 
-	TabConfirmClose  *bool `json:"tab:confirmclose,omitempty"`
+	TabConfirmClose   *bool `json:"tab:confirmclose,omitempty"`
 	BlockConfirmClose *bool `json:"block:confirmclose,omitempty"`
 
 	TelemetryClear   bool `json:"telemetry:*,omitempty"`

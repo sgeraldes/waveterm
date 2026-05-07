@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"maps"
 	"sync"
 	"time"
 
@@ -105,10 +106,8 @@ func deleteController(blockId string) {
 func getAllControllers() map[string]Controller {
 	registryLock.RLock()
 	defer registryLock.RUnlock()
-	result := make(map[string]Controller)
-	for k, v := range controllerRegistry {
-		result[k] = v
-	}
+	result := make(map[string]Controller, len(controllerRegistry))
+	maps.Copy(result, controllerRegistry)
 	return result
 }
 
@@ -329,6 +328,10 @@ func getTermSize(bdata *waveobj.Block) waveobj.TermSize {
 func HandleAppendBlockFile(blockId string, blockFile string, data []byte) error {
 	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
 	defer cancelFn()
+	var offset int64
+	if wfile, statErr := filestore.WFS.Stat(ctx, blockId, blockFile); statErr == nil && wfile != nil {
+		offset = wfile.Size
+	}
 	err := filestore.WFS.AppendData(ctx, blockId, blockFile, data)
 	if err != nil {
 		return fmt.Errorf("error appending to blockfile: %w", err)
@@ -343,6 +346,7 @@ func HandleAppendBlockFile(blockId string, blockFile string, data []byte) error 
 			FileName: blockFile,
 			FileOp:   wps.FileOp_Append,
 			Data64:   base64.StdEncoding.EncodeToString(data),
+			Offset:   offset,
 		},
 	})
 	return nil
@@ -378,7 +382,7 @@ func HandleTruncateBlockFile(blockId string) error {
 
 }
 
-func debugLog(ctx context.Context, fmtStr string, args ...interface{}) {
+func debugLog(ctx context.Context, fmtStr string, args ...any) {
 	blocklogger.Infof(ctx, "[conndebug] "+fmtStr, args...)
 	log.Printf(fmtStr, args...)
 }
@@ -434,9 +438,7 @@ func makeSwapToken(ctx context.Context, logCtx context.Context, blockId string, 
 	if err != nil {
 		log.Printf("error resolving env map: %v\n", err)
 	}
-	for k, v := range envMap {
-		token.Env[k] = v
-	}
+	maps.Copy(token.Env, envMap)
 	token.ScriptText = getCustomInitScript(logCtx, blockMeta, remoteName, shellType)
 	return token
 }

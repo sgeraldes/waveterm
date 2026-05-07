@@ -1,7 +1,7 @@
 // Copyright 2025, Command Line Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-import { getSettingsKeyAtom } from "@/app/store/global";
+import { atoms, getSettingsKeyAtom, WOS } from "@/app/store/global";
 import clsx from "clsx";
 import { toPng } from "html-to-image";
 import { Atom, useAtomValue, useSetAtom } from "jotai";
@@ -60,8 +60,12 @@ function TileLayoutComponent({ tabAtom, contents, getCursorPoint }: TileLayoutPr
     const overlayTransform = useAtomValue(layoutModel.overlayTransform);
     const setActiveDrag = useSetAtom(layoutModel.activeDrag);
     const setReady = useSetAtom(layoutModel.ready);
-    const isResizing = useAtomValue(layoutModel.isResizing);
+    const isLayoutChanging = useAtomValue(layoutModel.isLayoutChanging);
     const isMaximizeMode = useAtomValue(layoutModel.isMaximizeModeAtom);
+    const leafs = useAtomValue(layoutModel.leafs);
+    const [layoutAnimationsAtom] = useState(() => getSettingsKeyAtom("window:layoutanimations"));
+    const layoutAnimations = useAtomValue(layoutAnimationsAtom) ?? "auto";
+    const prefersReducedMotion = useAtomValue(atoms.prefersReducedMotionAtom);
 
     const { activeDrag, dragClientOffset, dragItemType } = useDragLayer((monitor) => ({
         activeDrag: monitor.isDragging(),
@@ -119,11 +123,24 @@ function TileLayoutComponent({ tabAtom, contents, getCursorPoint }: TileLayoutPr
         [gapSizePx, animationTimeS]
     );
 
+    const hasTerminalLeaf = useMemo(() => {
+        return leafs.some((node) => {
+            const blockId = node.data?.blockId;
+            if (!blockId) return false;
+            const block = WOS.getObjectValue<Block>(WOS.makeORef("block", blockId));
+            return block?.meta?.view === "term";
+        });
+    }, [leafs]);
+    const allowAnimations =
+        !prefersReducedMotion &&
+        !isLayoutChanging &&
+        (layoutAnimations === "on" || (layoutAnimations === "auto" && !hasTerminalLeaf));
+
     return (
         <Suspense>
             <div
                 className={clsx("tile-layout", contents.className, {
-                    animate: animate && !isResizing,
+                    animate: animate && allowAnimations,
                     "maximize-mode": isMaximizeMode,
                 })}
                 style={tileStyle}

@@ -76,12 +76,6 @@ type connStateManager struct {
 	reconcileCh chan struct{}
 }
 
-type jobState struct {
-	stateLock       sync.Mutex
-	isConnecting    bool
-	connectedStatus string
-}
-
 var (
 	jobConnStates         = make(map[string]string)
 	jobControllerLock     sync.Mutex
@@ -194,13 +188,13 @@ func GetBlockJobStatus(ctx context.Context, blockId string) (*wshrpc.BlockJobSta
 	data.CmdExitCode = job.CmdExitCode
 	data.CmdExitSignal = job.CmdExitSignal
 
-	if job.JobManagerStatus == JobManagerStatus_Init {
+	switch job.JobManagerStatus {
+	case JobManagerStatus_Init:
 		data.Status = "init"
-	} else if job.JobManagerStatus == JobManagerStatus_Done {
+	case JobManagerStatus_Done:
 		data.Status = "done"
-	} else if job.JobManagerStatus == JobManagerStatus_Running {
-		connStatus := GetJobConnStatus(job.OID)
-		if connStatus == JobConnStatus_Connected {
+	case JobManagerStatus_Running:
+		if GetJobConnStatus(job.OID) == JobConnStatus_Connected {
 			data.Status = "connected"
 		} else {
 			data.Status = "disconnected"
@@ -350,8 +344,7 @@ func handleRouteDownEvent(event *wps.WaveEvent) {
 func handleRouteEvent(event *wps.WaveEvent, newStatus string) {
 	ctx := context.Background()
 	for _, scope := range event.Scopes {
-		if strings.HasPrefix(scope, "job:") {
-			jobId := strings.TrimPrefix(scope, "job:")
+		if jobId, ok := strings.CutPrefix(scope, "job:"); ok {
 			SetJobConnStatus(jobId, newStatus)
 			log.Printf("[job:%s] connection status changed to %s", jobId, newStatus)
 
@@ -423,8 +416,8 @@ func handleConnChangeEvent(event *wps.WaveEvent) {
 
 	var connName string
 	for _, scope := range event.Scopes {
-		if strings.HasPrefix(scope, "connection:") {
-			connName = strings.TrimPrefix(scope, "connection:")
+		if name, ok := strings.CutPrefix(scope, "connection:"); ok {
+			connName = name
 			break
 		}
 	}
@@ -671,7 +664,7 @@ func StartJob(ctx context.Context, params StartJobParams) (string, error) {
 		Timeout: 30000,
 	}
 
-	writeSessionSeparatorToTerminal(params.BlockId, params.TermSize.Cols)
+	writeSessionSeparatorToTerminal(params.BlockId)
 
 	log.Printf("[job:%s] sending RemoteStartJobCommand to connection %s, cmd=%q, args=%v", jobId, params.ConnName, params.Cmd, params.Args)
 	log.Printf("[job:%s] env=%v", jobId, params.Env)
@@ -718,6 +711,10 @@ func StartJob(ctx context.Context, params StartJobParams) (string, error) {
 }
 
 func doWFSAppend(ctx context.Context, oref waveobj.ORef, fileName string, data []byte) error {
+	var offset int64
+	if wfile, statErr := filestore.WFS.Stat(ctx, oref.OID, fileName); statErr == nil && wfile != nil {
+		offset = wfile.Size
+	}
 	err := filestore.WFS.AppendData(ctx, oref.OID, fileName, data)
 	if err != nil {
 		return err
@@ -732,6 +729,7 @@ func doWFSAppend(ctx context.Context, oref waveobj.ORef, fileName string, data [
 			FileName: fileName,
 			FileOp:   wps.FileOp_Append,
 			Data64:   base64.StdEncoding.EncodeToString(data),
+			Offset:   offset,
 		},
 	})
 	return nil
@@ -1489,7 +1487,7 @@ func isFileEmpty(ctx context.Context, blockId string) bool {
 	return file.Size == 0
 }
 
-func writeSessionSeparatorToTerminal(blockId string, termWidth int) {
+func writeSessionSeparatorToTerminal(blockId string) {
 	if blockId == "" {
 		return
 	}

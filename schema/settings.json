@@ -254,6 +254,9 @@
         "window:tilegapsize": {
           "type": "integer"
         },
+        "window:layoutanimations": {
+          "type": "string"
+        },
         "window:showmenubar": {
           "type": "boolean"
         },

@@ -99,6 +99,7 @@ const (
 	ConfigKey_WindowBgColor                  = "window:bgcolor"
 	ConfigKey_WindowReducedMotion            = "window:reducedmotion"
 	ConfigKey_WindowTileGapSize              = "window:tilegapsize"
+	ConfigKey_WindowLayoutAnimations         = "window:layoutanimations"
 	ConfigKey_WindowShowMenuBar              = "window:showmenubar"
 	ConfigKey_WindowNativeTitleBar           = "window:nativetitlebar"
 	ConfigKey_WindowDisableHardwareAcceleration = "window:disablehardwareacceleration"

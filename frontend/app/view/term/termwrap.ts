@@ -52,6 +52,27 @@ const dlog = debug("wave:termwrap");
 
 export const SupportsImageInput = true;
 
+const pendingTerminalResizes = new Set<TermWrap>();
+let terminalResizeFrame: number | null = null;
+
+function scheduleTerminalResize(termWrap: TermWrap) {
+    pendingTerminalResizes.add(termWrap);
+    if (terminalResizeFrame != null) {
+        return;
+    }
+    const scheduleFrame = globalThis.requestAnimationFrame ?? ((callback: FrameRequestCallback) => window.setTimeout(callback, 16));
+    terminalResizeFrame = scheduleFrame(() => {
+        terminalResizeFrame = null;
+        const termWraps = Array.from(pendingTerminalResizes);
+        pendingTerminalResizes.clear();
+        for (const pendingTermWrap of termWraps) {
+            if (!pendingTermWrap.disposed) {
+                pendingTermWrap.handleResize();
+            }
+        }
+    });
+}
+
 function detectWebGLSupport(): boolean {
     try {
         const canvas = document.createElement("canvas");
@@ -85,7 +106,7 @@ export class TermWrap {
     serializeAddon: SerializeAddon;
     mainFileSubject: SubjectWithRef<WSFileEventData>;
     loaded: boolean;
-    heldData: Uint8Array[];
+    heldData: Array<{ data: Uint8Array; offset: number }>;
     handleResize_debounced: () => void;
     hasResized: boolean;
     multiInputCallback: (data: string) => void;
@@ -116,6 +137,7 @@ export class TermWrap {
     lastSnapshotTime: number = 0;
     lastRollingLength: number = 0;
     restoredMode: boolean = false;
+    disposed: boolean = false;
 
     constructor(
         tabId: string,
@@ -277,7 +299,7 @@ export class TermWrap {
         this.connectElem = connectElem;
         this.mainFileSubject = null;
         this.heldData = [];
-        this.handleResize_debounced = debounce(50, this.handleResize.bind(this));
+        this.handleResize_debounced = () => scheduleTerminalResize(this);
         this.terminal.open(this.connectElem);
         if (waveOptions.useLigatures) {
             const ligaturesAddon = new LigaturesAddon();
@@ -443,15 +465,18 @@ export class TermWrap {
             console.log("Error loading runtime info:", e);
         }
 
+        let readEndOffset = 0;
         try {
-            await loadInitialTerminalData(this);
+            readEndOffset = await loadInitialTerminalData(this);
         } finally {
+            // Drop held subscription events whose bytes are already covered by the file we just read.
+            // Keep events that arrived for appends past the read endpoint — those are genuinely new.
+            // This is race-free because each append event carries the exact byte offset where it was written.
+            const newEntries = this.heldData.filter((entry) => entry.offset >= readEndOffset);
+            this.heldData = [];
             this.loaded = true;
-            if (this.heldData.length > 0) {
-                for (const data of this.heldData) {
-                    this.doTerminalWrite(data, null);
-                }
-                this.heldData = [];
+            for (const entry of newEntries) {
+                this.doTerminalWrite(entry.data, null);
             }
         }
         runProcessIdleTimeout(this);
@@ -461,6 +486,8 @@ export class TermWrap {
     }
 
     dispose() {
+        this.disposed = true;
+        pendingTerminalResizes.delete(this);
         if (this.titleDebounceTimer != null) {
             clearTimeout(this.titleDebounceTimer);
             this.titleDebounceTimer = null;
@@ -588,7 +615,7 @@ export class TermWrap {
             if (this.loaded) {
                 this.doTerminalWrite(decodedData, null);
             } else {
-                this.heldData.push(decodedData);
+                this.heldData.push({ data: decodedData, offset: msg.offset ?? 0 });
             }
         } else {
             console.log("bad fileop for terminal", msg);

@@ -76,6 +76,21 @@ const DefaultGapSizePx = 3;
 const MinNodeSizePx = 40;
 const DefaultAnimationTimeS = 0.15;
 
+const LayoutChangingActionTypes = new Set<LayoutTreeActionType>([
+    LayoutTreeActionType.ResizeNode,
+    LayoutTreeActionType.Move,
+    LayoutTreeActionType.Swap,
+    LayoutTreeActionType.InsertNode,
+    LayoutTreeActionType.InsertNodeAtIndex,
+    LayoutTreeActionType.DeleteNode,
+    LayoutTreeActionType.ClearTree,
+    LayoutTreeActionType.ReplaceNode,
+    LayoutTreeActionType.SplitHorizontal,
+    LayoutTreeActionType.SplitVertical,
+    LayoutTreeActionType.HideNode,
+    LayoutTreeActionType.UnhideNode,
+]);
+
 export class LayoutModel {
     /**
      * Local atom holding the current tree state (source of truth during runtime)
@@ -244,9 +259,14 @@ export class LayoutModel {
      */
     isResizing: Atom<boolean>;
     /**
+     * True while layout geometry is changing and visual movement should not animate.
+     */
+    isLayoutChanging: Atom<boolean>;
+    /**
      * True if the whole TileLayout container is being resized.
      */
     private isContainerResizing: PrimitiveAtom<boolean>;
+    private isStructureChanging: PrimitiveAtom<boolean>;
 
     constructor(
         tabAtom: Atom<Tab>,
@@ -306,11 +326,14 @@ export class LayoutModel {
         });
         this.resizeHandles = splitAtom(resizeHandleListAtom);
         this.isContainerResizing = atom(false);
-        this.isResizing = atom((get) => {
-            const pendingAction = get(this.pendingTreeAction.throttledValueAtom);
+        this.isStructureChanging = atom(false);
+        this.isLayoutChanging = atom((get) => {
+            const pendingAction = get(this.pendingTreeAction.currentValueAtom);
             const isWindowResizing = get(this.isContainerResizing);
-            return isWindowResizing || pendingAction?.type === LayoutTreeActionType.ResizeNode;
+            const isStructureChanging = get(this.isStructureChanging);
+            return isWindowResizing || isStructureChanging || LayoutChangingActionTypes.has(pendingAction?.type);
         });
+        this.isResizing = this.isLayoutChanging;
 
         this.displayContainerRef = createRef();
         this.activeDrag = atom(false);
@@ -626,6 +649,10 @@ export class LayoutModel {
      * @param action The action to perform.
      */
     treeReducer(action: LayoutTreeAction, setState = true) {
+        if (LayoutChangingActionTypes.has(action.type)) {
+            this.setter(this.isStructureChanging, true);
+            this.stopStructureChanging();
+        }
         switch (action.type) {
             case LayoutTreeActionType.ComputeMove:
                 this.setter(
@@ -1511,8 +1538,8 @@ export class LayoutModel {
      * Callback that is invoked when the TileLayout container is being resized.
      */
     onContainerResize = () => {
-        this.updateTree();
         this.setter(this.isContainerResizing, true);
+        this.updateTree();
         this.stopContainerResizing();
     };
 
@@ -1521,6 +1548,10 @@ export class LayoutModel {
      */
     stopContainerResizing = debounce(30, () => {
         this.setter(this.isContainerResizing, false);
+    });
+
+    stopStructureChanging = debounce(50, () => {
+        this.setter(this.isStructureChanging, false);
     });
 
     /**

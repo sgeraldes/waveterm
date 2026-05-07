@@ -424,6 +424,24 @@ const allSettings: SettingMetadata[] = [
         tags: ["layout", "tiles", "spacing"],
     },
     {
+        key: "window:layoutanimations",
+        label: "Layout Animations",
+        description: "Control animations when blocks are rearranged or resized.",
+        category: "Window",
+        subcategory: "Layout",
+        controlType: "select",
+        defaultValue: "auto",
+        type: "string",
+        validation: {
+            options: [
+                { value: "auto", label: "Auto" },
+                { value: "on", label: "On" },
+                { value: "off", label: "Off" },
+            ],
+        },
+        tags: ["layout", "tiles", "animation", "motion"],
+    },
+    {
         key: "window:showmenubar",
         label: "Show Menu Bar",
         description: "Display the application menu bar.",

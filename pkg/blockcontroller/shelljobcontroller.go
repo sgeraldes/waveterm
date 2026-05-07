@@ -7,14 +7,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/fs"
 	"log"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/wavetermdev/waveterm/pkg/blocklogger"
-	"github.com/wavetermdev/waveterm/pkg/filestore"
 	"github.com/wavetermdev/waveterm/pkg/jobcontroller"
 	"github.com/wavetermdev/waveterm/pkg/remote"
 	"github.com/wavetermdev/waveterm/pkg/remote/conncontroller"
@@ -290,42 +287,3 @@ func (sjc *ShellJobController) startNewJob(ctx context.Context, blockMeta waveob
 	return jobId, nil
 }
 
-func (sjc *ShellJobController) resetTerminalState(logCtx context.Context) {
-	ctx, cancelFn := context.WithTimeout(context.Background(), DefaultTimeout)
-	defer cancelFn()
-
-	jobId := ""
-	sjc.WithLock(func() {
-		jobId = sjc.JobId
-	})
-	if jobId == "" {
-		return
-	}
-
-	wfile, statErr := filestore.WFS.Stat(ctx, jobId, jobcontroller.JobOutputFileName)
-	if statErr == fs.ErrNotExist {
-		return
-	}
-	if statErr != nil {
-		log.Printf("error statting job output file: %v\n", statErr)
-		return
-	}
-	if wfile.Size == 0 {
-		return
-	}
-
-	blocklogger.Debugf(logCtx, "[conndebug] resetTerminalState: resetting terminal state for job\n")
-
-	resetSeq := "\x1b[0m"                       // reset attributes
-	resetSeq += "\x1b[?25h"                     // show cursor
-	resetSeq += "\x1b[?1000l"                   // disable mouse tracking
-	resetSeq += "\x1b[?1007l"                   // disable alternate scroll mode
-	resetSeq += "\x1b[?2004l"                   // disable bracketed paste mode
-	resetSeq += shellutil.FormatOSC(16162, "R") // disable alternate screen mode
-	resetSeq += "\r\n\r\n"
-
-	err := filestore.WFS.AppendData(ctx, jobId, jobcontroller.JobOutputFileName, []byte(resetSeq))
-	if err != nil {
-		log.Printf("error appending terminal reset to job file: %v\n", err)
-	}
-}

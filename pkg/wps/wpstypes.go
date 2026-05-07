@@ -59,6 +59,10 @@ type WSFileEventData struct {
 	FileName string `json:"filename"`
 	FileOp   string `json:"fileop"`
 	Data64   string `json:"data64"`
+	// Offset is the byte position in the file where the appended data starts.
+	// Set only for FileOp_Append events. Used by clients to deduplicate against
+	// content read directly from the file.
+	Offset int64 `json:"offset,omitempty"`
 }
 
 type FileChangeEventData struct {

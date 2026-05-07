@@ -38,7 +38,13 @@ export interface SessionHistoryCtx {
     serializeAddon: { serialize(): string };
 }
 
-export async function loadInitialTerminalData(ctx: TermDataCtx): Promise<void> {
+/**
+ * Loads cache + main term file content into xterm.
+ * Returns the absolute byte offset in the term file that the read covered up to.
+ * Callers use this to deduplicate against subscription events that fire concurrently:
+ * any held subscription event with offset < returned value is already in the file we just read.
+ */
+export async function loadInitialTerminalData(ctx: TermDataCtx): Promise<number> {
     const startTs = Date.now();
 
     // Check if this block should restore scrollback from another block's session history
@@ -100,6 +106,7 @@ export async function loadInitialTerminalData(ctx: TermDataCtx): Promise<void> {
     if (mainFile != null) {
         await ctx.doTerminalWrite(mainData);
     }
+    return ptyOffset + (mainData?.byteLength ?? 0);
 }
 
 export function processAndCacheData(ctx: TermDataCtx): void {

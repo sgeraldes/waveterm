@@ -1471,6 +1471,7 @@ declare global {
         "window:bgcolor"?: string;
         "window:reducedmotion"?: boolean;
         "window:tilegapsize"?: number;
+        "window:layoutanimations"?: string;
         "window:showmenubar"?: boolean;
         "window:nativetitlebar"?: boolean;
         "window:disablehardwareacceleration"?: boolean;
@@ -1740,6 +1741,7 @@ declare global {
         filename: string;
         fileop: string;
         data64: string;
+        offset?: number;
     };
 
     // webcmd.WSRpcCommand

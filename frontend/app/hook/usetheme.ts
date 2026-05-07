@@ -33,15 +33,21 @@ function migrateThemeSetting(currentTheme: string): void {
 // Reactive atom tracking system dark mode preference.
 // Uses an effect-based approach: the atom holds a writable value that is kept
 // in sync with window.matchMedia via a module-level listener.
-const systemDarkModeAtom = atom<boolean>(window.matchMedia("(prefers-color-scheme: dark)").matches);
+// Guarded for non-DOM environments (test runners load this module without `window`).
+const hasMatchMedia = typeof window !== "undefined" && typeof window.matchMedia === "function";
+const systemDarkModeAtom = atom<boolean>(
+    hasMatchMedia ? window.matchMedia("(prefers-color-scheme: dark)").matches : false
+);
 
 // Set up a module-level listener to keep systemDarkModeAtom in sync with OS preference.
 // This runs once when the module loads. The listener updates the atom whenever
 // the OS dark/light preference changes, making resolvedAppThemeAtom reactive.
-const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
-darkModeQuery.addEventListener("change", (e) => {
-    globalStore.set(systemDarkModeAtom, e.matches);
-});
+if (hasMatchMedia) {
+    const darkModeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    darkModeQuery.addEventListener("change", (e) => {
+        globalStore.set(systemDarkModeAtom, e.matches);
+    });
+}
 
 // Step 9: resolvedAppThemeAtom (keep legacy value handling for migration window)
 /**
