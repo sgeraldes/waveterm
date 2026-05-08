@@ -1,8 +1,10 @@
 import type { Config } from "@docusaurus/types";
+import path from "node:path";
 import rehypeHighlight from "rehype-highlight";
 import { docOgRenderer } from "./src/renderer/image-renderers";
 
 const baseUrl = process.env.EMBEDDED ? "/docsite/" : "/";
+const docsNodeModules = path.resolve(__dirname, "node_modules");
 
 const config: Config = {
     title: "SG Wave Documentation",
@@ -23,7 +25,11 @@ const config: Config = {
 
     onBrokenAnchors: "ignore",
     onBrokenLinks: "throw",
-    onBrokenMarkdownLinks: "warn",
+    markdown: {
+        hooks: {
+            onBrokenMarkdownLinks: "warn",
+        },
+    },
     trailingSlash: false,
 
     // Even if you don't use internationalization, you can use this field to set
@@ -34,6 +40,23 @@ const config: Config = {
         locales: ["en"],
     },
     plugins: [
+        function docsReactRuntimeAliasPlugin() {
+            return {
+                name: "docs-react-runtime-alias",
+                configureWebpack() {
+                    return {
+                        resolve: {
+                            alias: {
+                                react: path.join(docsNodeModules, "react"),
+                                "react-dom": path.join(docsNodeModules, "react-dom"),
+                                "react/jsx-runtime": path.join(docsNodeModules, "react", "jsx-runtime.js"),
+                                "react/jsx-dev-runtime": path.join(docsNodeModules, "react", "jsx-dev-runtime.js"),
+                            },
+                        },
+                    };
+                },
+            };
+        },
         [
             "content-docs",
             {
