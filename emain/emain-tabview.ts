@@ -154,18 +154,19 @@ export class WaveTabView extends WebContentsView {
         this.waveReadyPromise.then(() => {
             this.isWaveReady = true;
         });
-        wcIdToWaveTabMap.set(this.webContents.id, this);
+        const wcId = this.webContents.id;
+        wcIdToWaveTabMap.set(wcId, this);
         if (isDevVite) {
             this.webContents.loadURL(`${process.env.ELECTRON_RENDERER_URL}/index.html`);
         } else {
             this.webContents.loadFile(path.join(getElectronAppBasePath(), "frontend", "index.html"));
         }
         this.webContents.on("destroyed", () => {
-            wcIdToWaveTabMap.delete(this.webContents.id);
+            wcIdToWaveTabMap.delete(wcId);
             removeWaveTabView(this.waveTabId);
             this.isDestroyed = true;
         });
-        this.webContents.on("zoom-changed", (_event, zoomDirection) => {
+        this.webContents.on("zoom-changed", () => {
             this.webContents.send("zoom-factor-change", this.webContents.getZoomFactor());
         });
         this.setBackgroundColor(computeBgColor(fullConfig));
@@ -286,7 +287,6 @@ function checkAndEvictCache(): void {
         // Otherwise, sort by lastUsedTs
         return a.lastUsedTs - b.lastUsedTs;
     });
-    const now = Date.now();
     for (let i = 0; i < sorted.length - MaxCacheSize; i++) {
         tryEvictEntry(sorted[i].waveTabId);
     }
@@ -314,7 +314,7 @@ export async function getOrCreateWebViewForTab(waveWindowId: string, tabId: stri
     tabView.waveTabId = tabId;
     tabView.webContents.on("will-navigate", shNavHandler);
     tabView.webContents.on("will-frame-navigate", shFrameNavHandler);
-    tabView.webContents.on("did-attach-webview", (event, wc) => {
+    tabView.webContents.on("did-attach-webview", (_event, wc) => {
         wc.setWindowOpenHandler((details) => {
             tabView.webContents.send("webview-new-window", wc.id, details);
             return { action: "deny" };
@@ -339,10 +339,10 @@ export async function getOrCreateWebViewForTab(waveWindowId: string, tabId: stri
             }
         }
     });
-    tabView.webContents.on("zoom-changed", (e) => {
+    tabView.webContents.on("zoom-changed", () => {
         tabView.webContents.send("zoom-changed");
     });
-    tabView.webContents.setWindowOpenHandler(({ url, frameName }) => {
+    tabView.webContents.setWindowOpenHandler(({ url }) => {
         if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://")) {
             console.log("openExternal fallback", url);
             shell.openExternal(url);
