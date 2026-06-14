@@ -150,7 +150,7 @@
         "use-device-pixel-ratio": "^1.1.2",
         "winston": "^3.19.0",
         "ws": "^8.19.0",
-        "yaml": "^2.8.2",
+        "yaml": "^2.8.4",
         "zod": "^4.3.6"
     },
     "packageManager": "npm@10.9.2",
